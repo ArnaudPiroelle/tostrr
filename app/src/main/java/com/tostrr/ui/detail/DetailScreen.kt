@@ -55,6 +55,7 @@ import com.tostrr.ui.common.StepBarThickness
 import com.tostrr.ui.common.StepDot
 import com.tostrr.ui.common.StepDotSize
 import com.tostrr.domain.Change
+import com.tostrr.domain.HIDDEN_OPTION_CODES
 import com.tostrr.domain.Order
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -263,7 +264,6 @@ private fun KeyValue(label: String, value: String?) {
 private fun Empty(text: String) = Text(text, style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted)
 
 /** Internal model markers that the official app doesn't list as options. */
-private val HIDDEN_OPTION_CODES = setOf("MDL3", "MDLY", "MDLX", "MDLS")
 
 @Composable
 private fun ConfigurationContent(order: Order, options: Map<String, OptionInfo>) {

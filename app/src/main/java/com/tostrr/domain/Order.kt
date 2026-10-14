@@ -43,3 +43,6 @@ data class Change(
     /** True when either side is an object or array, so the details can be inspected as JSON. */
     val structured: Boolean = false,
 )
+
+/** Model codes carry no useful description for the user, so they are left out of option lists. */
+val HIDDEN_OPTION_CODES = setOf("MDL3", "MDLY", "MDLX", "MDLS")

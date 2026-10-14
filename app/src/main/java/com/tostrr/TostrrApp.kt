@@ -30,7 +30,7 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
             .build()
         auth = TeslaAuth(client, TokenStore(this))
         catalog = OptionCatalog(client, filesDir)
-        repository = OrderRepository(TeslaApi(client), auth, catalog, filesDir, OrderNotifier(this))
+        repository = OrderRepository(TeslaApi(client), auth, catalog, filesDir, OrderNotifier(this) { catalog.codes.value })
         if (auth.isLoggedIn()) RefreshScheduler.schedule(this)
     }
 

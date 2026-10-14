@@ -13,10 +13,14 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.tostrr.MainActivity
 import com.tostrr.R
+import com.tostrr.domain.HIDDEN_OPTION_CODES
 import com.tostrr.domain.Order
 
 /** Posts notifications for order steps completed, or taken back, since the previous sync. */
-class OrderNotifier(private val context: Context) {
+class OrderNotifier(
+    private val context: Context,
+    private val catalogCodes: () -> Map<String, OptionInfo>,
+) {
 
     fun notifyStepChanges(before: Order?, after: Order) {
         val beforeDone = before?.steps.orEmpty().filter { it.done }.map { it.label }.toSet()
@@ -32,9 +36,28 @@ class OrderNotifier(private val context: Context) {
             else "Votre commande est revenue en arrière : les étapes $steps ne sont plus validées"
             post(after, REGRESSION_KEY, message)
         }
+
+        if (before != null) notifyConfigurationChange(before, after)
     }
 
-    private fun post(order: Order, stepLabel: String, message: String) {
+    /** Tesla can rewrite the configuration after the order is placed; list what was added and removed. */
+    private fun notifyConfigurationChange(before: Order, after: Order) {
+        val old = before.optionCodes.filter { it !in HIDDEN_OPTION_CODES }.toSet()
+        val new = after.optionCodes.filter { it !in HIDDEN_OPTION_CODES }.toSet()
+        val removed = (old - new).map(::label)
+        val added = (new - old).map(::label)
+        if (removed.isEmpty() && added.isEmpty()) return
+        val detail = when {
+            removed.isEmpty() -> "+ ${added.joinToString(", ")}"
+            added.isEmpty() -> "− ${removed.joinToString(", ")}"
+            else -> "${removed.joinToString(", ")} → ${added.joinToString(", ")}"
+        }
+        post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", detail)
+    }
+
+    private fun label(code: String) = catalogCodes()[code.uppercase()]?.label ?: code
+
+    private fun post(order: Order, stepLabel: String, message: String, text: String? = null) {
         if (!canNotify()) return
         ensureChannel()
         val open = PendingIntent.getActivity(
@@ -45,7 +68,8 @@ class OrderNotifier(private val context: Context) {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(message)
-            .setContentText("${order.modelName} · ${order.reference}")
+            .setContentText(text ?: "${order.modelName} · ${order.reference}")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text ?: "${order.modelName} · ${order.reference}"))
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()
@@ -70,5 +94,6 @@ class OrderNotifier(private val context: Context) {
     private companion object {
         const val CHANNEL_ID = "order_progress"
         const val REGRESSION_KEY = "regression"
+        const val CONFIG_KEY = "configuration"
     }
 }
