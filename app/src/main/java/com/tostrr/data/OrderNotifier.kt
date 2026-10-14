@@ -51,7 +51,7 @@ class OrderNotifier(
         post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", lines.joinToString(" · "), lines.joinToString("\n"))
     }
 
-    private fun label(code: String) = catalogCodes()[code.uppercase()]?.label ?: code
+    private fun label(code: String) = catalogCodes()[code.uppercase()]?.let { "${it.label} ($code)" } ?: code
 
     private fun post(order: Order, stepLabel: String, message: String, text: String? = null, bigText: String? = text) {
         if (!canNotify()) return
