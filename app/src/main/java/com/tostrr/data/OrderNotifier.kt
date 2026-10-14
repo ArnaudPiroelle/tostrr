@@ -47,17 +47,13 @@ class OrderNotifier(
         val removed = (old - new).map(::label)
         val added = (new - old).map(::label)
         if (removed.isEmpty() && added.isEmpty()) return
-        val detail = when {
-            removed.isEmpty() -> "+ ${added.joinToString(", ")}"
-            added.isEmpty() -> "− ${removed.joinToString(", ")}"
-            else -> "${removed.joinToString(", ")} → ${added.joinToString(", ")}"
-        }
-        post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", detail)
+        val lines = removed.map { "− $it" } + added.map { "+ $it" }
+        post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", lines.joinToString(" · "), lines.joinToString("\n"))
     }
 
     private fun label(code: String) = catalogCodes()[code.uppercase()]?.label ?: code
 
-    private fun post(order: Order, stepLabel: String, message: String, text: String? = null) {
+    private fun post(order: Order, stepLabel: String, message: String, text: String? = null, bigText: String? = text) {
         if (!canNotify()) return
         ensureChannel()
         val open = PendingIntent.getActivity(
@@ -69,7 +65,7 @@ class OrderNotifier(
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(message)
             .setContentText(text ?: "${order.modelName} · ${order.reference}")
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text ?: "${order.modelName} · ${order.reference}"))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText ?: "${order.modelName} · ${order.reference}"))
             .setContentIntent(open)
             .setAutoCancel(true)
             .build()
