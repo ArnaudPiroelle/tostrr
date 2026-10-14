@@ -48,4 +48,11 @@ class PayloadStepDetectorsTest {
         val t = tasks("""{"finalPayment":{"data":{"vehicleRegistration":{"licenseNumber":"AB-123-CD"}}}}""")
         assertTrue(PayloadStepDetectors.VehicleRegistered.isDone(noOrder, t))
     }
+
+    @Test fun `mapper uses the injected detectors`() {
+        val always = StepDetector { _, _ -> true }
+        val order = OrderMapper.map(tasks("""{"referenceNumber":"RN1"}"""), tasks("{}"), 0L, StepDetectors(always, always))
+        assertTrue(order.steps.first { it.label == "Documents envoyés" }.done)
+        assertTrue(order.steps.first { it.label == "Véhicule immatriculé" }.done)
+    }
 }
