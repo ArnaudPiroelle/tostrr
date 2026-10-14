@@ -94,10 +94,10 @@ private fun WidgetContent(order: Order?, car: Bitmap?) {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(GlanceModifier.defaultWeight()) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text("Commande ", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (10 * k).sp))
+                    Text("Commande ", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (9 * k).sp))
                     Text(
                         "#${order.reference}",
-                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = (13 * k).sp, fontWeight = FontWeight.Bold),
+                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = (11 * k).sp, fontWeight = FontWeight.Bold),
                     )
                 }
                 Text(order.modelName, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = (13 * k).sp))
