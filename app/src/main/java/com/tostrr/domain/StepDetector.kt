@@ -1,6 +1,12 @@
 package com.tostrr.domain
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlin.math.abs
 
 /**
  * Decides whether one order step is done from Tesla's payloads.
@@ -15,12 +21,14 @@ fun interface StepDetector {
 }
 
 class StepDetectors(
+    val carBuilt: StepDetector,
     val documentsSent: StepDetector,
     val vehicleRegistered: StepDetector,
 ) {
     companion object {
         /** The rules in use (see [PayloadStepDetectors]). */
         val Default = StepDetectors(
+            carBuilt = PayloadStepDetectors.CarBuilt,
             documentsSent = PayloadStepDetectors.DocumentsSent,
             vehicleRegistered = PayloadStepDetectors.VehicleRegistered,
         )
@@ -35,19 +43,56 @@ object PayloadStepDetectors {
 
     /** Registration paperwork has been sent: an alert reports that the proof of registration is pending. */
     private val ProofOfRegistrationPending = StepDetector { _, tasks ->
-        ALERT_PATHS.any { tasks.string(it)?.normalised() == PROOF_OF_REG_PENDING }
+        ALERT_PATHS.any { tasks.stringAt(it)?.normalised() == PROOF_OF_REG_PENDING }
     }
 
     /** A plate exists, or the registration status says the pre-delivery validation is complete. */
     val VehicleRegistered = StepDetector { _, tasks ->
-        PLATE_PATHS.any { !tasks.string(it).isNullOrBlank() } ||
-            STATUS_PATHS.any { tasks.string(it)?.normalised() == PRE_DELIVERY_VALIDATION_COMPLETE }
+        PLATE_PATHS.any { !tasks.stringAt(it).isNullOrBlank() } ||
+            STATUS_PATHS.any { tasks.stringAt(it)?.normalised() == PRE_DELIVERY_VALIDATION_COMPLETE }
     }
 
     /** A registered car necessarily had its papers sent, even once the "pending" alert has gone. */
     val DocumentsSent = StepDetector { order, tasks ->
         ProofOfRegistrationPending.isDone(order, tasks) || VehicleRegistered.isDone(order, tasks)
     }
+
+    /**
+     * The factory gate says whether the car left the factory: not blocking means built. When the payload has
+     * no gate yet, the odometer decides: Tesla seeds it with 30 until the car is built.
+     */
+    val CarBuilt = StepDetector { _, tasks ->
+        when (val blocker = factoryGateBlocker(tasks)) {
+            null -> odometerIsReal(tasks)
+            else -> !blocker
+        }
+    }
+
+    private fun odometerIsReal(tasks: JsonObject): Boolean {
+        val km = tasks.deepFind("vehicleOdometer")?.toDoubleOrNull() ?: return false
+        return km > 0 && abs(km - PLACEHOLDER_ODOMETER) > 0.01
+    }
+
+    private fun factoryGateBlocker(tasks: JsonObject): Boolean? {
+        for (root in READINESS_ROOTS) {
+            (tasks.at("$root.formattedGates.factory_gate.isBlocker") as? JsonPrimitive)?.booleanOrNull?.let { return it }
+        }
+        return GATE_LISTS.firstNotNullOfOrNull { gateBlocker(tasks.at(it)) }
+    }
+
+    /** `gates` is either a list of `{gateName, isBlocker}` or an object keyed by gate name. */
+    private fun gateBlocker(gates: JsonElement?): Boolean? = when (gates) {
+        is JsonArray -> gates.filterIsInstance<JsonObject>()
+            .firstOrNull { it.at("gateName")?.let { n -> (n as? JsonPrimitive)?.contentOrNull.equals(FACTORY_GATE, ignoreCase = true) } == true }
+            ?.let { (it.at("isBlocker") as? JsonPrimitive)?.booleanOrNull }
+        is JsonObject -> ((gates.at(FACTORY_GATE) as? JsonObject)?.at("isBlocker") as? JsonPrimitive)?.booleanOrNull
+        else -> null
+    }
+
+    private const val FACTORY_GATE = "FACTORY_GATE"
+    private const val PLACEHOLDER_ODOMETER = 30.0
+    private val READINESS_ROOTS = listOf("finalPayment.data.deliveryReadiness", "finalPayment.data.deliveryReadinessDetail")
+    private val GATE_LISTS = READINESS_ROOTS.map { "$it.gates" } + "deliveryAcceptance.gates"
 
     private const val PROOF_OF_REG_PENDING = "PROOF_OF_REG_PENDING"
     private const val PRE_DELIVERY_VALIDATION_COMPLETE = "PRE-DELIVERY VALIDATION COMPLETE"
@@ -73,12 +118,4 @@ object PayloadStepDetectors {
         "registration.regData.reggieRegistrationStatus",
         "deliveryDetails.regData.reggieRegistrationStatus",
     )
-
-    /** String at a dotted [path], or null if any step is missing or the value isn't a string. */
-    private fun JsonObject.string(path: String): String? {
-        val parts = path.split('.')
-        var node: JsonObject = this
-        for (part in parts.dropLast(1)) node = node.obj(part)
-        return node.str(parts.last())
-    }
 }

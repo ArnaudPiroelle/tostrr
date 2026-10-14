@@ -7,6 +7,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -29,15 +32,13 @@ object OrderMapper {
         val scheduling = tasks.obj("scheduling")
 
         val reference = order.str("referenceNumber") ?: "?"
-        val vin = (order.str("vin") ?: tasks.deepFind("vin"))?.takeIf { it.isNotBlank() }
+        val vin = (order.str("vin") ?: VIN_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) })?.takeIf { it.isNotBlank() }
         val optionCodes = order.str("mktOptions").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
         val modelCode = order.str("modelCode")?.lowercase() ?: modelFromOptions(optionCodes)
 
         // The payload layout moves around between Tesla app versions, so dates are looked up by key name.
         val booked = tasks.deepFind("orderBookedDate") ?: tasks.deepFind("orderPlacedDate")
-        val odometer = tasks.deepFind("vehicleOdometer")?.toDoubleOrNull()
-        val appointment = scheduling.str("deliveryAppointmentDate")?.trim()?.takeIf { it.isNotEmpty() }
-            ?.split(Regex("\\s+"))?.joinToString(" ")
+        val appointment = appointmentFrom(tasks)
         val window = scheduling.str("deliveryWindowDisplay")?.takeIf { it.isNotBlank() }
         val eta = tasks.deepFind("etaToDeliveryCenter")
         val expectedReg = tasks.deepFind("expectedRegDate")
@@ -45,11 +46,7 @@ object OrderMapper {
         val steps = listOf(
             OrderStep("Commande passée", formatDate(booked), booked != null, "Votre commande Tesla est bien enregistrée"),
             OrderStep("VIN attribué", null, vin != null, "Votre Tesla a maintenant un VIN attribué"),
-            // The official app seeds the odometer with a placeholder value until the car is built.
-            OrderStep(
-                "Production terminée", null, odometer != null && odometer != PLACEHOLDER_ODOMETER,
-                "Votre Tesla est sortie de production",
-            ),
+            OrderStep("Production terminée", null, detectors.carBuilt.isDone(order, tasks), "Votre Tesla est sortie de production"),
             OrderStep("Documents envoyés", null, detectors.documentsSent.isDone(order, tasks), "Les documents de votre Tesla ont été envoyés"),
             OrderStep("Véhicule immatriculé", formatDate(expectedReg), detectors.vehicleRegistered.isDone(order, tasks), "Votre Tesla est maintenant immatriculée"),
             // Only a confirmed appointment is shown under the step; the delivery window lives in Order.deliverySlot.
@@ -122,7 +119,41 @@ object OrderMapper {
             part.split(' ').joinToString(" ") { if (it.length > 4 && it.all(Char::isLetter)) it.take(3) else it }
         }
 
-    private const val PLACEHOLDER_ODOMETER = 30.0
+    /**
+     * First place that holds the VIN. A bare `vin` key elsewhere (the insurance
+     * task has one) can hold another car's VIN, so it is not used.
+     */
+    private val VIN_PATHS = listOf(
+        "deliveryDetails.regData.orderDetails.vin",
+        "registration.orderDetails.vin",
+        "registration.regData.orderDetails.vin",
+        "finalPayment.data.vin",
+    )
+
+    /** Fallback sources for the appointment, local time before UTC; `scheduling` is tried first. */
+    private val APPOINTMENT_PATHS = listOf(
+        "registration.regData.deliveryAppointment.appointmentDate",
+        "deliveryAcceptance.appointmentDate",
+        "registration.regData.deliveryAppointment.appointmentDateUtc",
+        "deliveryAcceptance.appointmentDateUtc",
+    )
+
+    private val appointmentOut = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.FRANCE)
+
+    private fun appointmentFrom(tasks: JsonObject): String? {
+        // Already a display string in the user's language, so it is kept as is.
+        tasks.obj("scheduling").str("deliveryAppointmentDate")?.trim()?.takeIf { it.isNotEmpty() }
+            ?.let { return it.split(Regex("\\s+")).joinToString(" ") }
+        return APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it)?.trim()?.takeIf(String::isNotEmpty) }
+            ?.let(::formatAppointment)
+    }
+
+    /** ISO instants and local date-times become `dd/MM/yyyy HH:mm` in the device time zone; anything else is kept. */
+    internal fun formatAppointment(raw: String): String = runCatching {
+        runCatching { OffsetDateTime.parse(raw).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime() }
+            .getOrElse { LocalDateTime.parse(raw) }
+            .format(appointmentOut)
+    }.getOrDefault(raw)
 }
 
 internal fun JsonObject?.obj(key: String): JsonObject =
@@ -130,6 +161,20 @@ internal fun JsonObject?.obj(key: String): JsonObject =
 
 internal fun JsonObject?.str(key: String): String? =
     (this?.get(key) as? JsonPrimitive)?.takeUnless { it is JsonNull }?.contentOrNull
+
+/** Element at a dotted [path], matching keys case-insensitively. */
+internal fun JsonObject.at(path: String): JsonElement? {
+    var node: JsonElement = this
+    for (part in path.split('.')) {
+        val obj = node as? JsonObject ?: return null
+        node = obj.entries.firstOrNull { it.key.equals(part, ignoreCase = true) }?.value ?: return null
+    }
+    return node
+}
+
+/** Non-blank string at a dotted [path], or null. */
+internal fun JsonObject.stringAt(path: String): String? =
+    ((at(path) as? JsonPrimitive)?.takeIf { it.isString })?.content?.takeIf { it.isNotBlank() }
 
 /** First non-blank scalar stored under [key] anywhere in the tree (depth-first). */
 internal fun JsonElement.deepFind(key: String): String? = when (this) {
