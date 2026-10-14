@@ -168,19 +168,35 @@ private fun Hero(order: Order) {
         Column(Modifier.statusBarsPadding().padding(bottom = 8.dp)) {
             // Room for the pinned top bar (StickyTopBar); the car starts right below it.
             Spacer(Modifier.height(TOP_BAR_HEIGHT))
-            AsyncImage(
-                model = order.imageUrl,
-                contentDescription = order.modelName,
-                // The compositor image has transparent margins on every side (the car fills ~half of it).
-                // Zoom it from the centre and let the box crop the empty edges.
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(HERO_IMAGE_HEIGHT)
-                    .clipToBounds()
-                    .graphicsLayer(scaleX = HERO_IMAGE_ZOOM, scaleY = HERO_IMAGE_ZOOM),
-                contentScale = ContentScale.FillWidth,
-                alignment = Alignment.Center,
-            )
+            Box(Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = order.imageUrl,
+                    contentDescription = order.modelName,
+                    // The compositor image has transparent margins on every side (the car fills ~half of it).
+                    // Zoom it from the centre and let the box crop the empty edges.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(HERO_IMAGE_HEIGHT)
+                        .clipToBounds()
+                        .graphicsLayer(scaleX = HERO_IMAGE_ZOOM, scaleY = HERO_IMAGE_ZOOM),
+                    contentScale = ContentScale.FillWidth,
+                    alignment = Alignment.Center,
+                )
+                if (order.status.isNotBlank()) {
+                    Surface(
+                        Modifier.align(Alignment.TopEnd).padding(top = 0.dp, end = 16.dp),
+                        shape = RoundedCornerShape(50),
+                        color = TostrrColors.Accent.copy(alpha = 0.2f),
+                    ) {
+                        Text(
+                            statusLabel(order.status),
+                            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = TostrrColors.OnSurface,
+                        )
+                    }
+                }
+            }
             Column(Modifier.padding(horizontal = 20.dp)) {
                 Text(order.modelName, style = MaterialTheme.typography.headlineMedium)
                 Text(
@@ -189,24 +205,12 @@ private fun Hero(order: Order) {
                     color = TostrrColors.Muted,
                     modifier = Modifier.padding(top = 2.dp),
                 )
-                Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (order.status.isNotBlank()) {
-                        Surface(shape = RoundedCornerShape(50), color = TostrrColors.Accent.copy(alpha = 0.2f)) {
-                            Text(
-                                statusLabel(order.status),
-                                Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TostrrColors.OnSurface,
-                            )
-                        }
-                        Spacer(Modifier.width(10.dp))
-                    }
-                    Text(
-                        "VIN: ${order.vin ?: "inconnu"}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TostrrColors.Muted,
-                    )
-                }
+                Text(
+                    "VIN: ${order.vin ?: "inconnu"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TostrrColors.Muted,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
                 Text(
                     "Mise à jour ${formatDateTime(order.fetchedAtEpochMs)}",
                     style = MaterialTheme.typography.labelSmall,
