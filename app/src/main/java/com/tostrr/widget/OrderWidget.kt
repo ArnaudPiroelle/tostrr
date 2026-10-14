@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,7 +18,11 @@ import androidx.glance.Image
 import androidx.glance.LocalContext
 import androidx.glance.ImageProvider
 import androidx.glance.action.clickable
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.currentState
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.action.actionStartActivity
@@ -49,15 +56,27 @@ import com.tostrr.TostrrApp
 import com.tostrr.domain.Order
 import com.tostrr.ui.common.formatDateTime
 
+/** Which order a widget instance shows; stored in its Glance state. */
+val OrderRefKey = stringPreferencesKey("order_reference")
+
 /** Home-screen version of the card shown in the orders list: the first order and its step tracker. */
 class OrderWidget : GlanceAppWidget() {
+
+    override val stateDefinition = PreferencesGlanceStateDefinition
 
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val order = (context.applicationContext as TostrrApp).repository.orders.value.firstOrNull()
-        val car = order?.imageUrl?.let { loadBitmap(context, it) }
+        val repository = (context.applicationContext as TostrrApp).repository
         provideContent {
+            // Read inside the composition: a Glance session outlives a single update, so the chosen order
+            // and the orders list have to be observed rather than captured once.
+            val chosen = currentState<Preferences>()[OrderRefKey]
+            val orders by repository.orders.collectAsState()
+            // A widget with no choice yet, or whose order is gone, falls back to the first order.
+            val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()
+            val url = order?.imageUrl
+            val car by produceState<Bitmap?>(null, url) { value = url?.let { loadBitmap(context, it) } }
             GlanceTheme { WidgetContent(order, car) }
         }
     }
