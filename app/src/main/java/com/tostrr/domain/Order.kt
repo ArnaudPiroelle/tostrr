@@ -35,6 +35,9 @@ data class Order(
 data class Change(
     val timestampEpochMs: Long,
     val key: String,
+    /** Scalars as text; objects/arrays as compact JSON. Null means the path didn't exist on that side. */
     val oldValue: String?,
     val newValue: String?,
+    /** True when either side is an object or array, so the details can be inspected as JSON. */
+    val structured: Boolean = false,
 )

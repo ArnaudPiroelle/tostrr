@@ -8,6 +8,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +25,11 @@ object TostrrColors {
     val OnSurface: Color @Composable get() = MaterialTheme.colorScheme.onSurface
     val Muted: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
     val Track: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHighest
+
+    /** Semantic colours for diffs: new value / old value. Green has no Material 3 role, so it adapts to the theme here. */
+    val Positive: Color
+        @Composable get() = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF7EDC9E) else Color(0xFF1B6E3C)
+    val Negative: Color @Composable get() = MaterialTheme.colorScheme.error
 }
 
 private val AppTypography = Typography(

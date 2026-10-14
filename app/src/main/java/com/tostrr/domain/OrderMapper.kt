@@ -130,14 +130,3 @@ internal fun JsonElement.deepFind(key: String): String? = when (this) {
     is kotlinx.serialization.json.JsonArray -> firstNotNullOfOrNull { it.deepFind(key) }
     else -> null
 }
-
-/** Flattens nested JSON into `a.b.0.c -> value` pairs, used to detect changes between syncs. */
-internal fun JsonElement.flatten(prefix: String = "", out: MutableMap<String, String> = linkedMapOf()): Map<String, String> {
-    when (this) {
-        is JsonObject -> forEach { (k, v) -> v.flatten(if (prefix.isEmpty()) k else "$prefix.$k", out) }
-        is kotlinx.serialization.json.JsonArray -> forEachIndexed { i, v -> v.flatten("$prefix.$i", out) }
-        is JsonNull -> out[prefix] = ""
-        is JsonPrimitive -> out[prefix] = content
-    }
-    return out
-}

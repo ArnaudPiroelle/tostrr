@@ -3,7 +3,10 @@ package com.tostrr.data
 import com.tostrr.domain.Change
 import com.tostrr.domain.Order
 import com.tostrr.domain.OrderMapper
-import com.tostrr.domain.flatten
+import com.tostrr.domain.JsonDiff
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -74,17 +77,28 @@ class OrderRepository(
         val merged = _history.value.toMutableMap()
         for (order in new) {
             val before = oldByRef[order.reference] ?: continue
-            val a = before.raw.flatten()
-            val b = order.raw.flatten()
-            val changes = (a.keys + b.keys).mapNotNull { key ->
-                val o = a[key]
-                val n = b[key]
-                if (o == n) null else Change(now, key, o, n)
-            }.sortedBy { it.key }
+            val changes = JsonDiff.diff(before.raw, order.raw).map { it.toChange(now) }
             if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
         }
         _history.value = merged
         runCatching { historyFile.writeText(encodeHistory(merged)) }
+    }
+
+    private fun JsonDiff.Delta.toChange(now: Long) = Change(
+        timestampEpochMs = now,
+        key = path,
+        oldValue = old?.asText(),
+        newValue = new?.asText(),
+        structured = old.isContainer() || new.isContainer(),
+    )
+
+    private fun JsonElement?.isContainer() = this is JsonObject || this is JsonArray
+
+    /** Scalars as plain text; objects and arrays as compact JSON, truncated so one event can't bloat the history file. */
+    private fun JsonElement.asText(): String = when (this) {
+        is JsonNull -> ""
+        is JsonPrimitive -> content
+        else -> toString().take(MAX_VALUE_CHARS)
     }
 
     private suspend fun persist(orders: List<Order>) = withContext(Dispatchers.IO) {
@@ -113,6 +127,7 @@ class OrderRepository(
                         put("k", c.key)
                         put("o", c.oldValue?.let(::JsonPrimitive) ?: kotlinx.serialization.json.JsonNull)
                         put("n", c.newValue?.let(::JsonPrimitive) ?: kotlinx.serialization.json.JsonNull)
+                        if (c.structured) put("s", true)
                     })
                 }
             })
@@ -128,6 +143,7 @@ class OrderRepository(
                     o["k"]!!.jsonPrimitive.content,
                     (o["o"] as? JsonPrimitive)?.takeIf { p -> p.isString || p.content != "null" }?.content,
                     (o["n"] as? JsonPrimitive)?.takeIf { p -> p.isString || p.content != "null" }?.content,
+                    structured = o["s"]?.jsonPrimitive?.booleanOrNull ?: false,
                 )
             }
         }
@@ -135,5 +151,6 @@ class OrderRepository(
 
     private companion object {
         const val MAX_CHANGES_PER_ORDER = 500
+        const val MAX_VALUE_CHARS = 120_000
     }
 }

@@ -56,7 +56,37 @@ import com.tostrr.ui.common.StepDot
 import com.tostrr.ui.common.StepDotSize
 import com.tostrr.domain.Change
 import com.tostrr.domain.Order
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.DataObject
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import com.tostrr.ui.common.formatDateTime
+import com.tostrr.ui.common.formatShortDate
+import com.tostrr.ui.common.formatShortTime
 import com.tostrr.ui.theme.TostrrColors
 
 @Composable
@@ -318,14 +348,193 @@ private fun ProgressContent(order: Order) {
 @Composable
 private fun HistoryContent(history: List<Change>) {
     if (history.isEmpty()) return Empty("Aucun changement détecté depuis la première synchronisation.")
-    history.take(100).forEach { c ->
-        Column(Modifier.padding(vertical = 6.dp)) {
-            Text(c.key, style = MaterialTheme.typography.labelMedium)
+    history.take(MAX_HISTORY_ROWS).forEachIndexed { i, change ->
+        if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = TostrrColors.Border)
+        ChangeRow(change)
+    }
+    if (history.size > MAX_HISTORY_ROWS) {
+        Text(
+            "… et ${history.size - MAX_HISTORY_ROWS} autres changements plus anciens",
+            Modifier.padding(top = 8.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = TostrrColors.Muted,
+        )
+    }
+}
+
+private const val MAX_HISTORY_ROWS = 100
+
+/** One field-level change between two syncs. A missing old value means the field appeared, a missing new one that it vanished. */
+@Composable
+private fun ChangeRow(change: Change) {
+    val added = change.oldValue == null
+    val removed = change.newValue == null
+    val positive = TostrrColors.Positive
+    val negative = TostrrColors.Negative
+    val muted = TostrrColors.Muted
+    var showDetail by rememberSaveable { mutableStateOf(false) }
+
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
+        Column(Modifier.width(74.dp)) {
+            Text(formatShortDate(change.timestampEpochMs), style = MaterialTheme.typography.labelSmall, color = muted)
+            Text(formatShortTime(change.timestampEpochMs), style = MaterialTheme.typography.labelSmall, color = muted)
+        }
+        Icon(
+            imageVector = when {
+                added -> Icons.Filled.Add
+                removed -> Icons.Filled.Remove
+                else -> Icons.Filled.SwapHoriz
+            },
+            contentDescription = when {
+                added -> "Ajouté"
+                removed -> "Supprimé"
+                else -> "Modifié"
+            },
+            modifier = Modifier.size(16.dp),
+            tint = muted,
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            // Zero-width spaces after the dots let long key paths wrap at a segment boundary.
             Text(
-                "${c.oldValue?.ifEmpty { "∅" } ?: "∅"} → ${c.newValue?.ifEmpty { "∅" } ?: "∅"}",
-                style = MaterialTheme.typography.bodyMedium,
+                change.key.replace(".", ".​"),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
             )
-            Text(formatDateTime(c.timestampEpochMs), style = MaterialTheme.typography.labelSmall, color = TostrrColors.Muted)
+            // Objects and arrays are summarised ("{9 champs}", "{}") and inspected through the Détail button.
+            val oldText = change.oldValue?.let { summarize(it, change.structured) }
+            val newText = change.newValue?.let { summarize(it, change.structured) }
+            when {
+                // A scalar that vanished: the key alone says it all. A vanished container shows what it held.
+                removed -> if (change.structured) ValueLine(oldText.orEmpty(), negative)
+                added -> newText?.takeIf { it != "∅" }?.let { ValueLine(it, positive) }
+                // Old and new on separate lines: "old → new" on one line wraps mid-value on a phone.
+                else -> Column(Modifier.padding(top = 2.dp)) {
+                    Text(
+                        oldText.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = negative,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(color = muted)) { append("→ ") }
+                            withStyle(SpanStyle(color = positive)) { append(newText.orEmpty()) }
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (change.structured) {
+                // Small pill, same shape language as the status badge in the hero.
+                AssistChip(
+                    onClick = { showDetail = true },
+                    // labelLarge is sans-serif; labelMedium is monospace in this theme and makes the pill look like code.
+                    label = { Text("Afficher les détails", style = MaterialTheme.typography.labelLarge) },
+                    leadingIcon = { Icon(Icons.Filled.DataObject, contentDescription = null, Modifier.size(16.dp)) },
+                    shape = RoundedCornerShape(50),
+                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.padding(top = 8.dp).height(30.dp),
+                )
+            }
+        }
+    }
+    if (showDetail) ChangeDetailSheet(change) { showDetail = false }
+}
+
+@Composable
+private fun ValueLine(text: String, color: androidx.compose.ui.graphics.Color) {
+    Text(
+        text,
+        Modifier.padding(top = 2.dp),
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        maxLines = 3,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/** Short human summary of a change side: scalars as-is, containers as "{n champs}" / "[n éléments]" or "{}" / "[]". */
+private fun summarize(value: String, structured: Boolean): String {
+    if (!structured) return value.ifEmpty { "∅" }
+    return when (val el = runCatching { Json.parseToJsonElement(value) }.getOrNull()) {
+        is JsonObject -> if (el.isEmpty()) "{}" else "{${el.size} champs}"
+        is JsonArray -> if (el.isEmpty()) "[]" else "[${el.size} éléments]"
+        // Scalar side of a structured change, or a container too large to have been stored whole.
+        else -> when {
+            value.isEmpty() -> "∅"
+            value.startsWith("{") -> "{…}"
+            value.startsWith("[") -> "[…]"
+            else -> value
+        }
+    }
+}
+
+private val PrettyJson = Json { prettyPrint = true }
+
+private fun prettyJson(text: String): String =
+    runCatching { PrettyJson.encodeToString(JsonElement.serializer(), Json.parseToJsonElement(text)) }.getOrDefault(text)
+
+/** Bottom sheet showing the JSON that changed, before and after. Opens half-height, drags up to full, swipes down to close. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChangeDetailSheet(change: Change, onDismiss: () -> Unit) {
+    val hasOld = change.oldValue != null
+    val hasNew = change.newValue != null
+    var showAfter by rememberSaveable { mutableStateOf(!hasOld) }
+    val lines = remember(change, showAfter) {
+        prettyJson((if (showAfter) change.newValue else change.oldValue).orEmpty()).lines()
+    }
+    val color = if (showAfter) TostrrColors.Positive else TostrrColors.Negative
+
+    // Opens half-height; drag up to expand to full screen.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    // Full screen: no drag handle (the × closes it), and the content starts below the status bar.
+    val expanded = sheetState.targetValue == SheetValue.Expanded
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = if (expanded) null else ({ BottomSheetDefaults.DragHandle() }),
+    ) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight()) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .then(if (expanded) Modifier.statusBarsPadding() else Modifier)
+                    .padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    change.key.replace(".", ".​"),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Fermer") }
+            }
+            if (hasOld && hasNew) {
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = !showAfter, onClick = { showAfter = false }, label = { Text("Avant") })
+                    FilterChip(selected = showAfter, onClick = { showAfter = true }, label = { Text("Après") })
+                }
+            }
+            LazyColumn(
+                Modifier.weight(1f).padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+            ) {
+                itemsIndexed(lines) { _, line ->
+                    Text(
+                        line,
+                        style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 15.sp),
+                        color = color,
+                    )
+                }
+            }
         }
     }
 }
