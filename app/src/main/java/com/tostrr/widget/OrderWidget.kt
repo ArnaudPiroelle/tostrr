@@ -16,6 +16,8 @@ import androidx.glance.LocalContext
 import androidx.glance.ImageProvider
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.LocalSize
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -25,6 +27,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -48,6 +51,8 @@ import com.tostrr.ui.common.formatDateTime
 
 /** Home-screen version of the card shown in the orders list: the first order and its step tracker. */
 class OrderWidget : GlanceAppWidget() {
+
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val order = (context.applicationContext as TostrrApp).repository.orders.value.firstOrNull()
@@ -81,23 +86,27 @@ private fun WidgetContent(order: Order?, car: Bitmap?) {
         return
     }
 
+    // Everything grows with the widget so a larger one isn't just a small card with empty space around it.
+    val size = LocalSize.current
+    val k = minOf(size.width.value / 300f, size.height.value / 150f).coerceIn(0.85f, 1.5f)
+
     Column(root) {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(GlanceModifier.defaultWeight()) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text("Commande ", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp))
+                    Text("Commande ", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (10 * k).sp))
                     Text(
                         "#${order.reference}",
-                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = (13 * k).sp, fontWeight = FontWeight.Bold),
                     )
                 }
-                Text(order.modelName, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp))
+                Text(order.modelName, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = (13 * k).sp))
                 Text(
                     "VIN: ${order.vin ?: "inconnu"}",
-                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 10.sp),
+                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (10 * k).sp),
                 )
                 order.deliverySlot?.let {
-                    Text("Créneau : $it", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 10.sp))
+                    Text("Créneau : $it", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (10 * k).sp))
                 }
             }
             if (car != null) {
@@ -105,15 +114,17 @@ private fun WidgetContent(order: Order?, car: Bitmap?) {
                     provider = ImageProvider(car),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = GlanceModifier.size(width = 110.dp, height = 56.dp),
+                    modifier = GlanceModifier.size(width = (96 * k).dp, height = (50 * k).dp),
                 )
             }
         }
-        Tracker(order)
+        Spacer(GlanceModifier.defaultWeight())
+        Tracker(order, k)
+        Spacer(GlanceModifier.defaultWeight())
         Text(
             "Mise à jour ${formatDateTime(order.fetchedAtEpochMs)}",
-            modifier = GlanceModifier.fillMaxWidth().padding(top = 4.dp),
-            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 9.sp, textAlign = TextAlign.End),
+            modifier = GlanceModifier.fillMaxWidth(),
+            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (9 * k).sp, textAlign = TextAlign.End),
         )
     }
 }
@@ -123,26 +134,26 @@ private fun WidgetContent(order: Order?, car: Bitmap?) {
  * stack a bar under the dots, so each cell draws its own two half-bars on either side of its dot.
  */
 @Composable
-private fun Tracker(order: Order) {
+private fun Tracker(order: Order, k: Float) {
     val current = order.currentStepIndex
     val last = order.steps.lastIndex
     val accent = GlanceTheme.colors.primary
     val track = GlanceTheme.colors.outline
 
-    Row(GlanceModifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         order.steps.forEachIndexed { i, step ->
             Row(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
-                Bar(visible = i > 0, color = if (i <= current) accent else track)
+                Bar(visible = i > 0, color = if (i <= current) accent else track, thickness = 3.dp * k)
                 when {
-                    step.done -> Dot(accent)
-                    i == current -> RingDot(accent, border = 3.dp)
-                    else -> RingDot(track, border = 2.dp)
+                    step.done -> Dot(accent, DotSize * k)
+                    i == current -> RingDot(accent, border = 3.dp * k, size = DotSize * k)
+                    else -> RingDot(track, border = 2.dp * k, size = DotSize * k)
                 }
-                Bar(visible = i < last, color = if (i < current) accent else track)
+                Bar(visible = i < last, color = if (i < current) accent else track, thickness = 3.dp * k)
             }
         }
     }
-    Row(GlanceModifier.fillMaxWidth().padding(top = 3.dp)) {
+    Row(GlanceModifier.fillMaxWidth().padding(top = (3 * k).dp)) {
         order.steps.forEachIndexed { i, step ->
             val strong = step.done || i == current
             Text(
@@ -150,7 +161,7 @@ private fun Tracker(order: Order) {
                 modifier = GlanceModifier.defaultWeight(),
                 style = TextStyle(
                     color = if (strong) GlanceTheme.colors.onSurface else GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 8.sp,
+                    fontSize = (8 * k).sp,
                     fontWeight = if (strong) FontWeight.Medium else FontWeight.Normal,
                     textAlign = TextAlign.Center,
                 ),
@@ -160,8 +171,8 @@ private fun Tracker(order: Order) {
 }
 
 @Composable
-private fun androidx.glance.layout.RowScope.Bar(visible: Boolean, color: ColorProvider) {
-    val base = GlanceModifier.defaultWeight().height(3.dp)
+private fun androidx.glance.layout.RowScope.Bar(visible: Boolean, color: ColorProvider, thickness: Dp) {
+    val base = GlanceModifier.defaultWeight().height(thickness)
     Box(if (visible) base.background(color) else base) {}
 }
 
@@ -177,10 +188,10 @@ private fun Dot(tint: ColorProvider, size: Dp = DotSize) {
 
 /** A tinted disc with a smaller surface-coloured disc on top: Glance renders stroke-only shapes as filled. */
 @Composable
-private fun RingDot(tint: ColorProvider, border: Dp) {
+private fun RingDot(tint: ColorProvider, border: Dp, size: Dp) {
     Box(contentAlignment = Alignment.Center) {
-        Dot(tint)
-        Dot(GlanceTheme.colors.surface, DotSize - border * 2)
+        Dot(tint, size)
+        Dot(GlanceTheme.colors.surface, size - border * 2)
     }
 }
 
