@@ -8,5 +8,6 @@
     android:resizeMode="horizontal|vertical"
     android:configure="com.tostrr.widget.OrderWidgetConfigActivity"
     android:widgetFeatures="reconfigurable"
+    android:previewImage="@drawable/widget_preview"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />
