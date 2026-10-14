@@ -114,7 +114,7 @@ private fun WidgetContent(order: Order?, car: Bitmap?) {
                     provider = ImageProvider(car),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = GlanceModifier.size(width = (96 * k).dp, height = (50 * k).dp),
+                    modifier = GlanceModifier.size(width = (124 * k).dp, height = (64 * k).dp),
                 )
             }
         }
