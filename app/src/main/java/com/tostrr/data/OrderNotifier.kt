@@ -47,8 +47,12 @@ class OrderNotifier(
         val removed = (old - new).map(::label)
         val added = (new - old).map(::label)
         if (removed.isEmpty() && added.isEmpty()) return
-        val lines = removed.map { "− $it" } + added.map { "+ $it" }
-        post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", lines.joinToString(" · "), lines.joinToString("\n"))
+        val sections = listOf("Ajouté" to added, "Retiré" to removed).filter { it.second.isNotEmpty() }
+        val expanded = sections.joinToString("\n\n") { (title, items) ->
+            "$title :\n" + items.joinToString("\n") { "• $it" }
+        }
+        val summary = sections.joinToString(" · ") { (title, items) -> "$title : ${items.size}" }
+        post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", summary, expanded)
     }
 
     private fun label(code: String) = catalogCodes()[code.uppercase()]?.let { "${it.label} ($code)" } ?: code
