@@ -14,6 +14,8 @@ import androidx.activity.viewModels
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,6 +28,9 @@ import com.tostrr.ui.theme.TostrrTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+
+    /** Order to open as soon as it is available, set by a tap on a home-screen widget. */
+    private var pendingOrderRef by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +49,13 @@ class MainActivity : ComponentActivity() {
                 val orders by viewModel.repository.orders.collectAsState()
                 val history by viewModel.repository.history.collectAsState()
                 val optionCodes by viewModel.optionCodes.collectAsState()
+
+                LaunchedEffect(pendingOrderRef, loggedIn, orders) {
+                    val ref = pendingOrderRef ?: return@LaunchedEffect
+                    if (!loggedIn || orders.isEmpty()) return@LaunchedEffect
+                    if (orders.any { it.reference == ref }) nav.navigate("order/$ref") { launchSingleTop = true }
+                    pendingOrderRef = null
+                }
 
                 LaunchedEffect(loggedIn) {
                     if (loggedIn) requestNotificationPermission()
@@ -96,6 +108,7 @@ class MainActivity : ComponentActivity() {
     private fun handleDeepLink(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme == "tesla" && data.host == "auth") viewModel.handleRedirect(data.toString())
+        if (data.scheme == WIDGET_SCHEME && data.host == "order") pendingOrderRef = data.pathSegments.firstOrNull()
     }
 
     private val notificationPermission =
@@ -111,5 +124,10 @@ class MainActivity : ComponentActivity() {
     private fun openLogin() {
         val uri = viewModel.startLogin()
         CustomTabsIntent.Builder().build().launchUrl(this, uri)
+    }
+
+    companion object {
+        /** Internal link used by the widget: `tostrr://order/<reference>`. */
+        const val WIDGET_SCHEME = "tostrr"
     }
 }

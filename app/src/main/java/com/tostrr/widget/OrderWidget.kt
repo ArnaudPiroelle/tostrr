@@ -2,6 +2,7 @@ package com.tostrr.widget
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -90,7 +91,13 @@ class OrderWidget : GlanceAppWidget() {
 
 @Composable
 private fun WidgetContent(order: Order?, car: Bitmap?) {
-    val open = actionStartActivity(Intent(LocalContext.current, MainActivity::class.java))
+    val context = LocalContext.current
+    // A distinct data URI per order keeps each widget's PendingIntent separate (extras alone wouldn't).
+    val open = actionStartActivity(
+        Intent(context, MainActivity::class.java).apply {
+            order?.let { data = Uri.parse("${MainActivity.WIDGET_SCHEME}://order/${it.reference}") }
+        },
+    )
     val root = GlanceModifier
         .fillMaxSize()
         .background(GlanceTheme.colors.surface)
