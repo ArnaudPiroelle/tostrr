@@ -15,13 +15,23 @@ import com.tostrr.MainActivity
 import com.tostrr.R
 import com.tostrr.domain.Order
 
-/** Posts a notification for each order step that was completed since the previous sync. */
+/** Posts notifications for order steps completed, or taken back, since the previous sync. */
 class OrderNotifier(private val context: Context) {
 
-    fun notifyNewlyDoneSteps(before: Order?, after: Order) {
+    fun notifyStepChanges(before: Order?, after: Order) {
         val beforeDone = before?.steps.orEmpty().filter { it.done }.map { it.label }.toSet()
         after.steps.filter { it.done && it.label !in beforeDone && it.doneMessage.isNotEmpty() }
             .forEach { post(after, it.label, it.doneMessage) }
+
+        // A step that was done and no longer is: Tesla moved the order backwards. One notification per sync.
+        val afterDone = after.steps.filter { it.done }.map { it.label }.toSet()
+        val undone = before?.steps.orEmpty().filter { it.done && it.label !in afterDone }.map { it.label }
+        if (undone.isNotEmpty()) {
+            val steps = undone.joinToString(", ") { "« $it »" }
+            val message = if (undone.size == 1) "Votre commande est revenue en arrière : l'étape $steps n'est plus validée"
+            else "Votre commande est revenue en arrière : les étapes $steps ne sont plus validées"
+            post(after, REGRESSION_KEY, message)
+        }
     }
 
     private fun post(order: Order, stepLabel: String, message: String) {
@@ -59,5 +69,6 @@ class OrderNotifier(private val context: Context) {
 
     private companion object {
         const val CHANNEL_ID = "order_progress"
+        const val REGRESSION_KEY = "regression"
     }
 }
