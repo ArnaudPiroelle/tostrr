@@ -11,6 +11,12 @@ import com.tostrr.data.RefreshScheduler
 import com.tostrr.data.TeslaApi
 import com.tostrr.data.TeslaAuth
 import com.tostrr.data.TokenStore
+import androidx.glance.appwidget.updateAll
+import com.tostrr.widget.OrderWidget
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
@@ -22,6 +28,8 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
     lateinit var repository: OrderRepository
         private set
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     override fun onCreate() {
         super.onCreate()
         val client = OkHttpClient.Builder()
@@ -30,7 +38,9 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
             .build()
         auth = TeslaAuth(client, TokenStore(this))
         catalog = OptionCatalog(client, filesDir)
-        repository = OrderRepository(TeslaApi(client), auth, catalog, filesDir, OrderNotifier(this) { catalog.codes.value })
+        repository = OrderRepository(TeslaApi(client), auth, catalog, filesDir, OrderNotifier(this) { catalog.codes.value }) {
+            scope.launch { OrderWidget().updateAll(this@TostrrApp) }
+        }
         if (auth.isLoggedIn()) RefreshScheduler.schedule(this)
     }
 

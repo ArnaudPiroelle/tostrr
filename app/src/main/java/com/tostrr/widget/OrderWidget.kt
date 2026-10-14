@@ -1,0 +1,204 @@
+package com.tostrr.widget
+
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
+import androidx.glance.GlanceId
+import androidx.glance.GlanceModifier
+import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.LocalContext
+import androidx.glance.ImageProvider
+import androidx.glance.action.clickable
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.provideContent
+import androidx.glance.background
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
+import androidx.glance.layout.Row
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
+import androidx.glance.layout.size
+import androidx.glance.text.FontWeight
+import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
+import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
+import com.tostrr.MainActivity
+import com.tostrr.R
+import com.tostrr.TostrrApp
+import com.tostrr.domain.Order
+import com.tostrr.ui.common.formatDateTime
+
+/** Home-screen version of the card shown in the orders list: the first order and its step tracker. */
+class OrderWidget : GlanceAppWidget() {
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val order = (context.applicationContext as TostrrApp).repository.orders.value.firstOrNull()
+        val car = order?.imageUrl?.let { loadBitmap(context, it) }
+        provideContent {
+            GlanceTheme { WidgetContent(order, car) }
+        }
+    }
+
+    /** Remote views can't hold hardware bitmaps and are size-limited, hence the explicit request. */
+    private suspend fun loadBitmap(context: Context, url: String): Bitmap? = runCatching {
+        val request = ImageRequest.Builder(context).data(url).allowHardware(false).size(480, 270).build()
+        (SingletonImageLoader.get(context).execute(request) as? SuccessResult)?.image?.toBitmap()?.trimTransparent()
+    }.getOrNull()
+}
+
+@Composable
+private fun WidgetContent(order: Order?, car: Bitmap?) {
+    val open = actionStartActivity(Intent(LocalContext.current, MainActivity::class.java))
+    val root = GlanceModifier
+        .fillMaxSize()
+        .background(GlanceTheme.colors.surface)
+        .cornerRadius(20.dp)
+        .padding(12.dp)
+        .clickable(open)
+
+    if (order == null) {
+        Box(root, contentAlignment = Alignment.Center) {
+            Text("Aucune commande, ouvrez Tostrr", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp))
+        }
+        return
+    }
+
+    Column(root) {
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(GlanceModifier.defaultWeight()) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("Commande ", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp))
+                    Text(
+                        "#${order.reference}",
+                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    )
+                }
+                Text(order.modelName, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp))
+                Text(
+                    "VIN: ${order.vin ?: "inconnu"}",
+                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 10.sp),
+                )
+                order.deliverySlot?.let {
+                    Text("Créneau : $it", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 10.sp))
+                }
+            }
+            if (car != null) {
+                Image(
+                    provider = ImageProvider(car),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = GlanceModifier.size(width = 110.dp, height = 56.dp),
+                )
+            }
+        }
+        Tracker(order)
+        Text(
+            "Mise à jour ${formatDateTime(order.fetchedAtEpochMs)}",
+            modifier = GlanceModifier.fillMaxWidth().padding(top = 4.dp),
+            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 9.sp, textAlign = TextAlign.End),
+        )
+    }
+}
+
+/**
+ * Same look as the in-app tracker: a bar behind the dots, filled up to the current step. Glance can't
+ * stack a bar under the dots, so each cell draws its own two half-bars on either side of its dot.
+ */
+@Composable
+private fun Tracker(order: Order) {
+    val current = order.currentStepIndex
+    val last = order.steps.lastIndex
+    val accent = GlanceTheme.colors.primary
+    val track = GlanceTheme.colors.outline
+
+    Row(GlanceModifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        order.steps.forEachIndexed { i, step ->
+            Row(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
+                Bar(visible = i > 0, color = if (i <= current) accent else track)
+                when {
+                    step.done -> Dot(accent)
+                    i == current -> RingDot(accent, border = 3.dp)
+                    else -> RingDot(track, border = 2.dp)
+                }
+                Bar(visible = i < last, color = if (i < current) accent else track)
+            }
+        }
+    }
+    Row(GlanceModifier.fillMaxWidth().padding(top = 3.dp)) {
+        order.steps.forEachIndexed { i, step ->
+            val strong = step.done || i == current
+            Text(
+                step.label,
+                modifier = GlanceModifier.defaultWeight(),
+                style = TextStyle(
+                    color = if (strong) GlanceTheme.colors.onSurface else GlanceTheme.colors.onSurfaceVariant,
+                    fontSize = 8.sp,
+                    fontWeight = if (strong) FontWeight.Medium else FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun androidx.glance.layout.RowScope.Bar(visible: Boolean, color: ColorProvider) {
+    val base = GlanceModifier.defaultWeight().height(3.dp)
+    Box(if (visible) base.background(color) else base) {}
+}
+
+@Composable
+private fun Dot(tint: ColorProvider, size: Dp = DotSize) {
+    Image(
+        provider = ImageProvider(R.drawable.widget_dot_fill),
+        contentDescription = null,
+        colorFilter = ColorFilter.tint(tint),
+        modifier = GlanceModifier.size(size),
+    )
+}
+
+/** A tinted disc with a smaller surface-coloured disc on top: Glance renders stroke-only shapes as filled. */
+@Composable
+private fun RingDot(tint: ColorProvider, border: Dp) {
+    Box(contentAlignment = Alignment.Center) {
+        Dot(tint)
+        Dot(GlanceTheme.colors.surface, DotSize - border * 2)
+    }
+}
+
+private val DotSize = 14.dp
+
+/** The configurator renders the car with wide transparent margins; cropping lets it fill the widget. */
+private fun Bitmap.trimTransparent(): Bitmap {
+    val pixels = IntArray(width * height)
+    getPixels(pixels, 0, width, 0, 0, width, height)
+    var left = width; var right = -1; var top = height; var bottom = -1
+    for (y in 0 until height) for (x in 0 until width) {
+        if ((pixels[y * width + x] ushr 24) > 16) {
+            if (x < left) left = x
+            if (x > right) right = x
+            if (y < top) top = y
+            if (y > bottom) bottom = y
+        }
+    }
+    if (right < left || bottom < top) return this
+    return Bitmap.createBitmap(this, left, top, right - left + 1, bottom - top + 1)
+}

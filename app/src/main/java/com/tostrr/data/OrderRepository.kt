@@ -34,6 +34,8 @@ class OrderRepository(
     private val catalog: OptionCatalog,
     private val dir: File,
     private val notifier: OrderNotifier? = null,
+    /** Called after each successful sync, e.g. to refresh the home-screen widget. */
+    private val onRefreshed: () -> Unit = {},
 ) {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()
@@ -61,6 +63,7 @@ class OrderRepository(
             recordChanges(_orders.value, fresh, now)
             _orders.value = fresh
             persist(fresh)
+            onRefreshed()
         }
         // Best effort and outside the lock: a slow or unreachable catalogue must not delay or fail a sync.
         catalog.refreshIfStale()
