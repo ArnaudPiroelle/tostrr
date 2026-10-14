@@ -37,7 +37,17 @@ class OrderNotifier(
             post(after, REGRESSION_KEY, message)
         }
 
-        if (before != null) notifyConfigurationChange(before, after)
+        if (before != null) {
+            notifyConfigurationChange(before, after)
+            notifyDeliveryWindowChange(before, after)
+        }
+    }
+
+    /** Only the new dates are shown. A window that disappears (replaced by an appointment) isn't a change to report. */
+    private fun notifyDeliveryWindowChange(before: Order, after: Order) {
+        val window = after.deliveryWindow?.takeIf { it.isNotBlank() } ?: return
+        if (window == before.deliveryWindow) return
+        post(after, DELIVERY_WINDOW_KEY, "Votre fenêtre de livraison a changé", window)
     }
 
     /** Tesla can rewrite the configuration after the order is placed; list what was added and removed. */
@@ -95,5 +105,6 @@ class OrderNotifier(
         const val CHANNEL_ID = "order_progress"
         const val REGRESSION_KEY = "regression"
         const val CONFIG_KEY = "configuration"
+        const val DELIVERY_WINDOW_KEY = "delivery_window"
     }
 }
