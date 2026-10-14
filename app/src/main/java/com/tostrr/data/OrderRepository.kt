@@ -77,8 +77,10 @@ class OrderRepository(
         val oldByRef = old.associateBy { it.reference }
         val merged = _history.value.toMutableMap()
         for (order in new) {
-            val before = oldByRef[order.reference] ?: continue
+            val before = oldByRef[order.reference]
+            // First time we see this order: every step already done counts as new.
             notifier?.notifyNewlyDoneSteps(before, order)
+            if (before == null) continue
             val changes = JsonDiff.diff(before.raw, order.raw).map { it.toChange(now) }
             if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
         }

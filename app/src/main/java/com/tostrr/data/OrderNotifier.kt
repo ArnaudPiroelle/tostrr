@@ -18,8 +18,8 @@ import com.tostrr.domain.Order
 /** Posts a notification for each order step that was completed since the previous sync. */
 class OrderNotifier(private val context: Context) {
 
-    fun notifyNewlyDoneSteps(before: Order, after: Order) {
-        val beforeDone = before.steps.filter { it.done }.map { it.label }.toSet()
+    fun notifyNewlyDoneSteps(before: Order?, after: Order) {
+        val beforeDone = before?.steps.orEmpty().filter { it.done }.map { it.label }.toSet()
         after.steps.filter { it.done && it.label !in beforeDone && it.doneMessage.isNotEmpty() }
             .forEach { post(after, it.label, it.doneMessage) }
     }
