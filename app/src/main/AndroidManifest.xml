@@ -22,15 +22,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Tesla OAuth redirect: tesla://auth/callback?code=... -->
+            <!-- Any tesla:// link, notably the OAuth redirect tesla://auth/callback?code=... -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="tesla"
-                    android:host="auth"
-                    android:path="/callback" />
+                <data android:scheme="tesla" />
             </intent-filter>
         </activity>
     </application>
