@@ -1,8 +1,13 @@
 package com.tostrr
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -41,6 +46,7 @@ class MainActivity : ComponentActivity() {
                 val optionCodes by viewModel.optionCodes.collectAsState()
 
                 LaunchedEffect(loggedIn) {
+                    if (loggedIn) requestNotificationPermission()
                     val route = nav.currentDestination?.route
                     if (loggedIn && route == "login") nav.navigate("orders") { popUpTo("login") { inclusive = true } }
                     if (!loggedIn && route != null && route != "login") nav.navigate("login") { popUpTo(0) }
@@ -90,6 +96,16 @@ class MainActivity : ComponentActivity() {
     private fun handleDeepLink(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme == "tesla" && data.host == "auth") viewModel.handleRedirect(data.toString())
+    }
+
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    /** Android 13+ needs a runtime grant; if refused, the system simply won't show the prompt again. */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     private fun openLogin() {

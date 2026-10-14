@@ -38,14 +38,17 @@ object OrderMapper {
         val expectedReg = tasks.deepFind("expectedRegDate")
 
         val steps = listOf(
-            OrderStep("Commande passée", formatDate(booked), done = booked != null),
-            OrderStep("VIN attribué", null, done = vin != null),
+            OrderStep("Commande passée", formatDate(booked), booked != null, "Votre commande Tesla est bien enregistrée"),
+            OrderStep("VIN attribué", null, vin != null, "Votre Tesla a maintenant un VIN attribué"),
             // The official app seeds the odometer with a placeholder value until the car is built.
-            OrderStep("Production terminée", null, done = odometer != null && odometer != PLACEHOLDER_ODOMETER),
-            OrderStep("Documents envoyés", null, done = false),
-            OrderStep("Véhicule immatriculé", formatDate(expectedReg), done = false),
+            OrderStep(
+                "Production terminée", null, odometer != null && odometer != PLACEHOLDER_ODOMETER,
+                "Votre Tesla est sortie de production",
+            ),
+            OrderStep("Documents envoyés", null, false, "Les documents de votre Tesla ont été envoyés"),
+            OrderStep("Véhicule immatriculé", formatDate(expectedReg), false, "Votre Tesla est maintenant immatriculée"),
             // Only a confirmed appointment is shown under the step; the delivery window lives in Order.deliverySlot.
-            OrderStep("Livraison", appointment, done = appointment != null),
+            OrderStep("Livraison", appointment, appointment != null, "Votre rendez-vous de livraison est confirmé"),
         )
 
         return Order(

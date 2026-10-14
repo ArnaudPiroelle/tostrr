@@ -33,6 +33,7 @@ class OrderRepository(
     private val auth: TeslaAuth,
     private val catalog: OptionCatalog,
     private val dir: File,
+    private val notifier: OrderNotifier? = null,
 ) {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()
@@ -77,6 +78,7 @@ class OrderRepository(
         val merged = _history.value.toMutableMap()
         for (order in new) {
             val before = oldByRef[order.reference] ?: continue
+            notifier?.notifyNewlyDoneSteps(before, order)
             val changes = JsonDiff.diff(before.raw, order.raw).map { it.toChange(now) }
             if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
         }

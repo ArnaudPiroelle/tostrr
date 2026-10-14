@@ -6,6 +6,8 @@ data class OrderStep(
     val label: String,
     val date: String?,
     val done: Boolean,
+    /** Notification text shown when this step becomes done. */
+    val doneMessage: String = "",
 )
 
 data class Order(
