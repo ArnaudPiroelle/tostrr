@@ -168,37 +168,33 @@ private fun Hero(order: Order) {
         Column(Modifier.statusBarsPadding().padding(bottom = 8.dp)) {
             // Room for the pinned top bar (StickyTopBar); the car starts right below it.
             Spacer(Modifier.height(TOP_BAR_HEIGHT))
-            Box(Modifier.fillMaxWidth()) {
-                AsyncImage(
-                    model = order.imageUrl,
-                    contentDescription = order.modelName,
-                    // The compositor image has transparent margins on every side (the car fills ~half of it).
-                    // Zoom it from the centre and let the box crop the empty edges.
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(HERO_IMAGE_HEIGHT)
-                        .clipToBounds()
-                        .graphicsLayer(scaleX = HERO_IMAGE_ZOOM, scaleY = HERO_IMAGE_ZOOM),
-                    contentScale = ContentScale.FillWidth,
-                    alignment = Alignment.Center,
-                )
-                if (order.status.isNotBlank()) {
-                    Surface(
-                        Modifier.align(Alignment.TopEnd).padding(top = 0.dp, end = 16.dp),
-                        shape = RoundedCornerShape(50),
-                        color = TostrrColors.Accent.copy(alpha = 0.2f),
-                    ) {
-                        Text(
-                            statusLabel(order.status),
-                            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = TostrrColors.OnSurface,
-                        )
+            AsyncImage(
+                model = order.imageUrl,
+                contentDescription = order.modelName,
+                // The compositor image has transparent margins on every side (the car fills ~half of it).
+                // Zoom it from the centre and let the box crop the empty edges.
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(HERO_IMAGE_HEIGHT)
+                    .clipToBounds()
+                    .graphicsLayer(scaleX = HERO_IMAGE_ZOOM, scaleY = HERO_IMAGE_ZOOM),
+                contentScale = ContentScale.FillWidth,
+                alignment = Alignment.Center,
+            )
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(order.modelName, Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
+                    if (order.status.isNotBlank()) {
+                        Surface(shape = RoundedCornerShape(50), color = TostrrColors.Accent.copy(alpha = 0.2f)) {
+                            Text(
+                                statusLabel(order.status),
+                                Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TostrrColors.OnSurface,
+                            )
+                        }
                     }
                 }
-            }
-            Column(Modifier.padding(horizontal = 20.dp)) {
-                Text(order.modelName, style = MaterialTheme.typography.headlineMedium)
                 Text(
                     "Commande #${order.reference}",
                     style = MaterialTheme.typography.titleMedium,
