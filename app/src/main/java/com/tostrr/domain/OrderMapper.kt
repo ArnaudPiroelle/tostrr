@@ -19,7 +19,12 @@ import java.util.Locale
  */
 object OrderMapper {
 
-    fun map(order: JsonObject, details: JsonObject, fetchedAtEpochMs: Long): Order {
+    fun map(
+        order: JsonObject,
+        details: JsonObject,
+        fetchedAtEpochMs: Long,
+        detectors: StepDetectors = StepDetectors.Default,
+    ): Order {
         val tasks = details.obj("tasks")
         val scheduling = tasks.obj("scheduling")
 
@@ -45,8 +50,8 @@ object OrderMapper {
                 "Production terminée", null, odometer != null && odometer != PLACEHOLDER_ODOMETER,
                 "Votre Tesla est sortie de production",
             ),
-            OrderStep("Documents envoyés", null, false, "Les documents de votre Tesla ont été envoyés"),
-            OrderStep("Véhicule immatriculé", formatDate(expectedReg), false, "Votre Tesla est maintenant immatriculée"),
+            OrderStep("Documents envoyés", null, detectors.documentsSent.isDone(order, tasks), "Les documents de votre Tesla ont été envoyés"),
+            OrderStep("Véhicule immatriculé", formatDate(expectedReg), detectors.vehicleRegistered.isDone(order, tasks), "Votre Tesla est maintenant immatriculée"),
             // Only a confirmed appointment is shown under the step; the delivery window lives in Order.deliverySlot.
             OrderStep("Livraison", appointment, appointment != null, "Votre rendez-vous de livraison est confirmé"),
         )
