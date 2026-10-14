@@ -26,6 +26,10 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.zip.GZIPOutputStream
 
 /** Fetches orders, caches the last snapshot on disk and records what changed between two syncs. */
 class OrderRepository(
@@ -33,6 +37,8 @@ class OrderRepository(
     private val auth: TeslaAuth,
     private val catalog: OptionCatalog,
     private val dir: File,
+    /** Every successful pull is kept here, one gzipped JSON per order and per sync, for later analysis. */
+    private val archiveDir: File = File(dir, "snapshots"),
     private val notifier: OrderNotifier? = null,
     /** Called after each successful sync, e.g. to refresh the home-screen widget. */
     private val onRefreshed: () -> Unit = {},
@@ -60,9 +66,12 @@ class OrderRepository(
                 val ref = order["referenceNumber"]?.jsonPrimitive?.content ?: error("Commande sans référence")
                 OrderMapper.map(order, api.orderTasks(token, ref), now)
             }
+            // The cache written by an older version has no archive yet: keep it as the first snapshot.
+            archive(_orders.value)
             recordChanges(_orders.value, fresh, now)
             _orders.value = fresh
             persist(fresh)
+            archive(fresh)
             onRefreshed()
         }
         // Best effort and outside the lock: a slow or unreachable catalogue must not delay or fail a sync.
@@ -106,6 +115,26 @@ class OrderRepository(
         is JsonNull -> ""
         is JsonPrimitive -> content
         else -> toString().take(MAX_VALUE_CHARS)
+    }
+
+    private suspend fun archive(orders: List<Order>) = withContext(Dispatchers.IO) {
+        // Best effort: a full disk must never break a sync.
+        orders.forEach { order -> runCatching { archiveOne(order) } }
+    }
+
+    private fun archiveOne(order: Order) {
+        if (order.fetchedAtEpochMs <= 0) return
+        val folder = File(archiveDir, order.reference).apply { mkdirs() }
+        val file = File(folder, "${snapshotStamp.format(Instant.ofEpochMilli(order.fetchedAtEpochMs))}.json.gz")
+        if (file.exists()) return
+        val json = buildJsonObject {
+            put("fetchedAt", order.fetchedAtEpochMs)
+            put("raw", order.raw)
+        }.toString()
+        // Written under a temporary name so an interrupted write never leaves a truncated snapshot.
+        val tmp = File(folder, file.name + ".tmp")
+        GZIPOutputStream(tmp.outputStream()).bufferedWriter().use { it.write(json) }
+        tmp.renameTo(file)
     }
 
     private suspend fun persist(orders: List<Order>) = withContext(Dispatchers.IO) {
@@ -157,6 +186,7 @@ class OrderRepository(
     }.getOrDefault(emptyMap())
 
     private companion object {
+        val snapshotStamp: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss").withZone(ZoneId.systemDefault())
         const val MAX_CHANGES_PER_ORDER = 500
         const val MAX_VALUE_CHARS = 120_000
     }
