@@ -3,7 +3,10 @@ package com.tostrr
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,7 +61,10 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(loggedIn) {
-                    if (loggedIn) requestNotificationPermission()
+                    if (loggedIn) {
+                        requestNotificationPermission()
+                        requestBatteryOptimizationExemption()
+                    }
                     val route = nav.currentDestination?.route
                     if (loggedIn && route == "login") nav.navigate("orders") { popUpTo("login") { inclusive = true } }
                     if (!loggedIn && route != null && route != "login") nav.navigate("login") { popUpTo(0) }
@@ -121,6 +127,20 @@ class MainActivity : ComponentActivity() {
         ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
+    /**
+     * Asks once, with the system dialog, to exempt the app from battery optimisation: otherwise the hourly background
+     * sync (hence the widget) can be deferred for hours. Not asked again after a refusal.
+     */
+    @android.annotation.SuppressLint("BatteryLife")
+    private fun requestBatteryOptimizationExemption() {
+        val prefs = getSharedPreferences("tostrr_prompts", MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_BATTERY_PROMPT, false) ||
+            getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
+        ) return
+        prefs.edit().putBoolean(KEY_BATTERY_PROMPT, true).apply()
+        startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
+    }
+
     private fun openLogin() {
         val uri = viewModel.startLogin()
         CustomTabsIntent.Builder().build().launchUrl(this, uri)
@@ -129,5 +149,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Internal link used by the widget: `tostrr://order/<reference>`. */
         const val WIDGET_SCHEME = "tostrr"
+
+        private const val KEY_BATTERY_PROMPT = "battery_prompt_shown"
     }
 }
