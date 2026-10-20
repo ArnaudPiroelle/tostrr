@@ -23,7 +23,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -100,6 +104,7 @@ fun DetailScreen(order: Order, history: List<Change>, options: Map<String, Optio
                 Modifier.padding(16.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (order.isDeliveryDay()) DeliveryDayCard()
                 Section("Informations de livraison", initiallyExpanded = true) { DeliveryContent(order) }
                 Section("Progression de la commande", initiallyExpanded = true) { ProgressContent(order) }
                 Section("Configuration", initiallyExpanded = false) { ConfigurationContent(order, options) }
@@ -108,6 +113,49 @@ fun DetailScreen(order: Order, history: List<Change>, options: Map<String, Optio
         }
         // Drawn after the scrolling content so it stays pinned on top of it.
         StickyTopBar(title = "Commande #${order.reference}", scrollOffset = { scrollState.value }, onBack = onBack)
+    }
+}
+
+private const val DELIVERY_CHECK_URL = "https://check.mytsla.app/fr/"
+
+/** Shown on the day of the appointment only: the checklist site is what you want open while inspecting the car. */
+@Composable
+private fun DeliveryDayCard() {
+    val uriHandler = LocalUriHandler.current
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = TostrrColors.Accent.copy(alpha = 0.12f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(shape = CircleShape, color = TostrrColors.Accent, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        Icons.Filled.FactCheck,
+                        contentDescription = null,
+                        modifier = Modifier.padding(8.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                Column {
+                    Text("C'est le jour de la livraison", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Contrôlez votre Tesla point par point avant de signer.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TostrrColors.Muted,
+                    )
+                }
+            }
+            Button(
+                onClick = { runCatching { uriHandler.openUri(DELIVERY_CHECK_URL) } },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text("Ouvrir la checklist de livraison")
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }
 

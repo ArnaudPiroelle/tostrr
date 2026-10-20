@@ -78,3 +78,28 @@ class OrderAlertsTest {
         assertNotNull(OrderAlerts.digest(h, 0))
     }
 }
+
+class DeliveryDayTest {
+    private val zone = java.time.ZoneId.of("Europe/Paris")
+    private fun at(s: String) = java.time.LocalDateTime.parse(s).atZone(zone).toInstant().toEpochMilli()
+    private fun order(appointment: String? = null, at: Long? = null) = Order(
+        reference = "RN1", status = "", vin = null, modelName = "Model 3", optionCodes = emptyList(), imageUrl = null,
+        bookedDate = null, steps = emptyList(), deliveryCenter = null, deliveryWindow = null, deliverySlot = null,
+        appointment = appointment, etaToDeliveryCenter = null, expectedRegistration = null, fetchedAtEpochMs = 0L,
+        raw = JsonObject(emptyMap()), appointmentAtEpochMs = at,
+    )
+
+    @Test fun `true all day long on the appointment date, false the day before and after`() {
+        val o = order(at = at("2026-11-30T10:30:00"))
+        assertTrue(o.isDeliveryDay(at("2026-11-30T00:05:00"), zone))
+        assertTrue(o.isDeliveryDay(at("2026-11-30T23:55:00"), zone))
+        assertTrue(!o.isDeliveryDay(at("2026-11-29T23:55:00"), zone))
+        assertTrue(!o.isDeliveryDay(at("2026-12-01T00:05:00"), zone))
+    }
+
+    @Test fun `falls back to the formatted appointment text`() {
+        assertTrue(order(appointment = "30/11/2026 10:30").isDeliveryDay(at("2026-11-30T08:00:00"), zone))
+        assertTrue(!order(appointment = "30 novembre à 10:30").isDeliveryDay(at("2026-11-30T08:00:00"), zone))
+        assertTrue(!order().isDeliveryDay(at("2026-11-30T08:00:00"), zone))
+    }
+}

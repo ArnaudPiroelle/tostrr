@@ -1,6 +1,9 @@
 package com.tostrr.domain
 
 import kotlinx.serialization.json.JsonObject
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 data class OrderStep(
     val label: String,
@@ -38,7 +41,19 @@ data class Order(
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int
         get() = steps.indexOfFirst { !it.done }.let { if (it == -1) steps.lastIndex else it }
+
+    /** True from midnight to midnight on the day of the delivery appointment, in [zone]. */
+    fun isDeliveryDay(now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val day = appointmentAtEpochMs?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
+            ?: appointment?.let { APPOINTMENT_DATE.find(it) }?.destructured
+                ?.let { (d, m, y) -> runCatching { LocalDate.of(y.toInt(), m.toInt(), d.toInt()) }.getOrNull() }
+        return day == today
+    }
 }
+
+/** The `dd/MM/yyyy` the mapper puts at the start of an appointment it had to format itself. */
+private val APPOINTMENT_DATE = Regex("""^(\d{2})/(\d{2})/(\d{4})""")
 
 data class Change(
     val timestampEpochMs: Long,
