@@ -3,6 +3,7 @@ package com.tostrr.data
 import com.tostrr.domain.Change
 import com.tostrr.domain.Order
 import com.tostrr.domain.OrderMapper
+import com.tostrr.domain.HistoryIgnore
 import com.tostrr.domain.JsonDiff
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -52,7 +53,7 @@ class OrderRepository(
     private val _orders = MutableStateFlow(loadCache())
     val orders: StateFlow<List<Order>> = _orders.asStateFlow()
 
-    private val _history = MutableStateFlow(loadHistory())
+    private val _history = MutableStateFlow(loadHistory().let(::dropIgnored))
     val history: StateFlow<Map<String, List<Change>>> = _history.asStateFlow()
 
     fun order(reference: String): Order? = _orders.value.firstOrNull { it.reference == reference }
@@ -85,6 +86,14 @@ class OrderRepository(
         _history.value = emptyMap()
     }
 
+    /** Entries recorded before a path became ignored are purged, and the file is rewritten if any went. */
+    private fun dropIgnored(history: Map<String, List<Change>>): Map<String, List<Change>> {
+        val kept = history.mapValues { (_, changes) -> changes.filterNot { HistoryIgnore.isIgnored(it.key) } }
+            .filterValues { it.isNotEmpty() }
+        if (kept != history) runCatching { historyFile.writeText(encodeHistory(kept)) }
+        return kept
+    }
+
     private fun recordChanges(old: List<Order>, new: List<Order>, now: Long) {
         val oldByRef = old.associateBy { it.reference }
         val merged = _history.value.toMutableMap()
@@ -93,7 +102,7 @@ class OrderRepository(
             // First time we see this order: every step already done counts as new.
             notifier?.notifyStepChanges(before, order)
             if (before == null) continue
-            val changes = JsonDiff.diff(before.raw, order.raw).map { it.toChange(now) }
+            val changes = JsonDiff.diff(HistoryIgnore.prune(before.raw), HistoryIgnore.prune(order.raw)).map { it.toChange(now) }
             if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
         }
         _history.value = merged
