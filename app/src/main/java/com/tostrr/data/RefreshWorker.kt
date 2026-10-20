@@ -38,11 +38,11 @@ object RefreshScheduler {
 
     /** Idempotent: keeps the existing schedule if one is already enqueued. */
     fun schedule(context: Context) {
-        val request = PeriodicWorkRequestBuilder<RefreshWorker>(1, TimeUnit.HOURS)
+        val request = PeriodicWorkRequestBuilder<RefreshWorker>(15, TimeUnit.MINUTES)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
         WorkManager.getInstance(context)
-            .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+            .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
     fun cancel(context: Context) {
