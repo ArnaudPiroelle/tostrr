@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.time.LocalDate
@@ -70,8 +71,21 @@ object OrderMapper {
             expectedRegistration = formatDate(expectedReg),
             fetchedAtEpochMs = fetchedAtEpochMs,
             raw = JsonObject(mapOf("order" to order, "details" to details)),
+            licensePlate = PayloadStepDetectors.PLATE_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) },
+            appointmentAtEpochMs = APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }?.let(::appointmentInstant),
+            finalInvoiceReady = tasks.flag("finalPayment.data.hasFinalInvoice") || tasks.flag("finalPayment.data.hasActiveInvoice"),
+            finalPaymentDone = tasks.flag("finalPayment.complete"),
         )
     }
+
+    private fun JsonObject.flag(path: String): Boolean =
+        (at(path) as? JsonPrimitive)?.let { it.booleanOrNull ?: it.contentOrNull.equals("true", ignoreCase = true) } ?: false
+
+    internal fun appointmentInstant(raw: String): Long? = runCatching {
+        runCatching { OffsetDateTime.parse(raw).toInstant() }
+            .getOrElse { LocalDateTime.parse(raw).atZone(ZoneId.systemDefault()).toInstant() }
+            .toEpochMilli()
+    }.getOrNull()
 
     private fun modelFromOptions(codes: List<String>): String? =
         codes.map { it.removePrefix("\$") }.firstOrNull { it.startsWith("MT") }?.let {

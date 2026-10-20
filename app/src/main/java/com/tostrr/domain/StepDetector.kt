@@ -100,7 +100,7 @@ object PayloadStepDetectors {
     private fun String.normalised() = trim().uppercase()
 
     /** Paths below `details.tasks`. */
-    private val PLATE_PATHS = listOf(
+    internal val PLATE_PATHS = listOf(
         "registration.regData.reggieLicensePlate",
         "deliveryDetails.regData.reggieLicensePlate",
         "registration.orderDetails.licenseNumber",

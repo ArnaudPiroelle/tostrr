@@ -28,6 +28,12 @@ data class Order(
     val expectedRegistration: String?,
     val fetchedAtEpochMs: Long,
     val raw: JsonObject,
+    val licensePlate: String? = null,
+    /** Appointment as an instant, when Tesla gives it in ISO form; the display string is not parseable. */
+    val appointmentAtEpochMs: Long? = null,
+    /** An invoice for the final payment exists, so there is something to pay. */
+    val finalInvoiceReady: Boolean = false,
+    val finalPaymentDone: Boolean = false,
 ) {
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int

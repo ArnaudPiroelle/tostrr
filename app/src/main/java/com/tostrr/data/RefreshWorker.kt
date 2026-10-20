@@ -12,7 +12,7 @@ import com.tostrr.TostrrApp
 import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
 
-/** Hourly background sync: updates the cached orders and records what changed. */
+/** Background sync: updates the cached orders and records what changed. */
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -25,11 +25,23 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             throw e
         } catch (e: AuthException) {
             // Session gone or refresh rejected: nothing to retry. The foreground flow detects it and logs out.
+            warn(app, expired = e is SessionExpiredException)
             Result.success()
         } catch (e: Exception) {
             // Network or Tesla-side hiccup: let WorkManager retry with backoff.
+            warn(app, expired = false)
             Result.retry()
         }
+    }
+
+    /** An expired session is reported at once; any other failure only once it has lasted [STALE_AFTER_MS]. */
+    private fun warn(app: TostrrApp, expired: Boolean) {
+        val age = app.repository.lastSyncAgeMs()
+        if (expired || age == null || age > STALE_AFTER_MS) app.repository.notifier?.notifySyncProblem(expired, age)
+    }
+
+    private companion object {
+        val STALE_AFTER_MS = TimeUnit.HOURS.toMillis(6)
     }
 }
 

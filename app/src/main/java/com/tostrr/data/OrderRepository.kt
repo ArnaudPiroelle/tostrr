@@ -40,7 +40,7 @@ class OrderRepository(
     private val dir: File,
     /** Every successful pull is kept here, one gzipped JSON per order and per sync, for later analysis. */
     private val archiveDir: File = File(dir, "snapshots"),
-    private val notifier: OrderNotifier? = null,
+    val notifier: OrderNotifier? = null,
     /** Called after each successful sync, e.g. to refresh the home-screen widget. */
     private val onRefreshed: () -> Unit = {},
 ) {
@@ -55,6 +55,10 @@ class OrderRepository(
 
     private val _history = MutableStateFlow(loadHistory().let(::dropIgnored))
     val history: StateFlow<Map<String, List<Change>>> = _history.asStateFlow()
+
+    /** Age of the last successful pull, or null if there has never been one. */
+    fun lastSyncAgeMs(now: Long = System.currentTimeMillis()): Long? =
+        _orders.value.maxOfOrNull { it.fetchedAtEpochMs }?.takeIf { it > 0 }?.let { now - it }
 
     fun order(reference: String): Order? = _orders.value.firstOrNull { it.reference == reference }
 
@@ -73,6 +77,9 @@ class OrderRepository(
             _orders.value = fresh
             persist(fresh)
             archive(fresh)
+            notifier?.clearSyncProblem()
+            fresh.forEach { notifier?.notifyReminder(it, now) }
+            notifier?.notifyDigest(_history.value, now)
             onRefreshed()
         }
         // Best effort and outside the lock: a slow or unreachable catalogue must not delay or fail a sync.
