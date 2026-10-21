@@ -52,12 +52,11 @@ class TeslaAuth(
     suspend fun completeLogin(redirect: String): Tokens {
         val uri = Uri.parse(redirect.trim())
         val code = uri.getQueryParameter("code") ?: throw AuthException("Aucun code d'autorisation dans l'URL.")
-        val state = uri.getQueryParameter("state")
-        val expectedState = store.pendingState()
-        if (expectedState != null && state != null && state != expectedState) {
+        val verifier = store.pendingVerifier() ?: throw AuthException("Session de connexion expirée, relancez la connexion.")
+        // The state is saved with the verifier, so a redirect without it, or with another one, isn't ours.
+        if (uri.getQueryParameter("state") != store.pendingState()) {
             throw AuthException("État OAuth invalide, relancez la connexion.")
         }
-        val verifier = store.pendingVerifier() ?: throw AuthException("Session de connexion expirée, relancez la connexion.")
         val body = FormBody.Builder()
             .add("grant_type", "authorization_code")
             .add("client_id", CLIENT_ID)
@@ -65,7 +64,11 @@ class TeslaAuth(
             .add("redirect_uri", REDIRECT_URI)
             .add("code_verifier", verifier)
             .build()
-        return tokenRequest(body, previousRefresh = null).also(store::save)
+        return tokenRequest(body, previousRefresh = null).also {
+            store.save(it)
+            // A code can only be exchanged once: replaying the same redirect must start a new login.
+            store.clearPending()
+        }
     }
 
     /** Returns a valid access token, refreshing it when expired. Null when not logged in. */

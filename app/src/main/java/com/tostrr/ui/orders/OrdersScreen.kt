@@ -4,9 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import com.tostrr.R
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,7 +37,6 @@ import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -176,7 +175,7 @@ fun OrdersScreen(
                         positionProvider = rememberBelowAnchorPositionProvider(),
                         tooltip = {
                             PlainTooltip {
-                                Text("Actualisation trop récente. Réessayez dans ${remainingSec} s.")
+                                Text("Actualisation trop récente. Réessayez dans $remainingSec s.")
                             }
                         },
                         state = tooltipState,
@@ -203,7 +202,7 @@ fun OrdersScreen(
         Box(Modifier.padding(padding).fillMaxSize()) {
             LazyColumn(
                 Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (error != null) {

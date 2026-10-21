@@ -21,6 +21,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -76,6 +77,7 @@ class OrderRepository(
             recordChanges(_orders.value, fresh, now)
             _orders.value = fresh
             persist(fresh)
+            saveHistory(_history.value)
             archive(fresh)
             notifier?.clearSyncProblem()
             fresh.forEach { notifier?.notifyReminder(it, now) }
@@ -113,7 +115,11 @@ class OrderRepository(
             if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
         }
         _history.value = merged
-        runCatching { historyFile.writeText(encodeHistory(merged)) }
+    }
+
+    /** Up to [MAX_CHANGES_PER_ORDER] entries of [MAX_VALUE_CHARS] each: too big to encode and write on the main thread. */
+    private suspend fun saveHistory(history: Map<String, List<Change>>) = withContext(Dispatchers.IO) {
+        runCatching { historyFile.writeText(encodeHistory(history)) }
     }
 
     private fun JsonDiff.Delta.toChange(now: Long) = Change(
@@ -177,8 +183,8 @@ class OrderRepository(
                     add(buildJsonObject {
                         put("t", c.timestampEpochMs)
                         put("k", c.key)
-                        put("o", c.oldValue?.let(::JsonPrimitive) ?: kotlinx.serialization.json.JsonNull)
-                        put("n", c.newValue?.let(::JsonPrimitive) ?: kotlinx.serialization.json.JsonNull)
+                        put("o", c.oldValue?.let(::JsonPrimitive) ?: JsonNull)
+                        put("n", c.newValue?.let(::JsonPrimitive) ?: JsonNull)
                         if (c.structured) put("s", true)
                     })
                 }
@@ -193,8 +199,8 @@ class OrderRepository(
                 Change(
                     o["t"]!!.jsonPrimitive.longOrNull ?: 0L,
                     o["k"]!!.jsonPrimitive.content,
-                    (o["o"] as? JsonPrimitive)?.takeIf { p -> p.isString || p.content != "null" }?.content,
-                    (o["n"] as? JsonPrimitive)?.takeIf { p -> p.isString || p.content != "null" }?.content,
+                    (o["o"] as? JsonPrimitive)?.contentOrNull,
+                    (o["n"] as? JsonPrimitive)?.contentOrNull,
                     structured = o["s"]?.jsonPrimitive?.booleanOrNull ?: false,
                 )
             }

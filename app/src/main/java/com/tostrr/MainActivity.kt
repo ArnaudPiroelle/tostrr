@@ -1,6 +1,7 @@
 package com.tostrr
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -128,10 +129,10 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Asks once, with the system dialog, to exempt the app from battery optimisation: otherwise the hourly background
+     * Asks once, with the system dialog, to exempt the app from battery optimisation: otherwise the 15-minute background
      * sync (hence the widget) can be deferred for hours. Not asked again after a refusal.
      */
-    @android.annotation.SuppressLint("BatteryLife")
+    @SuppressLint("BatteryLife")
     private fun requestBatteryOptimizationExemption() {
         val prefs = getSharedPreferences("tostrr_prompts", MODE_PRIVATE)
         if (prefs.getBoolean(KEY_BATTERY_PROMPT, false) ||

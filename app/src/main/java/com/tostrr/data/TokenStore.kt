@@ -27,24 +27,26 @@ class TokenStore(context: Context) {
         return Tokens(access, refresh, exp)
     }
 
-    fun save(tokens: Tokens) {
-        write(KEY_ACCESS, tokens.accessToken)
-        write(KEY_REFRESH, tokens.refreshToken)
-        write(KEY_EXP, tokens.expiresAtEpochSec.toString())
-    }
+    /** One commit for the three values, so a crash can never pair a new access token with an old refresh token. */
+    fun save(tokens: Tokens) = write(
+        KEY_ACCESS to tokens.accessToken,
+        KEY_REFRESH to tokens.refreshToken,
+        KEY_EXP to tokens.expiresAtEpochSec.toString(),
+    )
 
-    fun savePending(verifier: String, state: String) {
-        write(KEY_VERIFIER, verifier)
-        write(KEY_STATE, state)
-    }
+    fun savePending(verifier: String, state: String) = write(KEY_VERIFIER to verifier, KEY_STATE to state)
 
     fun pendingVerifier(): String? = read(KEY_VERIFIER)
     fun pendingState(): String? = read(KEY_STATE)
 
+    fun clearPending() = prefs.edit().remove(KEY_VERIFIER).remove(KEY_STATE).apply()
+
     fun clear() = prefs.edit().clear().apply()
 
-    private fun write(key: String, value: String) {
-        prefs.edit().putString(key, encrypt(value)).apply()
+    private fun write(vararg entries: Pair<String, String>) {
+        val editor = prefs.edit()
+        entries.forEach { (key, value) -> editor.putString(key, encrypt(value)) }
+        editor.apply()
     }
 
     private fun read(key: String): String? =

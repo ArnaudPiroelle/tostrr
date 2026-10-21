@@ -60,7 +60,7 @@ import com.tostrr.ui.common.formatDateTime
 /** Which order a widget instance shows; stored in its Glance state. */
 val OrderRefKey = stringPreferencesKey("order_reference")
 
-/** Home-screen version of the card shown in the orders list: the first order and its step tracker. */
+/** Home-screen version of the card shown in the orders list: the order picked for this widget and its step tracker. */
 class OrderWidget : GlanceAppWidget() {
 
     override val stateDefinition = PreferencesGlanceStateDefinition

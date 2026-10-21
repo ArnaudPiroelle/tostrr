@@ -15,17 +15,17 @@ import com.tostrr.MainActivity
 import com.tostrr.R
 import com.tostrr.domain.Alert
 import com.tostrr.domain.Change
-import com.tostrr.domain.HIDDEN_OPTION_CODES
 import com.tostrr.domain.Order
 import com.tostrr.domain.OrderAlerts
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
-/** Posts notifications for order steps completed, or taken back, since the previous sync. */
+/** Posts what a sync found out: steps done or undone, order changes, delivery reminders, the daily digest and sync problems. */
 class OrderNotifier(
     private val context: Context,
     private val catalogCodes: () -> Map<String, OptionInfo>,
 ) {
+    private val prefs = context.getSharedPreferences("tostrr_notifications", Context.MODE_PRIVATE)
 
     fun notifyStepChanges(before: Order?, after: Order) {
         val beforeDone = before?.steps.orEmpty().filter { it.done }.map { it.label }.toSet()
@@ -96,8 +96,8 @@ class OrderNotifier(
 
     /** Tesla can rewrite the configuration after the order is placed; list what was added and removed. */
     private fun notifyConfigurationChange(before: Order, after: Order) {
-        val old = before.optionCodes.filter { it !in HIDDEN_OPTION_CODES }.toSet()
-        val new = after.optionCodes.filter { it !in HIDDEN_OPTION_CODES }.toSet()
+        val old = before.visibleOptionCodes.toSet()
+        val new = after.visibleOptionCodes.toSet()
         val removed = (old - new).map(::label)
         val added = (new - old).map(::label)
         if (removed.isEmpty() && added.isEmpty()) return
@@ -109,18 +109,20 @@ class OrderNotifier(
         post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", summary, expanded)
     }
 
-    private fun label(code: String) = catalogCodes()[code.uppercase()]?.let { "${it.label} ($code)" } ?: code
+    private fun label(code: String) = catalogCodes()[code]?.let { "${it.label} ($code)" } ?: code
 
+    /** Without [text], the notification names the car and the order. */
     private fun post(
         order: Order,
-        stepLabel: String,
-        message: String,
+        key: String,
+        title: String,
         text: String? = null,
         bigText: String? = text,
         channel: Channel = Channel.Progress,
     ) {
-        // One id per order and step: a repeated detection replaces rather than stacks.
-        notify((order.reference + stepLabel).hashCode(), channel, message, text ?: "${order.modelName} · ${order.reference}", bigText ?: "${order.modelName} · ${order.reference}", false)
+        val fallback = "${order.modelName} · ${order.reference}"
+        // One id per order and key: a repeated detection replaces rather than stacks.
+        notify((order.reference + key).hashCode(), channel, title, text ?: fallback, bigText ?: fallback, onlyAlertOnce = false)
     }
 
     private fun postPlain(id: Int, alert: Alert, channel: Channel, onlyAlertOnce: Boolean = false) =
@@ -164,8 +166,6 @@ class OrderNotifier(
         Digest("order_digest", "Résumé quotidien", NotificationManager.IMPORTANCE_LOW),
         Sync("order_sync", "Problèmes de synchronisation", NotificationManager.IMPORTANCE_HIGH),
     }
-
-    private val prefs = context.getSharedPreferences("tostrr_notifications", Context.MODE_PRIVATE)
 
     private companion object {
         const val PREF_REMINDERS = "reminders_sent"

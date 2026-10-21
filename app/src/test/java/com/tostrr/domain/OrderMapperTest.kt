@@ -44,4 +44,18 @@ class OrderMapperTest {
         // Device time zone dependent, but always the same shape.
         assertEquals(true, Regex("30/11/2026 \\d{2}:30|01/12/2026 \\d{2}:30|30/11/2026 \\d{2}:\\d{2}").matches(shown))
     }
+
+    @Test fun `an unparseable appointment is kept as is and has no instant`() {
+        assertEquals("bientôt", OrderMapper.formatAppointment("bientôt"))
+        assertNull(OrderMapper.appointmentInstant("bientôt"))
+    }
+
+    @Test fun `a utc appointment gives its exact instant`() {
+        assertEquals(1_796_031_000_000L, OrderMapper.appointmentInstant("2026-11-30T09:30:00Z"))
+    }
+
+    @Test fun `visible option codes are normalised and leave out the model markers`() {
+        val o = map("""{"referenceNumber":"RN1","mktOptions":"${'$'}W38A, MDLY,pbsb,${'$'}W38A,APBS"}""", "{}")
+        assertEquals(listOf("APBS", "PBSB", "W38A"), o.visibleOptionCodes)
+    }
 }

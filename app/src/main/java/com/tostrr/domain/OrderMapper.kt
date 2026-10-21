@@ -1,7 +1,7 @@
 package com.tostrr.domain
 
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -11,6 +11,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -81,10 +82,13 @@ object OrderMapper {
     private fun JsonObject.flag(path: String): Boolean =
         (at(path) as? JsonPrimitive)?.let { it.booleanOrNull ?: it.contentOrNull.equals("true", ignoreCase = true) } ?: false
 
-    internal fun appointmentInstant(raw: String): Long? = runCatching {
-        runCatching { OffsetDateTime.parse(raw).toInstant() }
-            .getOrElse { LocalDateTime.parse(raw).atZone(ZoneId.systemDefault()).toInstant() }
-            .toEpochMilli()
+    internal fun appointmentInstant(raw: String): Long? =
+        parseAppointment(raw)?.toInstant()?.toEpochMilli()
+
+    /** ISO instant, or local date-time read in the device time zone; null for anything else. */
+    private fun parseAppointment(raw: String): ZonedDateTime? = runCatching {
+        runCatching { OffsetDateTime.parse(raw).atZoneSameInstant(ZoneId.systemDefault()) }
+            .getOrElse { LocalDateTime.parse(raw).atZone(ZoneId.systemDefault()) }
     }.getOrNull()
 
     private fun modelFromOptions(codes: List<String>): String? =
@@ -129,7 +133,7 @@ object OrderMapper {
 
     /** "29 Novembre - 29 Décembre" -> "29 Nov\n29 Déc" so it fits under a stepper dot. */
     private fun shortWindow(window: String): String =
-        window.split(Regex("\\s*[-–]\\s*")).joinToString("\n") { part ->
+        window.split(WINDOW_SEPARATOR).joinToString("\n") { part ->
             part.split(' ').joinToString(" ") { if (it.length > 4 && it.all(Char::isLetter)) it.take(3) else it }
         }
 
@@ -152,29 +156,28 @@ object OrderMapper {
         "deliveryAcceptance.appointmentDateUtc",
     )
 
+    private val WINDOW_SEPARATOR = Regex("""\s*[-–]\s*""")
+    private val WHITESPACE = Regex("""\s+""")
+
     private val appointmentOut = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.FRANCE)
 
     private fun appointmentFrom(tasks: JsonObject): String? {
         // Already a display string in the user's language, so it is kept as is.
         tasks.obj("scheduling").str("deliveryAppointmentDate")?.trim()?.takeIf { it.isNotEmpty() }
-            ?.let { return it.split(Regex("\\s+")).joinToString(" ") }
+            ?.let { return it.replace(WHITESPACE, " ") }
         return APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it)?.trim()?.takeIf(String::isNotEmpty) }
             ?.let(::formatAppointment)
     }
 
     /** ISO instants and local date-times become `dd/MM/yyyy HH:mm` in the device time zone; anything else is kept. */
-    internal fun formatAppointment(raw: String): String = runCatching {
-        runCatching { OffsetDateTime.parse(raw).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime() }
-            .getOrElse { LocalDateTime.parse(raw) }
-            .format(appointmentOut)
-    }.getOrDefault(raw)
+    internal fun formatAppointment(raw: String): String = parseAppointment(raw)?.format(appointmentOut) ?: raw
 }
 
 internal fun JsonObject?.obj(key: String): JsonObject =
     (this?.get(key) as? JsonObject) ?: JsonObject(emptyMap())
 
 internal fun JsonObject?.str(key: String): String? =
-    (this?.get(key) as? JsonPrimitive)?.takeUnless { it is JsonNull }?.contentOrNull
+    (this?.get(key) as? JsonPrimitive)?.contentOrNull
 
 /** Element at a dotted [path], matching keys case-insensitively. */
 internal fun JsonObject.at(path: String): JsonElement? {
@@ -192,8 +195,8 @@ internal fun JsonObject.stringAt(path: String): String? =
 
 /** First non-blank scalar stored under [key] anywhere in the tree (depth-first). */
 internal fun JsonElement.deepFind(key: String): String? = when (this) {
-    is JsonObject -> (this[key] as? JsonPrimitive)?.takeUnless { it is JsonNull }?.contentOrNull?.takeIf { it.isNotBlank() }
+    is JsonObject -> (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
         ?: values.firstNotNullOfOrNull { it.deepFind(key) }
-    is kotlinx.serialization.json.JsonArray -> firstNotNullOfOrNull { it.deepFind(key) }
+    is JsonArray -> firstNotNullOfOrNull { it.deepFind(key) }
     else -> null
 }

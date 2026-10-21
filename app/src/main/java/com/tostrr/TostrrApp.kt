@@ -1,6 +1,7 @@
 package com.tostrr
 
 import android.app.Application
+import androidx.glance.appwidget.updateAll
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -11,13 +12,13 @@ import com.tostrr.data.RefreshScheduler
 import com.tostrr.data.TeslaApi
 import com.tostrr.data.TeslaAuth
 import com.tostrr.data.TokenStore
-import androidx.glance.appwidget.updateAll
 import com.tostrr.widget.OrderWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 class TostrrApp : Application(), SingletonImageLoader.Factory {
@@ -38,9 +39,16 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
             .build()
         auth = TeslaAuth(client, TokenStore(this))
         catalog = OptionCatalog(client, filesDir)
-        repository = OrderRepository(TeslaApi(client), auth, catalog, filesDir, getExternalFilesDir("snapshots") ?: java.io.File(filesDir, "snapshots"), OrderNotifier(this) { catalog.codes.value }) {
-            scope.launch { OrderWidget().updateAll(this@TostrrApp) }
-        }
+        repository = OrderRepository(
+            api = TeslaApi(client),
+            auth = auth,
+            catalog = catalog,
+            dir = filesDir,
+            // Readable over adb without root, so real payloads can be pulled for analysis.
+            archiveDir = getExternalFilesDir("snapshots") ?: File(filesDir, "snapshots"),
+            notifier = OrderNotifier(this) { catalog.codes.value },
+            onRefreshed = { scope.launch { OrderWidget().updateAll(this@TostrrApp) } },
+        )
         if (auth.isLoggedIn()) RefreshScheduler.schedule(this)
     }
 

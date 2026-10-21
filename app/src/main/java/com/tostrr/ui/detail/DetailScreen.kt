@@ -40,15 +40,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.drawBehind
@@ -59,18 +58,16 @@ import com.tostrr.ui.common.StepBarThickness
 import com.tostrr.ui.common.StepDot
 import com.tostrr.ui.common.StepDotSize
 import com.tostrr.domain.Change
-import com.tostrr.domain.HIDDEN_OPTION_CODES
 import com.tostrr.domain.Order
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -311,14 +308,9 @@ private fun KeyValue(label: String, value: String?) {
 @Composable
 private fun Empty(text: String) = Text(text, style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted)
 
-/** Internal model markers that the official app doesn't list as options. */
-
 @Composable
 private fun ConfigurationContent(order: Order, options: Map<String, OptionInfo>) {
-    val codes = order.optionCodes.map { it.removePrefix("$").uppercase() }
-        .filter { it !in HIDDEN_OPTION_CODES }
-        .distinct()
-        .sorted()
+    val codes = order.visibleOptionCodes
     if (codes.isEmpty()) return Empty("Aucune option disponible.")
     // Light list: description first, code as a quiet tag on the right. No inner frame or dividers.
     codes.forEach { code ->
@@ -443,15 +435,15 @@ private fun ChangeRow(change: Change) {
         )
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            // Zero-width spaces after the dots let long key paths wrap at a segment boundary.
             Text(
-                change.key.replace(".", ".​"),
+                breakablePath(change.key),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
             )
             // Objects and arrays are summarised ("{9 champs}", "{}") and inspected through the Détail button.
-            val oldText = change.oldValue?.let { summarize(it, change.structured) }
-            val newText = change.newValue?.let { summarize(it, change.structured) }
+            // Remembered: a structured side can hold up to 120 kB of JSON, too much to parse on every recomposition.
+            val oldText = remember(change) { change.oldValue?.let { summarize(it, change.structured) } }
+            val newText = remember(change) { change.newValue?.let { summarize(it, change.structured) } }
             when {
                 // A scalar that vanished: the key alone says it all. A vanished container shows what it held.
                 removed -> if (change.structured) ValueLine(oldText.orEmpty(), negative)
@@ -494,7 +486,7 @@ private fun ChangeRow(change: Change) {
 }
 
 @Composable
-private fun ValueLine(text: String, color: androidx.compose.ui.graphics.Color) {
+private fun ValueLine(text: String, color: Color) {
     Text(
         text,
         Modifier.padding(top = 2.dp),
@@ -520,6 +512,9 @@ private fun summarize(value: String, structured: Boolean): String {
         }
     }
 }
+
+/** Zero-width spaces after the dots let a long key path wrap at a segment boundary. */
+private fun breakablePath(path: String) = path.replace(".", ".\u200B")
 
 private val PrettyJson = Json { prettyPrint = true }
 
@@ -558,7 +553,7 @@ private fun ChangeDetailSheet(change: Change, onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    change.key.replace(".", ".​"),
+                    breakablePath(change.key),
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
@@ -575,7 +570,7 @@ private fun ChangeDetailSheet(change: Change, onDismiss: () -> Unit) {
                 Modifier.weight(1f).padding(horizontal = 16.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
             ) {
-                itemsIndexed(lines) { _, line ->
+                items(lines) { line ->
                     Text(
                         line,
                         style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 15.sp),

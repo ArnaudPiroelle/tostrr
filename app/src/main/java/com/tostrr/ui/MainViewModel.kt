@@ -9,6 +9,7 @@ import com.tostrr.data.ApiException
 import com.tostrr.data.AuthException
 import com.tostrr.data.RefreshScheduler
 import com.tostrr.data.SessionExpiredException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,6 +51,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Called with the `tesla://auth/callback?...` URI, from the deep link or a pasted URL. */
     fun handleRedirect(redirect: String) {
+        // A redirect delivered twice (deep link, then a paste) would fail: its code was already exchanged.
+        if (_loggedIn.value) return
         viewModelScope.launch {
             _busy.value = true
             _error.value = null
@@ -58,6 +61,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 RefreshScheduler.schedule(tostrr)
                 _loggedIn.value = true
                 refresh()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: AuthException) {
                 _error.value = e.message
             } catch (e: Exception) {
@@ -77,15 +82,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _error.value = null
             try {
                 repository.refresh()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: SessionExpiredException) {
                 logout()
                 _error.value = e.message
-            } catch (e: AuthException) {
-                _error.value = e.message
-            } catch (e: ApiException) {
-                _error.value = e.message
             } catch (e: Exception) {
-                _error.value = "Synchronisation impossible : ${e.message}"
+                // Auth and API errors carry a message meant for the user; anything else gets context.
+                _error.value = if (e is AuthException || e is ApiException) e.message else "Synchronisation impossible : ${e.message}"
             } finally {
                 _refreshing.value = false
             }

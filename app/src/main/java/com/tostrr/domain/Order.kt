@@ -42,6 +42,10 @@ data class Order(
     val currentStepIndex: Int
         get() = steps.indexOfFirst { !it.done }.let { if (it == -1) steps.lastIndex else it }
 
+    /** Option codes as the catalogue keys them (no `$` prefix, upper case), sorted, without the model markers. */
+    val visibleOptionCodes: List<String>
+        get() = optionCodes.map { it.removePrefix("$").uppercase() }.filter { it !in HIDDEN_OPTION_CODES }.distinct().sorted()
+
     /** True from midnight to midnight on the day of the delivery appointment, in [zone]. */
     fun isDeliveryDay(now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
@@ -66,4 +70,4 @@ data class Change(
 )
 
 /** Model codes carry no useful description for the user, so they are left out of option lists. */
-val HIDDEN_OPTION_CODES = setOf("MDL3", "MDLY", "MDLX", "MDLS")
+private val HIDDEN_OPTION_CODES = setOf("MDL3", "MDLY", "MDLX", "MDLS")
