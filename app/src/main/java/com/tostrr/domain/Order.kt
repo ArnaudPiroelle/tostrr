@@ -47,13 +47,14 @@ data class Order(
         get() = optionCodes.map { it.removePrefix("$").uppercase() }.filter { it !in HIDDEN_OPTION_CODES }.distinct().sorted()
 
     /** True from midnight to midnight on the day of the delivery appointment, in [zone]. */
-    fun isDeliveryDay(now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean {
-        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        val day = appointmentAtEpochMs?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
+    fun isDeliveryDay(now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean =
+        appointmentDay(zone) == Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+
+    /** Day of the delivery appointment in [zone], or null when there is none or its text can't be read. */
+    fun appointmentDay(zone: ZoneId = ZoneId.systemDefault()): LocalDate? =
+        appointmentAtEpochMs?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
             ?: appointment?.let { APPOINTMENT_DATE.find(it) }?.destructured
                 ?.let { (d, m, y) -> runCatching { LocalDate.of(y.toInt(), m.toInt(), d.toInt()) }.getOrNull() }
-        return day == today
-    }
 }
 
 /** The `dd/MM/yyyy` the mapper puts at the start of an appointment it had to format itself. */

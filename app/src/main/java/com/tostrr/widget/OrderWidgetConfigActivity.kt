@@ -29,7 +29,7 @@ import com.tostrr.domain.Order
 import com.tostrr.ui.theme.TostrrTheme
 import kotlinx.coroutines.launch
 
-/** Shown when a widget is added (and when it is reconfigured): lets the user pick which order it displays. */
+/** Shown when an order or countdown widget is added (and when it is reconfigured): lets the user pick which order it displays. */
 class OrderWidgetConfigActivity : ComponentActivity() {
 
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
@@ -87,7 +87,10 @@ class OrderWidgetConfigActivity : ComponentActivity() {
             updateAppWidgetState(this@OrderWidgetConfigActivity, PreferencesGlanceStateDefinition, glanceId) { prefs: Preferences ->
                 prefs.toMutablePreferences().apply { this[OrderRefKey] = order.reference }
             }
-            OrderWidget().update(this@OrderWidgetConfigActivity, glanceId)
+            // Both widgets share this screen; only the one being configured knows how to draw itself.
+            val provider = AppWidgetManager.getInstance(this@OrderWidgetConfigActivity).getAppWidgetInfo(widgetId)?.provider
+            val widget = if (provider?.className == CountdownWidgetReceiver::class.java.name) CountdownWidget() else OrderWidget()
+            widget.update(this@OrderWidgetConfigActivity, glanceId)
             setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
             finish()
         }

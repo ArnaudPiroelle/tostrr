@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">Tostrr</string>
     <string name="widget_description">Suivi de votre commande Tesla</string>
+    <string name="countdown_widget_description">Compte à rebours avant la livraison</string>
 </resources>

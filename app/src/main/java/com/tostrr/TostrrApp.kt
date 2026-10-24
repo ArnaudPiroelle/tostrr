@@ -12,6 +12,7 @@ import com.tostrr.data.RefreshScheduler
 import com.tostrr.data.TeslaApi
 import com.tostrr.data.TeslaAuth
 import com.tostrr.data.TokenStore
+import com.tostrr.widget.CountdownWidget
 import com.tostrr.widget.OrderWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +48,12 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
             // Readable over adb without root, so real payloads can be pulled for analysis.
             archiveDir = getExternalFilesDir("snapshots") ?: File(filesDir, "snapshots"),
             notifier = OrderNotifier(this) { catalog.codes.value },
-            onRefreshed = { scope.launch { OrderWidget().updateAll(this@TostrrApp) } },
+            onRefreshed = {
+                scope.launch {
+                    OrderWidget().updateAll(this@TostrrApp)
+                    CountdownWidget().updateAll(this@TostrrApp)
+                }
+            },
         )
         if (auth.isLoggedIn()) RefreshScheduler.schedule(this)
     }
