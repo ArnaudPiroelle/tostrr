@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.tostrr"
+    namespace = "app.tostrr"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.tostrr"
+        applicationId = "app.tostrr"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.tostrr.data"
+    namespace = "app.tostrr.data"
     compileSdk = 36
 
     defaultConfig {
