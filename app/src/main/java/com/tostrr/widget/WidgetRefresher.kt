@@ -2,7 +2,7 @@ package com.tostrr.widget
 
 import android.content.Context
 import androidx.glance.appwidget.updateAll
-import com.tostrr.data.OrderRefreshListener
+import com.tostrr.data.order.OrderRefreshListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single

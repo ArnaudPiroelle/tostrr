@@ -33,10 +33,10 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import com.tostrr.MainActivity
-import com.tostrr.data.OrderRepository
-import com.tostrr.domain.DeliveryCountdown
-import com.tostrr.domain.Order
-import com.tostrr.domain.deliveryCountdown
+import com.tostrr.data.order.OrderRepository
+import com.tostrr.domain.order.DeliveryCountdown
+import com.tostrr.domain.order.Order
+import com.tostrr.domain.order.deliveryCountdown
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 

@@ -24,8 +24,8 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
-import com.tostrr.data.OrderRepository
-import com.tostrr.domain.Order
+import com.tostrr.data.order.OrderRepository
+import com.tostrr.domain.order.Order
 import com.tostrr.ui.theme.TostrrTheme
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject

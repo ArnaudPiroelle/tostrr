@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tostrr.domain.Order
+import com.tostrr.domain.order.Order
 import com.tostrr.ui.theme.TostrrColors
 
 /** Size of a step dot and thickness of the bar behind it, shared by the list and detail trackers. */

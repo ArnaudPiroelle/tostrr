@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.tostrr.domain.order.Order
 import com.tostrr.ui.REFRESH_COOLDOWN_MS
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,7 +65,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.tostrr.domain.Order
 import com.tostrr.ui.common.StepTracker
 import com.tostrr.ui.common.formatDateTime
 import com.tostrr.ui.theme.TostrrColors

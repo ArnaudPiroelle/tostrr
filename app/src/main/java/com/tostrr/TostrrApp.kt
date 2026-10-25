@@ -4,8 +4,8 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import com.tostrr.data.RefreshScheduler
-import com.tostrr.data.TeslaAuth
+import com.tostrr.data.auth.TeslaAuth
+import com.tostrr.data.sync.RefreshScheduler
 import com.tostrr.di.AppModule
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext

@@ -2,8 +2,8 @@ package com.tostrr.data.di
 
 import android.content.Context
 import androidx.work.WorkManager
-import com.tostrr.data.ChecklistDao
-import com.tostrr.data.TostrrDatabase
+import com.tostrr.data.checklist.ChecklistDao
+import com.tostrr.data.checklist.TostrrDatabase
 import okhttp3.OkHttpClient
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Module

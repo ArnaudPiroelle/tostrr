@@ -25,7 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.tostrr.domain.DeliveryCenter
+import com.tostrr.domain.deliverycenter.DeliveryCenter
 import com.tostrr.ui.MainViewModel
 import com.tostrr.ui.checklist.ChecklistScreen
 import com.tostrr.ui.detail.DetailScreen

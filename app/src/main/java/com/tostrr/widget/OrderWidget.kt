@@ -53,8 +53,8 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.tostrr.MainActivity
 import com.tostrr.R
-import com.tostrr.data.OrderRepository
-import com.tostrr.domain.Order
+import com.tostrr.data.order.OrderRepository
+import com.tostrr.domain.order.Order
 import com.tostrr.ui.common.formatDateTime
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject

@@ -26,7 +26,7 @@ There is no lint/format config beyond `kotlin.code.style=official`. Tests are pl
 
 ## Architecture
 
-**Modules / layers**: `:domain` (Kotlin JVM library, no Android: JSON → model, rules; this is what's unit-tested) ← `:data` (Android library: network, auth, persistence, notifications, background work; exposes `:domain` as `api`) ← `:app` (`ui/` Compose screens + ViewModels, `widget/` Glance, `MainActivity`, `TostrrApp`). Packages stay `com.tostrr.domain` / `com.tostrr.data`. `:data` must not reference `:app`: notifications open the launcher intent and use the application icon rather than `MainActivity` / `R`.
+**Modules / layers**: `:domain` (Kotlin JVM library, no Android: JSON → model, rules; this is what's unit-tested) ← `:data` (Android library: network, auth, persistence, notifications, background work; exposes `:domain` as `api`) ← `:app` (`ui/` Compose screens + ViewModels, `widget/` Glance, `MainActivity`, `TostrrApp`). Each module is split into sub-packages by concern: `com.tostrr.domain.{order, history, alert, checklist, deliverycenter}` (`order` holds `Order`, `OrderMapper`, the step detectors and the delivery countdown; `history` holds `JsonDiff` and `HistoryIgnore`) and `com.tostrr.data.{api, auth, order, notification, sync, checklist, catalog, di}`. Put new classes in the matching sub-package (tests mirror it). `:data` must not reference `:app`: notifications open the launcher intent and use the application icon rather than `MainActivity` / `R`.
 
 **Sync pipeline** — the core flow, centred on `OrderRepository.refresh()`:
 1. `TeslaAuth` provides a valid access token (OAuth2 code + PKCE with Tesla's public `ownerapi` client; redirect `tesla://auth/callback` is caught by the manifest intent filter on `MainActivity`, or pasted manually). Tokens are encrypted with a Keystore key in `TokenStore`.
@@ -43,7 +43,7 @@ Refreshes run from the UI (`MainViewModel`) and from `RefreshWorker` (15-minute 
 
 **Catalogues**: `OptionCatalog` downloads option-code labels from tesla-order-status-tracker.de (best effort, cached, never fails a sync). `DeliveryCenterCatalog` reads the bundled `data/src/main/assets/delivery_centers.json`, a snapshot of tesla.com/findus; regenerate it with the project skill `refresh-delivery-centers` (`.claude/skills/`).
 
-**Checklist**: delivery-day checklist content is defined in `domain/DeliveryChecklist.kt`; answers and photos are stored per order in Room (`ChecklistDatabase`, version 1, no migrations yet — bumping the schema needs a migration) via `ChecklistRepository`, with photos under `filesDir/checklist_photos` shared through the `FileProvider`.
+**Checklist**: delivery-day checklist content is defined in `domain/checklist/DeliveryChecklist.kt`; answers and photos are stored per order in Room (`ChecklistDatabase`, version 1, no migrations yet — bumping the schema needs a migration) via `ChecklistRepository`, with photos under `filesDir/checklist_photos` shared through the `FileProvider`.
 
 **Navigation**: a single `MainActivity` with a string-route `NavHost` (`login`, `orders`, `order/{ref}`, `order/{ref}/checklist`). Widgets open an order through the internal deep link `tostrr://order/<reference>`.
 

@@ -5,10 +5,10 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tostrr.data.ChecklistRepository
-import com.tostrr.domain.AnswerStatus
-import com.tostrr.domain.Checklist
-import com.tostrr.domain.ChecklistAnswer
+import com.tostrr.data.checklist.ChecklistRepository
+import com.tostrr.domain.checklist.AnswerStatus
+import com.tostrr.domain.checklist.Checklist
+import com.tostrr.domain.checklist.ChecklistAnswer
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
