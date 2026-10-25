@@ -31,6 +31,61 @@ object TostrrColors {
     val Negative: Color @Composable get() = MaterialTheme.colorScheme.error
 }
 
+/** Tesla's red. The light scheme uses a deeper shade so white text on it stays readable. */
+private val TeslaRed = Color(0xFFE31937)
+private val TeslaRedDeep = Color(0xFFC8102E)
+
+/** Near-black and neutral greys around Tesla red, without Material's default violet tint. */
+internal val TostrrDarkColors = darkColorScheme(
+    primary = TeslaRed,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFF5C0A16),
+    onPrimaryContainer = Color(0xFFFFDADB),
+    secondary = Color(0xFFC4C4C9),
+    onSecondary = Color(0xFF1B1B1E),
+    secondaryContainer = Color(0xFF2E2E33),
+    onSecondaryContainer = Color(0xFFE4E4E8),
+    tertiary = Color(0xFFC4C4C9),
+    background = Color(0xFF0A0A0B),
+    onBackground = Color(0xFFEDEDEF),
+    surface = Color(0xFF0A0A0B),
+    onSurface = Color(0xFFEDEDEF),
+    surfaceVariant = Color(0xFF2A2A2E),
+    onSurfaceVariant = Color(0xFFA1A1A8),
+    surfaceContainerLowest = Color(0xFF050506),
+    surfaceContainerLow = Color(0xFF111113),
+    surfaceContainer = Color(0xFF161618),
+    surfaceContainerHigh = Color(0xFF1E1E21),
+    surfaceContainerHighest = Color(0xFF2A2A2E),
+    outline = Color(0xFF5C5C63),
+    outlineVariant = Color(0xFF2E2E33),
+)
+
+internal val TostrrLightColors = lightColorScheme(
+    primary = TeslaRedDeep,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFDADA),
+    onPrimaryContainer = Color(0xFF410007),
+    secondary = Color(0xFF5E5E63),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFE6E6EA),
+    onSecondaryContainer = Color(0xFF1B1B1E),
+    tertiary = Color(0xFF5E5E63),
+    background = Color.White,
+    onBackground = Color(0xFF171719),
+    surface = Color.White,
+    onSurface = Color(0xFF171719),
+    surfaceVariant = Color(0xFFE6E6EA),
+    onSurfaceVariant = Color(0xFF5E5E63),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFF8F8F9),
+    surfaceContainer = Color(0xFFF3F3F5),
+    surfaceContainerHigh = Color(0xFFECECEF),
+    surfaceContainerHighest = Color(0xFFE4E4E8),
+    outline = Color(0xFF8E8E94),
+    outlineVariant = Color(0xFFD6D6DB),
+)
+
 private val AppTypography = Typography(
     headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 28.sp, lineHeight = 34.sp),
     titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp),
@@ -43,7 +98,7 @@ private val AppTypography = Typography(
 @Composable
 fun TostrrTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme(),
+        colorScheme = if (darkTheme) TostrrDarkColors else TostrrLightColors,
         typography = AppTypography,
     ) {
         // Gives every screen a default content colour (otherwise bare Text/Icon fall back to black).

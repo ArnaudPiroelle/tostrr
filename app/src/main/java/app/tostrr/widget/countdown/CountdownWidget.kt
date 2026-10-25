@@ -14,6 +14,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import app.tostrr.domain.order.deliveryCountdown
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.widget.OrderRefKey
+import app.tostrr.widget.TostrrWidgetColors
 import app.tostrr.widget.countdown.components.CountdownWidgetContent
 import org.koin.core.annotation.Single
 
@@ -31,7 +32,7 @@ class CountdownWidget(private val observeOrdersUseCase: ObserveOrdersUseCase) : 
             val orders by observeOrdersUseCase().collectAsState()
             val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()
             // Today is read on every composition: each refresh's updateAll moves the count past midnight.
-            GlanceTheme { CountdownWidgetContent(order, order?.deliveryCountdown()?.let(::countdownLabels)) }
+            GlanceTheme(TostrrWidgetColors) { CountdownWidgetContent(order, order?.deliveryCountdown()?.let(::countdownLabels)) }
         }
     }
 }

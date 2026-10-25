@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="logo_dot">#D0BCFF</color>
-    <color name="logo_text">#E6E0E9</color>
-    <color name="window_background">#141218</color>
+    <color name="logo_dot">#E31937</color>
+    <color name="logo_text">#EDEDEF</color>
+    <color name="window_background">#0A0A0B</color>
 </resources>

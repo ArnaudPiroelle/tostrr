@@ -21,6 +21,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.widget.OrderRefKey
+import app.tostrr.widget.TostrrWidgetColors
 import app.tostrr.widget.order.components.OrderWidgetContent
 import org.koin.core.annotation.Single
 
@@ -42,7 +43,7 @@ class OrderWidget(private val observeOrdersUseCase: ObserveOrdersUseCase) : Glan
             val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()
             val url = order?.imageUrl
             val car by produceState<Bitmap?>(null, url) { value = url?.let { loadBitmap(context, it) } }
-            GlanceTheme { OrderWidgetContent(order, car) }
+            GlanceTheme(TostrrWidgetColors) { OrderWidgetContent(order, car) }
         }
     }
 
