@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.DashboardCustomize
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.FactCheck
@@ -36,7 +37,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -59,6 +62,8 @@ import app.tostrr.domain.checklist.Checklist
 import app.tostrr.domain.checklist.DeliveryChecklist
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.deliverycenter.googleMapsUrl
+import app.tostrr.domain.layout.BlockLayouts
+import app.tostrr.domain.layout.DetailBlock
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.Order
@@ -96,6 +101,7 @@ import app.tostrr.ui.common.formatDateTime
 import app.tostrr.ui.common.formatShortDate
 import app.tostrr.ui.common.formatShortTime
 import app.tostrr.ui.theme.TostrrColors
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun DetailScreen(
@@ -106,8 +112,15 @@ fun DetailScreen(
     deliveryCenter: DeliveryCenter?,
     onOpenChecklist: () -> Unit,
     onBack: () -> Unit,
+    layoutViewModel: DetailLayoutViewModel = koinViewModel(),
 ) {
     val scrollState = rememberScrollState()
+    val layout by layoutViewModel.layout.collectAsState()
+    var arranging by rememberSaveable { mutableStateOf(false) }
+    // Once there is an appointment to prepare for; a checklist already started stays reachable even if the
+    // appointment later disappears from Tesla's data.
+    val showChecklist = order.hasAppointment || checklist != null
+    val blocks = BlockLayouts.visible(DetailBlock.entries, layout).filter { it != DetailBlock.CHECKLIST || showChecklist }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
             Hero(order)
@@ -115,19 +128,38 @@ fun DetailScreen(
                 Modifier.padding(16.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Once there is an appointment to prepare for; a checklist already started stays reachable even if
-                // the appointment later disappears from Tesla's data.
-                if (order.hasAppointment || checklist != null) {
-                    ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
+                blocks.forEach { block ->
+                    // Keyed so a section keeps its expanded state when the user moves it.
+                    key(block) {
+                        when (block) {
+                            DetailBlock.CHECKLIST ->
+                                ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
+                            DetailBlock.DELIVERY -> Section(block.title) { DeliveryContent(order, deliveryCenter) }
+                            DetailBlock.PROGRESS -> Section(block.title) { ProgressContent(order) }
+                            DetailBlock.CONFIGURATION -> Section(block.title) { ConfigurationContent(order, options) }
+                            DetailBlock.HISTORY -> Section(block.title) { HistoryContent(history) }
+                        }
+                    }
                 }
-                Section("Informations de livraison") { DeliveryContent(order, deliveryCenter) }
-                Section("Progression de la commande") { ProgressContent(order) }
-                Section("Configuration") { ConfigurationContent(order, options) }
-                Section("Historique des modifications") { HistoryContent(history) }
             }
         }
         // Drawn after the scrolling content so it stays pinned on top of it.
-        StickyTopBar(title = "Commande #${order.reference}", scrollOffset = { scrollState.value }, onBack = onBack)
+        StickyTopBar(
+            title = "Commande #${order.reference}",
+            scrollOffset = { scrollState.value },
+            onBack = onBack,
+            onArrange = { arranging = true },
+        )
+    }
+
+    if (arranging) {
+        DetailLayoutSheet(
+            layout = layout,
+            onMove = layoutViewModel::move,
+            onToggle = layoutViewModel::toggle,
+            onReset = layoutViewModel::reset,
+            onDismiss = { arranging = false },
+        )
     }
 }
 
@@ -185,7 +217,7 @@ private const val TOP_BAR_FADE_PX = 240f
 
 /** Pinned top bar: transparent over the hero, then blends into the screen colour as content scrolls under it. */
 @Composable
-private fun StickyTopBar(title: String, scrollOffset: () -> Int, onBack: () -> Unit) {
+private fun StickyTopBar(title: String, scrollOffset: () -> Int, onBack: () -> Unit, onArrange: () -> Unit) {
     val background = MaterialTheme.colorScheme.background
     // Alpha is read while drawing, so scrolling doesn't recompose the bar.
     fun progress() = (scrollOffset() / TOP_BAR_FADE_PX).coerceIn(0f, 1f)
@@ -204,10 +236,13 @@ private fun StickyTopBar(title: String, scrollOffset: () -> Int, onBack: () -> U
             }
             Text(
                 title,
-                Modifier.graphicsLayer { alpha = progress() },
+                Modifier.weight(1f).graphicsLayer { alpha = progress() },
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
             )
+            IconButton(onClick = onArrange) {
+                Icon(Icons.Outlined.DashboardCustomize, contentDescription = "Organiser la page")
+            }
         }
         // Separates the opaque bar from the screen background; fades in with the bar so the hero stays clean.
         HorizontalDivider(
