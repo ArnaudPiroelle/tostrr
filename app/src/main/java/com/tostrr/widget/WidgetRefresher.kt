@@ -3,6 +3,8 @@ package com.tostrr.widget
 import android.content.Context
 import androidx.glance.appwidget.updateAll
 import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
+import com.tostrr.widget.countdown.CountdownWidget
+import com.tostrr.widget.order.OrderWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch

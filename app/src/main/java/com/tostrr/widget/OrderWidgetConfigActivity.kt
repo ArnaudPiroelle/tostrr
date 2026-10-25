@@ -27,6 +27,8 @@ import androidx.lifecycle.lifecycleScope
 import com.tostrr.domain.order.Order
 import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import com.tostrr.ui.theme.TostrrTheme
+import com.tostrr.widget.countdown.CountdownWidget
+import com.tostrr.widget.order.OrderWidget
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
