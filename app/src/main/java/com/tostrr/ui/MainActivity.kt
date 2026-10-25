@@ -1,4 +1,4 @@
-package com.tostrr
+package com.tostrr.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -26,7 +26,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tostrr.domain.deliverycenter.DeliveryCenter
-import com.tostrr.ui.MainViewModel
 import com.tostrr.ui.checklist.ChecklistScreen
 import com.tostrr.ui.detail.DetailScreen
 import com.tostrr.ui.login.LoginScreen

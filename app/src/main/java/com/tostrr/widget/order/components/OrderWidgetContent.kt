@@ -31,8 +31,8 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
-import com.tostrr.MainActivity
 import com.tostrr.domain.order.Order
+import com.tostrr.ui.MainActivity
 import com.tostrr.ui.common.formatDateTime
 
 @Composable
