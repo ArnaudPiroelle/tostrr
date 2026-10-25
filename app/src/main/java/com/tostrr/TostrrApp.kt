@@ -23,7 +23,7 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
             workManagerFactory()
             modules(AppModule().module)
         }
-        if (get<TeslaAuth>().isLoggedIn()) RefreshScheduler.schedule(this)
+        if (get<TeslaAuth>().isLoggedIn()) get<RefreshScheduler>().schedule()
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context).build()

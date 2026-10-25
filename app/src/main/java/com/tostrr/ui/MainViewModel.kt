@@ -1,6 +1,5 @@
 package com.tostrr.ui
 
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,9 +24,8 @@ const val REFRESH_COOLDOWN_MS = 30_000L
 
 @KoinViewModel
 class MainViewModel(
-    /** The application context: only used to (un)schedule the background sync. */
-    private val context: Context,
     private val auth: TeslaAuth,
+    private val scheduler: RefreshScheduler,
     val repository: OrderRepository,
     catalog: OptionCatalog,
     val checklists: ChecklistRepository,
@@ -69,7 +67,7 @@ class MainViewModel(
             _error.value = null
             try {
                 auth.completeLogin(redirect)
-                RefreshScheduler.schedule(context)
+                scheduler.schedule()
                 _loggedIn.value = true
                 refresh()
             } catch (e: CancellationException) {
@@ -108,7 +106,7 @@ class MainViewModel(
     }
 
     fun logout() {
-        RefreshScheduler.cancel(context)
+        scheduler.cancel()
         auth.logout()
         repository.clear()
         _loggedIn.value = false

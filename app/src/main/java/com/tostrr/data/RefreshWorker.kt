@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.CancellationException
 import org.koin.android.annotation.KoinWorker
+import org.koin.core.annotation.Single
 import java.util.concurrent.TimeUnit
 
 /** Background sync: updates the cached orders and records what changed. */
@@ -51,19 +52,22 @@ class RefreshWorker(
     }
 }
 
-object RefreshScheduler {
-    private const val WORK_NAME = "orders_refresh"
+@Single
+class RefreshScheduler(private val workManager: WorkManager) {
 
     /** Idempotent: keeps the existing schedule if one is already enqueued. */
-    fun schedule(context: Context) {
+    fun schedule() {
         val request = PeriodicWorkRequestBuilder<RefreshWorker>(15, TimeUnit.MINUTES)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
-        WorkManager.getInstance(context)
-            .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
+        workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
-    fun cancel(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+    fun cancel() {
+        workManager.cancelUniqueWork(WORK_NAME)
+    }
+
+    private companion object {
+        const val WORK_NAME = "orders_refresh"
     }
 }

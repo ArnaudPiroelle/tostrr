@@ -1,6 +1,7 @@
 package com.tostrr.di
 
 import android.content.Context
+import androidx.work.WorkManager
 import com.tostrr.data.ChecklistDao
 import com.tostrr.data.TostrrDatabase
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +34,10 @@ class AppModule {
     /** Built by Room, which generates the implementation. */
     @Single
     fun database(context: Context): TostrrDatabase = TostrrDatabase.create(context)
+
+    /** Only valid once Koin's workManagerFactory() has initialised it, which TostrrApp does at startup. */
+    @Single
+    fun workManager(context: Context): WorkManager = WorkManager.getInstance(context)
 
     @Single
     fun checklistDao(database: TostrrDatabase): ChecklistDao = database.checklistDao()
