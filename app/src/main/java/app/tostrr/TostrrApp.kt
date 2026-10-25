@@ -4,6 +4,7 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.util.DebugLogger
 import app.tostrr.di.AppModule
 import app.tostrr.domain.sync.usecase.StartBackgroundSyncUseCase
 import app.tostrr.widget.WidgetRefresher
@@ -27,5 +28,8 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
         get<StartBackgroundSyncUseCase>()()
     }
 
-    override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context).build()
+    override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context)
+        // Logs every request and why it failed, under the "RealImageLoader" tag (debug builds only).
+        .apply { if (BuildConfig.DEBUG) logger(DebugLogger()) }
+        .build()
 }
