@@ -88,4 +88,31 @@ class BlockLayoutsTest {
         assertEquals(listOf("a"), reset.collapsed)
         assertTrue(reset.isArrangementDefault)
     }
+
+    private enum class WithOptional(override val id: String, override val hiddenByDefault: Boolean = false) : LayoutBlock {
+        A("a"), OPT("opt", hiddenByDefault = true), B("b"),
+    }
+
+    @Test fun `a block hidden by default stays out until shown, and the default layout stores nothing`() {
+        val all = WithOptional.entries
+        assertEquals(listOf("a", "b"), BlockLayouts.visible(all, BlockLayout()).map { it.id })
+        assertEquals(listOf("opt"), BlockLayouts.hidden(all, BlockLayout()).map { it.id })
+
+        val shown = BlockLayouts.toggle(all, BlockLayout(), "opt")
+        assertEquals(listOf("opt"), shown.shown)
+        assertEquals(listOf("a", "opt", "b"), BlockLayouts.visible(all, shown).map { it.id })
+        assertEquals(false, shown.isArrangementDefault)
+
+        assertTrue(BlockLayouts.toggle(all, shown, "opt").isDefault)
+    }
+
+    @Test fun `resetting hides a block hidden by default again`() {
+        val all = WithOptional.entries
+        val reset = BlockLayouts.resetArrangement(BlockLayouts.toggle(all, BlockLayout(), "opt"))
+        assertEquals(listOf("a", "b"), BlockLayouts.visible(all, reset).map { it.id })
+    }
+
+    @Test fun `the vertical progress is the only detail block hidden by default`() {
+        assertEquals(listOf(DetailBlock.PROGRESS), DetailBlock.entries.filter { it.hiddenByDefault })
+    }
 }

@@ -70,6 +70,7 @@ import app.tostrr.domain.order.Order
 import app.tostrr.ui.common.StepBarThickness
 import app.tostrr.ui.common.StepDot
 import app.tostrr.ui.common.StepDotSize
+import app.tostrr.ui.common.StepTracker
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyColumn
@@ -142,6 +143,7 @@ fun DetailScreen(
                             DetailBlock.CHECKLIST ->
                                 ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
                             DetailBlock.DELIVERY -> section { DeliveryContent(order, deliveryCenter) }
+                            DetailBlock.PROGRESS_TRACKER -> section { StepTracker(order) }
                             DetailBlock.PROGRESS -> section { ProgressContent(order) }
                             DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, options) }
                             DetailBlock.HISTORY -> section { HistoryContent(history) }

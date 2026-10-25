@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.FactCheck
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.LinearScale
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Tune
@@ -41,21 +42,30 @@ import app.tostrr.domain.layout.BlockLayouts
 import app.tostrr.domain.layout.DetailBlock
 import app.tostrr.ui.theme.TostrrColors
 
-/** Title shown for a block, in the detail screen and in the arrangement sheet. */
+/** Title of a block's section in the detail screen; both progress views share theirs. */
 internal val DetailBlock.title: String
     get() = when (this) {
         DetailBlock.CHECKLIST -> "Checklist de livraison"
         DetailBlock.DELIVERY -> "Informations de livraison"
-        DetailBlock.PROGRESS -> "Progression de la commande"
+        DetailBlock.PROGRESS_TRACKER, DetailBlock.PROGRESS -> "Progression de la commande"
         DetailBlock.CONFIGURATION -> "Configuration"
         DetailBlock.HISTORY -> "Historique des modifications"
+    }
+
+/** Name in the arrangement sheet, where the two progress views need telling apart. */
+private val DetailBlock.label: String
+    get() = when (this) {
+        DetailBlock.PROGRESS_TRACKER -> "$title (horizontale)"
+        DetailBlock.PROGRESS -> "$title (verticale)"
+        else -> title
     }
 
 private val DetailBlock.blurb: String
     get() = when (this) {
         DetailBlock.CHECKLIST -> "Affichée dès qu'un rendez-vous de livraison est fixé."
         DetailBlock.DELIVERY -> "Centre et fenêtre de livraison."
-        DetailBlock.PROGRESS -> "Les étapes de la commande jusqu'à la livraison."
+        DetailBlock.PROGRESS_TRACKER -> "Les étapes sur une ligne, comme dans la liste."
+        DetailBlock.PROGRESS -> "Les étapes l'une sous l'autre, avec leurs dates."
         DetailBlock.CONFIGURATION -> "Les options de la voiture."
         DetailBlock.HISTORY -> "Ce qui a changé d'une synchronisation à l'autre."
     }
@@ -64,6 +74,7 @@ private val DetailBlock.icon: ImageVector
     get() = when (this) {
         DetailBlock.CHECKLIST -> Icons.Outlined.FactCheck
         DetailBlock.DELIVERY -> Icons.Outlined.LocalShipping
+        DetailBlock.PROGRESS_TRACKER -> Icons.Outlined.LinearScale
         DetailBlock.PROGRESS -> Icons.Outlined.Timeline
         DetailBlock.CONFIGURATION -> Icons.Outlined.Tune
         DetailBlock.HISTORY -> Icons.Outlined.History
@@ -169,7 +180,7 @@ private fun BlockRow(
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                block.title,
+                block.label,
                 style = MaterialTheme.typography.titleMedium,
                 color = if (hidden) TostrrColors.Muted else TostrrColors.OnSurface,
             )
@@ -177,17 +188,17 @@ private fun BlockRow(
         }
         if (!hidden) {
             IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) {
-                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Monter « ${block.title} »")
+                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Monter « ${block.label} »")
             }
             IconButton(onClick = { onMove(1) }, enabled = canMoveDown) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Descendre « ${block.title} »")
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Descendre « ${block.label} »")
             }
         }
         IconButton(onClick = onToggle) {
             if (hidden) {
-                Icon(Icons.Outlined.AddCircleOutline, contentDescription = "Afficher « ${block.title} »", tint = TostrrColors.Accent)
+                Icon(Icons.Outlined.AddCircleOutline, contentDescription = "Afficher « ${block.label} »", tint = TostrrColors.Accent)
             } else {
-                Icon(Icons.Outlined.VisibilityOff, contentDescription = "Masquer « ${block.title} »", tint = TostrrColors.Muted)
+                Icon(Icons.Outlined.VisibilityOff, contentDescription = "Masquer « ${block.label} »", tint = TostrrColors.Muted)
             }
         }
     }

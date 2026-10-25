@@ -21,14 +21,14 @@ class DetailLayoutRepositoryImpl(context: Context) : DetailLayoutRepository {
     override fun save(layout: BlockLayout) {
         _layout.value = layout
         prefs.edit().apply {
-            if (layout.isDefault) remove(KEY_DETAIL) else putString(KEY_DETAIL, json.encodeToString(StoredLayout(layout.order, layout.hidden, layout.collapsed)))
+            if (layout.isDefault) remove(KEY_DETAIL) else putString(KEY_DETAIL, json.encodeToString(StoredLayout(layout.order, layout.hidden, layout.collapsed, layout.shown)))
         }.apply()
     }
 
     /** A missing or unreadable value means the default layout. */
     private fun load(): BlockLayout = prefs.getString(KEY_DETAIL, null)
         ?.let { runCatching { json.decodeFromString<StoredLayout>(it) }.getOrNull() }
-        ?.let { BlockLayout(it.order, it.hidden, it.collapsed) }
+        ?.let { BlockLayout(it.order, it.hidden, it.collapsed, it.shown) }
         ?: BlockLayout()
 
     @Serializable
@@ -36,6 +36,7 @@ class DetailLayoutRepositoryImpl(context: Context) : DetailLayoutRepository {
         val order: List<String> = emptyList(),
         val hidden: List<String> = emptyList(),
         val collapsed: List<String> = emptyList(),
+        val shown: List<String> = emptyList(),
     )
 
     private companion object {

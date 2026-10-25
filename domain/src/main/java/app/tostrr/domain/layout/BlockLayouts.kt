@@ -20,13 +20,17 @@ object BlockLayouts {
         return result
     }
 
+    /** Whether the user, or the block's default, hides it. */
+    fun isHidden(block: LayoutBlock, layout: BlockLayout): Boolean =
+        if (block.hiddenByDefault) block.id !in layout.shown else block.id in layout.hidden
+
     /** The blocks to show, in order. */
     fun <T : LayoutBlock> visible(all: List<T>, layout: BlockLayout): List<T> =
-        resolved(all, layout).filter { it.id !in layout.hidden }
+        resolved(all, layout).filterNot { isHidden(it, layout) }
 
     /** The hidden blocks, in their saved order. */
     fun <T : LayoutBlock> hidden(all: List<T>, layout: BlockLayout): List<T> =
-        resolved(all, layout).filter { it.id in layout.hidden }
+        resolved(all, layout).filter { isHidden(it, layout) }
 
     /** Moves a shown block by [delta] places among the shown ones; out of range or unknown leaves it as it is. */
     fun <T : LayoutBlock> move(all: List<T>, layout: BlockLayout, id: String, delta: Int): BlockLayout {
@@ -40,9 +44,12 @@ object BlockLayouts {
 
     /** Hides a shown block or shows a hidden one; it keeps its place in the order. */
     fun <T : LayoutBlock> toggle(all: List<T>, layout: BlockLayout, id: String): BlockLayout {
-        if (all.none { it.id == id }) return layout
-        val hidden = if (id in layout.hidden) layout.hidden - id else layout.hidden + id
-        return normalized(all, layout.copy(order = resolved(all, layout).map { it.id }, hidden = hidden))
+        val block = all.firstOrNull { it.id == id } ?: return layout
+        val toggled = when {
+            !block.hiddenByDefault -> layout.copy(hidden = if (id in layout.hidden) layout.hidden - id else layout.hidden + id)
+            else -> layout.copy(shown = if (id in layout.shown) layout.shown - id else layout.shown + id)
+        }
+        return normalized(all, toggled.copy(order = resolved(all, layout).map { it.id }))
     }
 
     /** Whether a block shows its content; blocks are expanded unless the user collapsed them. */
@@ -59,5 +66,6 @@ object BlockLayouts {
 
     /** An order equal to the default becomes the empty one, so "reset" knows there is nothing left to undo. */
     private fun <T : LayoutBlock> normalized(all: List<T>, layout: BlockLayout) =
-        if (layout.hidden.isEmpty() && layout.order == all.map { it.id }) layout.copy(order = emptyList()) else layout
+        if (layout.hidden.isEmpty() && layout.shown.isEmpty() && layout.order == all.map { it.id }) layout.copy(order = emptyList())
+        else layout
 }
