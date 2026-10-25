@@ -41,7 +41,7 @@ Refreshes run from the UI (`MainViewModel`) and from `RefreshWorker` (15-minute 
 
 **Unverified rules**: Tesla doesn't document how steps like "Production terminée", "Documents envoyés" or "Véhicule immatriculé" appear. `StepDetector` / `PayloadStepDetectors`, `HistoryIgnore` and parts of `OrderMapper` are guesses, not observed changes in real payloads. Treat them as hypotheses: when real snapshots with new values are available, check them against these rules before trusting either. Swap step logic through `StepDetectors` rather than editing `OrderMapper`.
 
-**Catalogues**: `OptionCatalog` downloads option-code labels from tesla-order-status-tracker.de (best effort, cached, never fails a sync). `DeliveryCenterCatalog` reads the bundled `assets/delivery_centers.json`; the root-level `tesla-findus-fetch.js` / `tesla-delivery-centers.csv` are tooling for regenerating that data from tesla.com/findus.
+**Catalogues**: `OptionCatalog` downloads option-code labels from tesla-order-status-tracker.de (best effort, cached, never fails a sync). `DeliveryCenterCatalog` reads the bundled `assets/delivery_centers.json`, a snapshot of tesla.com/findus; regenerate it with the project skill `refresh-delivery-centers` (`.claude/skills/`).
 
 **Checklist**: delivery-day checklist content is defined in `domain/DeliveryChecklist.kt`; answers and photos are stored per order in Room (`ChecklistDatabase`, version 1, no migrations yet — bumping the schema needs a migration) via `ChecklistRepository`, with photos under `filesDir/checklist_photos` shared through the `FileProvider`.
 
