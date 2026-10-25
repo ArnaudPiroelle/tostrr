@@ -33,21 +33,23 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import com.tostrr.MainActivity
-import com.tostrr.TostrrApp
+import com.tostrr.data.OrderRepository
 import com.tostrr.domain.DeliveryCountdown
 import com.tostrr.domain.Order
 import com.tostrr.domain.deliveryCountdown
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /** 2x1 countdown to the delivery: days to the appointment, or to / inside the delivery window while there is none. */
-class CountdownWidget : GlanceAppWidget() {
+class CountdownWidget : GlanceAppWidget(), KoinComponent {
+    private val repository: OrderRepository by inject()
 
     override val stateDefinition = PreferencesGlanceStateDefinition
 
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = (context.applicationContext as TostrrApp).repository
-        provideContent {
+                provideContent {
             val chosen = currentState<Preferences>()[OrderRefKey]
             val orders by repository.orders.collectAsState()
             val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()

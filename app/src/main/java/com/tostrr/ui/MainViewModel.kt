@@ -1,30 +1,39 @@
 package com.tostrr.ui
 
-import android.app.Application
+import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tostrr.TostrrApp
 import com.tostrr.data.ApiException
 import com.tostrr.data.AuthException
+import com.tostrr.data.ChecklistRepository
+import com.tostrr.data.DeliveryCenterCatalog
+import com.tostrr.data.OptionCatalog
+import com.tostrr.data.OrderRepository
 import com.tostrr.data.RefreshScheduler
 import com.tostrr.data.SessionExpiredException
+import com.tostrr.data.TeslaAuth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.koin.android.annotation.KoinViewModel
 
 /** Minimum delay between two refreshes, to avoid hammering Tesla's private API. */
 const val REFRESH_COOLDOWN_MS = 30_000L
 
-class MainViewModel(app: Application) : AndroidViewModel(app) {
-    private val tostrr = app as TostrrApp
-    private val auth = tostrr.auth
-    val repository = tostrr.repository
-    val optionCodes = tostrr.catalog.codes
-    val checklists = tostrr.checklists
-    val deliveryCenters = tostrr.deliveryCenters
+@KoinViewModel
+class MainViewModel(
+    /** The application context: only used to (un)schedule the background sync. */
+    private val context: Context,
+    private val auth: TeslaAuth,
+    val repository: OrderRepository,
+    catalog: OptionCatalog,
+    val checklists: ChecklistRepository,
+    val deliveryCenters: DeliveryCenterCatalog,
+) : ViewModel() {
+    val optionCodes = catalog.codes
 
     private val _loggedIn = MutableStateFlow(auth.isLoggedIn())
     val loggedIn: StateFlow<Boolean> = _loggedIn.asStateFlow()
@@ -60,7 +69,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _error.value = null
             try {
                 auth.completeLogin(redirect)
-                RefreshScheduler.schedule(tostrr)
+                RefreshScheduler.schedule(context)
                 _loggedIn.value = true
                 refresh()
             } catch (e: CancellationException) {
@@ -99,7 +108,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun logout() {
-        RefreshScheduler.cancel(tostrr)
+        RefreshScheduler.cancel(context)
         auth.logout()
         repository.clear()
         _loggedIn.value = false

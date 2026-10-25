@@ -11,6 +11,7 @@ import kotlinx.serialization.json.longOrNull
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.koin.core.annotation.Single
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -24,6 +25,7 @@ class SessionExpiredException : AuthException("Session expirée, reconnectez-vou
  * The redirect target `tesla://auth/callback` is caught via the intent filter in the manifest
  * (or pasted by the user as a fallback).
  */
+@Single
 class TeslaAuth(
     private val client: OkHttpClient,
     private val store: TokenStore,

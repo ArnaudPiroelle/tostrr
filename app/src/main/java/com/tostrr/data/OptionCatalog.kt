@@ -1,5 +1,6 @@
 package com.tostrr.data
 
+import android.content.Context
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,7 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.koin.core.annotation.Single
 import java.io.File
 
 data class OptionInfo(val label: String, val category: String?)
@@ -30,11 +32,12 @@ data class OptionInfo(val label: String, val category: String?)
  * tesla-order-status-tracker project, also used by github.com/chrisi51/tesla-order-status. It is
  * downloaded at most once per [TTL_MS] and cached; without it, screens fall back to the bare codes.
  */
+@Single
 class OptionCatalog(
     private val client: OkHttpClient,
-    dir: File,
+    context: Context,
 ) {
-    private val cacheFile = File(dir, "option_codes.json")
+    private val cacheFile = File(context.filesDir, "option_codes.json")
     private var fetchedAtMs = 0L
 
     private val _codes = MutableStateFlow<Map<String, OptionInfo>>(emptyMap())

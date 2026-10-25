@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import org.koin.core.annotation.Single
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -17,6 +18,7 @@ data class Tokens(
 )
 
 /** Stores OAuth tokens and the pending PKCE verifier, encrypted with an Android Keystore AES key. */
+@Single
 class TokenStore(context: Context) {
     private val prefs = context.getSharedPreferences("tostrr_secure", Context.MODE_PRIVATE)
 

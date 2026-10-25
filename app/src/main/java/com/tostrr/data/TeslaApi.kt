@@ -10,12 +10,14 @@ import kotlinx.serialization.json.jsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.koin.core.annotation.Single
 import java.util.Locale
 import java.util.UUID
 
 class ApiException(val code: Int, message: String) : Exception(message)
 
 /** Raw, schema-less access to the private Tesla order endpoints (payloads change often). */
+@Single
 class TeslaApi(private val client: OkHttpClient) {
 
     suspend fun listOrders(accessToken: String): JsonArray {

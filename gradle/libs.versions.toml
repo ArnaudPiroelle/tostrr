@@ -13,6 +13,8 @@ coroutines = "1.10.2"
 glance = "1.1.1"
 room = "2.8.1"
 ksp = "2.2.0-2.0.2"
+koin = "4.1.1"
+koinAnnotations = "2.3.1"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.16.0" }
@@ -38,6 +40,13 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose" }
+koin-androidx-workmanager = { module = "io.insert-koin:koin-androidx-workmanager" }
+koin-annotations-bom = { module = "io.insert-koin:koin-annotations-bom", version.ref = "koinAnnotations" }
+koin-annotations = { module = "io.insert-koin:koin-annotations" }
+koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koinAnnotations" }
 junit = { module = "junit:junit", version = "4.13.2" }
 
 [plugins]

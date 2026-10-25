@@ -1,5 +1,6 @@
 package com.tostrr.data
 
+import android.content.Context
 import com.tostrr.domain.Change
 import com.tostrr.domain.Order
 import com.tostrr.domain.OrderMapper
@@ -27,6 +28,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
+import org.koin.core.annotation.Single
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -34,22 +36,28 @@ import java.time.format.DateTimeFormatter
 import java.util.zip.GZIPOutputStream
 
 /** Fetches orders, caches the last snapshot on disk and records what changed between two syncs. */
+@Single
 class OrderRepository(
+    context: Context,
     private val api: TeslaApi,
     private val auth: TeslaAuth,
     private val catalog: OptionCatalog,
-    private val dir: File,
-    /** Every successful pull is kept here, one gzipped JSON per order and per sync, for later analysis. */
-    private val archiveDir: File = File(dir, "snapshots"),
-    val notifier: OrderNotifier? = null,
-    /** Called after each successful sync, e.g. to refresh the home-screen widget. */
-    private val onRefreshed: () -> Unit = {},
+    private val notifier: OrderNotifier,
+    /** Told after each successful sync, e.g. to refresh the home-screen widgets. */
+    private val refreshListener: OrderRefreshListener,
 ) {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()
 
+    private val dir = context.filesDir
     private val ordersFile = File(dir, "orders.json")
     private val historyFile = File(dir, "history.json")
+
+    /**
+     * Every successful pull is kept here, one gzipped JSON per order and per sync, for later analysis.
+     * Readable over adb without root, so real payloads can be pulled.
+     */
+    private val archiveDir = context.getExternalFilesDir("snapshots") ?: File(dir, "snapshots")
 
     private val _orders = MutableStateFlow(loadCache())
     val orders: StateFlow<List<Order>> = _orders.asStateFlow()
@@ -79,10 +87,10 @@ class OrderRepository(
             persist(fresh)
             saveHistory(_history.value)
             archive(fresh)
-            notifier?.clearSyncProblem()
-            fresh.forEach { notifier?.notifyReminder(it, now) }
-            notifier?.notifyDigest(_history.value, now)
-            onRefreshed()
+            notifier.clearSyncProblem()
+            fresh.forEach { notifier.notifyReminder(it, now) }
+            notifier.notifyDigest(_history.value, now)
+            refreshListener.onOrdersRefreshed()
         }
         // Best effort and outside the lock: a slow or unreachable catalogue must not delay or fail a sync.
         catalog.refreshIfStale()
@@ -109,12 +117,12 @@ class OrderRepository(
         for (order in new) {
             val before = oldByRef[order.reference]
             // First time we see this order: every step already done counts as new.
-            val notified = notifier?.notifyStepChanges(before, order) ?: false
+            val notified = notifier.notifyStepChanges(before, order)
             if (before == null) continue
             val changes = JsonDiff.diff(HistoryIgnore.prune(before.raw), HistoryIgnore.prune(order.raw)).map { it.toChange(now) }
             if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
             // The JSON moved but nothing above was worth a notification of its own.
-            if (!notified) notifier?.notifyMinorUpdate(order, changes)
+            if (!notified) notifier.notifyMinorUpdate(order, changes)
         }
         _history.value = merged
     }

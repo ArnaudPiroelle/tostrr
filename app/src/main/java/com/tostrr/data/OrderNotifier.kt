@@ -17,13 +17,15 @@ import com.tostrr.domain.Alert
 import com.tostrr.domain.Change
 import com.tostrr.domain.Order
 import com.tostrr.domain.OrderAlerts
+import org.koin.core.annotation.Single
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 /** Posts what a sync found out: steps done or undone, order changes, delivery reminders, the daily digest and sync problems. */
+@Single
 class OrderNotifier(
     private val context: Context,
-    private val catalogCodes: () -> Map<String, OptionInfo>,
+    private val catalog: OptionCatalog,
 ) {
     private val prefs = context.getSharedPreferences("tostrr_notifications", Context.MODE_PRIVATE)
 
@@ -121,7 +123,7 @@ class OrderNotifier(
         return true
     }
 
-    private fun label(code: String) = catalogCodes()[code]?.let { "${it.label} ($code)" } ?: code
+    private fun label(code: String) = catalog.codes.value[code]?.let { "${it.label} ($code)" } ?: code
 
     /** Without [text], the notification names the car and the order. */
     private fun post(

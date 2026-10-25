@@ -81,7 +81,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.tostrr.domain.AnswerStatus
 import com.tostrr.domain.Checklist
@@ -91,10 +90,11 @@ import com.tostrr.domain.ChecklistStep
 import com.tostrr.domain.DeliveryChecklist
 import com.tostrr.ui.common.formatDateTime
 import com.tostrr.ui.theme.TostrrColors
+import org.koin.androidx.compose.koinViewModel
 import java.io.File
 
 @Composable
-fun ChecklistScreen(onClose: () -> Unit, viewModel: ChecklistViewModel = viewModel()) {
+fun ChecklistScreen(onClose: () -> Unit, viewModel: ChecklistViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
     val editingQuestionId by viewModel.editingQuestionId.collectAsState()
     val scrollState = rememberScrollState()

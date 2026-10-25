@@ -14,7 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,9 +32,10 @@ import com.tostrr.ui.detail.DetailScreen
 import com.tostrr.ui.login.LoginScreen
 import com.tostrr.ui.orders.OrdersScreen
 import com.tostrr.ui.theme.TostrrTheme
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: MainViewModel by viewModels()
+    private val viewModel: MainViewModel by viewModel()
 
     /** Order to open as soon as it is available, set by a tap on a home-screen widget. */
     private var pendingOrderRef by mutableStateOf<String?>(null)

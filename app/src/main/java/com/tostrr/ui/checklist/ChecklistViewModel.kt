@@ -1,11 +1,11 @@
 package com.tostrr.ui.checklist
 
-import android.app.Application
+import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tostrr.TostrrApp
+import com.tostrr.data.ChecklistRepository
 import com.tostrr.domain.AnswerStatus
 import com.tostrr.domain.Checklist
 import com.tostrr.domain.ChecklistAnswer
@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.koin.android.annotation.KoinViewModel
 import java.io.File
 
 sealed interface ChecklistState {
@@ -24,8 +25,13 @@ sealed interface ChecklistState {
 }
 
 /** Drives the delivery checklist of the order in the `ref` route argument. */
-class ChecklistViewModel(app: Application, private val handle: SavedStateHandle) : AndroidViewModel(app) {
-    private val repository = (app as TostrrApp).checklists
+@KoinViewModel
+class ChecklistViewModel(
+    /** The application context, to read picked images. */
+    private val context: Context,
+    private val repository: ChecklistRepository,
+    private val handle: SavedStateHandle,
+) : ViewModel() {
     val orderReference: String = checkNotNull(handle["ref"])
 
     val state: StateFlow<ChecklistState> = repository.observe(orderReference)
@@ -95,7 +101,7 @@ class ChecklistViewModel(app: Application, private val handle: SavedStateHandle)
     /** Copies an image picked from the gallery and hands back its path. */
     fun importPhoto(questionId: String, uri: Uri, onImported: (String) -> Unit) {
         viewModelScope.launch {
-            val input = getApplication<Application>().contentResolver.openInputStream(uri) ?: return@launch
+            val input = context.contentResolver.openInputStream(uri) ?: return@launch
             onImported(repository.importPhoto(orderReference, questionId, input))
         }
     }

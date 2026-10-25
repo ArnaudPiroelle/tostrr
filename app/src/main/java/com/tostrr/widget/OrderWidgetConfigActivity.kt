@@ -24,14 +24,16 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
-import com.tostrr.TostrrApp
+import com.tostrr.data.OrderRepository
 import com.tostrr.domain.Order
 import com.tostrr.ui.theme.TostrrTheme
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 
 /** Shown when an order or countdown widget is added (and when it is reconfigured): lets the user pick which order it displays. */
 class OrderWidgetConfigActivity : ComponentActivity() {
 
+    private val repository: OrderRepository by inject()
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,7 +47,7 @@ class OrderWidgetConfigActivity : ComponentActivity() {
             return
         }
 
-        val orders = (application as TostrrApp).repository.orders.value
+        val orders = repository.orders.value
         if (orders.size == 1) {
             choose(orders.first())
             return

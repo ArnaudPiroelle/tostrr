@@ -1,5 +1,6 @@
 package com.tostrr.data
 
+import android.content.Context
 import com.tostrr.domain.AnswerStatus
 import com.tostrr.domain.Checklist
 import com.tostrr.domain.ChecklistAnswer
@@ -8,11 +9,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
+import org.koin.core.annotation.Single
 import java.io.File
 import java.io.InputStream
 
 /** Delivery checklists, one per order, and the photos taken for their answers. */
-class ChecklistRepository(private val dao: ChecklistDao, private val photoRoot: File) {
+@Single
+class ChecklistRepository(private val dao: ChecklistDao, context: Context) {
+    private val photoRoot = File(context.filesDir, "checklist_photos")
 
     fun observe(ref: String): Flow<Checklist?> =
         combine(dao.observeChecklist(ref), dao.observeAnswers(ref)) { checklist, answers ->
