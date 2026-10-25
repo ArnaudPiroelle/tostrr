@@ -37,6 +37,8 @@ data class Order(
     /** An invoice for the final payment exists, so there is something to pay. */
     val finalInvoiceReady: Boolean = false,
     val finalPaymentDone: Boolean = false,
+    /** ISO country code of the order, e.g. `FR`. */
+    val countryCode: String? = null,
 ) {
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int

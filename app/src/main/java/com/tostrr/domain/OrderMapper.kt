@@ -76,6 +76,7 @@ object OrderMapper {
             appointmentAtEpochMs = APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }?.let(::appointmentInstant),
             finalInvoiceReady = tasks.flag("finalPayment.data.hasFinalInvoice") || tasks.flag("finalPayment.data.hasActiveInvoice"),
             finalPaymentDone = tasks.flag("finalPayment.complete"),
+            countryCode = order.str("countryCode") ?: scheduling.str("countryCode"),
         )
     }
 

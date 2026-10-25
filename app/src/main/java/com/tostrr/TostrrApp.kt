@@ -6,6 +6,7 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import com.tostrr.data.ChecklistRepository
+import com.tostrr.data.DeliveryCenterCatalog
 import com.tostrr.data.OptionCatalog
 import com.tostrr.data.OrderNotifier
 import com.tostrr.data.OrderRepository
@@ -33,6 +34,8 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
         private set
     lateinit var checklists: ChecklistRepository
         private set
+    lateinit var deliveryCenters: DeliveryCenterCatalog
+        private set
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -59,6 +62,7 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
                 }
             },
         )
+        deliveryCenters = DeliveryCenterCatalog(this)
         checklists = ChecklistRepository(TostrrDatabase.create(this).checklistDao(), File(filesDir, "checklist_photos"))
         if (auth.isLoggedIn()) RefreshScheduler.schedule(this)
     }

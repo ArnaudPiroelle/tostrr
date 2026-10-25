@@ -27,6 +27,9 @@ import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +61,8 @@ import com.tostrr.ui.common.StepDot
 import com.tostrr.ui.common.StepDotSize
 import com.tostrr.domain.Change
 import com.tostrr.domain.Checklist
+import com.tostrr.domain.DeliveryCenter
+import com.tostrr.domain.googleMapsUrl
 import com.tostrr.domain.DeliveryChecklist
 import com.tostrr.domain.Order
 import androidx.compose.foundation.layout.PaddingValues
@@ -98,6 +103,7 @@ fun DetailScreen(
     history: List<Change>,
     options: Map<String, OptionInfo>,
     checklist: Checklist?,
+    deliveryCenter: DeliveryCenter?,
     onOpenChecklist: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -114,7 +120,7 @@ fun DetailScreen(
                 if (order.hasAppointment || checklist != null) {
                     ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
                 }
-                Section("Informations de livraison", initiallyExpanded = true) { DeliveryContent(order) }
+                Section("Informations de livraison", initiallyExpanded = true) { DeliveryContent(order, deliveryCenter) }
                 Section("Progression de la commande", initiallyExpanded = true) { ProgressContent(order) }
                 Section("Configuration", initiallyExpanded = false) { ConfigurationContent(order, options) }
                 Section("Historique des modifications", initiallyExpanded = false) { HistoryContent(history) }
@@ -350,9 +356,33 @@ private fun ConfigurationContent(order: Order, options: Map<String, OptionInfo>)
     }
 }
 
+/** The delivery centre; a tap opens it in Google Maps, at its exact address when the centre is known. */
 @Composable
-private fun DeliveryContent(order: Order) {
-    KeyValue("Centre de livraison", order.deliveryCenter)
+private fun DeliveryCenterRow(name: String, center: DeliveryCenter?) {
+    val uriHandler = LocalUriHandler.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { runCatching { uriHandler.openUri(googleMapsUrl(name, center)) } }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text("Centre de livraison", Modifier.weight(0.45f), style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted)
+        Column(Modifier.weight(0.55f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Map, contentDescription = null, tint = TostrrColors.Accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Ouvrir dans Google Maps", style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Accent)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeliveryContent(order: Order, center: DeliveryCenter?) {
+    order.deliveryCenter?.takeIf { it.isNotBlank() }?.let { DeliveryCenterRow(it, center) }
     KeyValue("Rendez-vous", order.appointment)
     KeyValue("Fenêtre de livraison", order.deliveryWindow)
     KeyValue("Arrivée au centre", order.etaToDeliveryCenter)

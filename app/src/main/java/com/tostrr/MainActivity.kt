@@ -21,10 +21,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.tostrr.domain.DeliveryCenter
 import com.tostrr.ui.MainViewModel
 import com.tostrr.ui.checklist.ChecklistScreen
 import com.tostrr.ui.detail.DetailScreen
@@ -98,11 +100,15 @@ class MainActivity : ComponentActivity() {
                         if (order != null) {
                             val checklist by remember(order.reference) { viewModel.checklists.observe(order.reference) }
                                 .collectAsState(null)
+                            val deliveryCenter by produceState<DeliveryCenter?>(null, order.deliveryCenter, order.countryCode) {
+                                value = viewModel.deliveryCenters.centers().find(order.deliveryCenter, order.countryCode)
+                            }
                             DetailScreen(
                                 order,
                                 history[order.reference].orEmpty(),
                                 optionCodes,
                                 checklist = checklist,
+                                deliveryCenter = deliveryCenter,
                                 onOpenChecklist = { nav.navigate("order/${order.reference}/checklist") },
                                 onBack = { nav.popBackStack() },
                             )

@@ -24,6 +24,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val repository = tostrr.repository
     val optionCodes = tostrr.catalog.codes
     val checklists = tostrr.checklists
+    val deliveryCenters = tostrr.deliveryCenters
 
     private val _loggedIn = MutableStateFlow(auth.isLoggedIn())
     val loggedIn: StateFlow<Boolean> = _loggedIn.asStateFlow()
