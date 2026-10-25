@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.io.File
 
 sealed interface ChecklistState {
@@ -32,9 +33,11 @@ sealed interface ChecklistState {
     data class Completed(val checklist: Checklist) : ChecklistState
 }
 
-/** Drives the delivery checklist of the order in the `ref` route argument. */
+/** Drives the delivery checklist of one order. */
 @KoinViewModel
 class ChecklistViewModel(
+    /** Given by the screen, from its navigation key. */
+    @InjectedParam val orderReference: String,
     /** The application context, to read picked images. */
     private val context: Context,
     private val handle: SavedStateHandle,
@@ -49,8 +52,6 @@ class ChecklistViewModel(
     private val importChecklistPhotoUseCase: ImportChecklistPhotoUseCase,
     private val deleteChecklistPhotoUseCase: DeleteChecklistPhotoUseCase,
 ) : ViewModel() {
-    val orderReference: String = checkNotNull(handle["ref"])
-
     val state: StateFlow<ChecklistState> = observeChecklistUseCase(orderReference)
         .map { checklist ->
             when {

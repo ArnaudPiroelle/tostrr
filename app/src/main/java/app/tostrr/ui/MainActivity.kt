@@ -22,13 +22,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.ui.checklist.ChecklistScreen
 import app.tostrr.ui.detail.DetailScreen
 import app.tostrr.ui.login.LoginScreen
+import app.tostrr.ui.navigation.Screen
 import app.tostrr.ui.orders.OrdersScreen
 import app.tostrr.ui.theme.TostrrTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -50,8 +53,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TostrrTheme {
-                val nav = rememberNavController()
                 val loggedIn by viewModel.loggedIn.collectAsState()
+                val backStack = rememberNavBackStack(if (loggedIn) Screen.Orders else Screen.Login)
                 val busy by viewModel.busy.collectAsState()
                 val refreshing by viewModel.refreshing.collectAsState()
                 val lastRefreshAt by viewModel.lastRefreshAt.collectAsState()
@@ -63,13 +66,14 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(pendingOrderRef, loggedIn, orders) {
                     val ref = pendingOrderRef ?: return@LaunchedEffect
                     if (!loggedIn || orders.isEmpty()) return@LaunchedEffect
-                    if (orders.any { it.reference == ref }) nav.navigate("order/$ref") { launchSingleTop = true }
+                    val target = Screen.OrderDetail(ref)
+                    if (orders.any { it.reference == ref } && backStack.lastOrNull() != target) backStack.add(target)
                     pendingOrderRef = null
                 }
 
                 LaunchedEffect(pendingOrdersList, loggedIn) {
                     if (!pendingOrdersList || !loggedIn) return@LaunchedEffect
-                    nav.popBackStack("orders", inclusive = false)
+                    while (backStack.size > 1 && backStack.last() != Screen.Orders) backStack.removeAt(backStack.lastIndex)
                     pendingOrdersList = false
                 }
 
@@ -78,54 +82,66 @@ class MainActivity : ComponentActivity() {
                         requestNotificationPermission()
                         requestBatteryOptimizationExemption()
                     }
-                    val route = nav.currentDestination?.route
-                    if (loggedIn && route == "login") nav.navigate("orders") { popUpTo("login") { inclusive = true } }
-                    if (!loggedIn && route != null && route != "login") nav.navigate("login") { popUpTo(0) }
+                    // Logging in or out replaces the whole stack, so back never returns to the other side.
+                    val home = if (loggedIn) Screen.Orders else Screen.Login
+                    if (backStack.firstOrNull() != home) {
+                        backStack.clear()
+                        backStack.add(home)
+                    }
                 }
 
-                NavHost(nav, startDestination = if (loggedIn) "orders" else "login") {
-                    composable("login") {
-                        LoginScreen(
-                            busy = busy,
-                            error = error,
-                            onLogin = { openLogin() },
-                            onPasteRedirect = viewModel::handleRedirect,
-                        )
-                    }
-                    composable("orders") {
-                        OrdersScreen(
-                            orders = orders,
-                            refreshing = refreshing,
-                            lastRefreshAtMs = lastRefreshAt,
-                            error = error,
-                            onRefresh = viewModel::refresh,
-                            onOpen = { nav.navigate("order/${it.reference}") },
-                            onLogout = viewModel::logout,
-                        )
-                    }
-                    composable("order/{ref}") { entry ->
-                        val order = entry.arguments?.getString("ref")?.let { ref -> orders.firstOrNull { it.reference == ref } }
-                        if (order != null) {
-                            val checklist by remember(order.reference) { viewModel.checklist(order.reference) }
-                                .collectAsState(null)
-                            val deliveryCenter by produceState<DeliveryCenter?>(null, order.deliveryCenter, order.countryCode) {
-                                value = viewModel.deliveryCenter(order)
-                            }
-                            DetailScreen(
-                                order,
-                                history[order.reference].orEmpty(),
-                                optionCodes,
-                                checklist = checklist,
-                                deliveryCenter = deliveryCenter,
-                                onOpenChecklist = { nav.navigate("order/${order.reference}/checklist") },
-                                onBack = { nav.popBackStack() },
+                NavDisplay(
+                    backStack = backStack,
+                    onBack = { backStack.removeLastOrNull() },
+                    // Each entry keeps its own saved state and ViewModels, cleared when it leaves the stack.
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                    ),
+                    entryProvider = entryProvider {
+                        entry<Screen.Login> {
+                            LoginScreen(
+                                busy = busy,
+                                error = error,
+                                onLogin = { openLogin() },
+                                onPasteRedirect = viewModel::handleRedirect,
                             )
                         }
-                    }
-                    composable("order/{ref}/checklist") {
-                        ChecklistScreen(onClose = { nav.popBackStack() })
-                    }
-                }
+                        entry<Screen.Orders> {
+                            OrdersScreen(
+                                orders = orders,
+                                refreshing = refreshing,
+                                lastRefreshAtMs = lastRefreshAt,
+                                error = error,
+                                onRefresh = viewModel::refresh,
+                                onOpen = { backStack.add(Screen.OrderDetail(it.reference)) },
+                                onLogout = viewModel::logout,
+                            )
+                        }
+                        entry<Screen.OrderDetail> { key ->
+                            val order = orders.firstOrNull { it.reference == key.reference }
+                            if (order != null) {
+                                val checklist by remember(order.reference) { viewModel.checklist(order.reference) }
+                                    .collectAsState(null)
+                                val deliveryCenter by produceState<DeliveryCenter?>(null, order.deliveryCenter, order.countryCode) {
+                                    value = viewModel.deliveryCenter(order)
+                                }
+                                DetailScreen(
+                                    order,
+                                    history[order.reference].orEmpty(),
+                                    optionCodes,
+                                    checklist = checklist,
+                                    deliveryCenter = deliveryCenter,
+                                    onOpenChecklist = { backStack.add(Screen.Checklist(order.reference)) },
+                                    onBack = { backStack.removeLastOrNull() },
+                                )
+                            }
+                        }
+                        entry<Screen.Checklist> { key ->
+                            ChecklistScreen(orderReference = key.reference, onClose = { backStack.removeLastOrNull() })
+                        }
+                    },
+                )
             }
         }
     }

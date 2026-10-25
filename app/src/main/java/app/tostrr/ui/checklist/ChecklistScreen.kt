@@ -91,10 +91,15 @@ import app.tostrr.domain.checklist.DeliveryChecklist
 import app.tostrr.ui.common.formatDateTime
 import app.tostrr.ui.theme.TostrrColors
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 import java.io.File
 
 @Composable
-fun ChecklistScreen(onClose: () -> Unit, viewModel: ChecklistViewModel = koinViewModel()) {
+fun ChecklistScreen(
+    orderReference: String,
+    onClose: () -> Unit,
+    viewModel: ChecklistViewModel = koinViewModel { parametersOf(orderReference) },
+) {
     val state by viewModel.state.collectAsState()
     val editingQuestionId by viewModel.editingQuestionId.collectAsState()
     val scrollState = rememberScrollState()
