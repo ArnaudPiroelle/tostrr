@@ -11,8 +11,6 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.tostrr.MainActivity
-import com.tostrr.R
 import com.tostrr.domain.Alert
 import com.tostrr.domain.Change
 import com.tostrr.domain.Order
@@ -145,13 +143,15 @@ class OrderNotifier(
     private fun notify(id: Int, channel: Channel, title: String, text: String, bigText: String, onlyAlertOnce: Boolean) {
         if (!canNotify()) return
         ensureChannel(channel)
+        // The data layer doesn't know the app's activities: open whatever the launcher opens.
+        val launch = checkNotNull(context.packageManager.getLaunchIntentForPackage(context.packageName))
         val open = PendingIntent.getActivity(
             context, 0,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = NotificationCompat.Builder(context, channel.id)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(context.applicationInfo.icon)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))

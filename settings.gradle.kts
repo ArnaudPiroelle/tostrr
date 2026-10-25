@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "tostrr"
-include(":app")
+include(":app", ":data", ":domain")

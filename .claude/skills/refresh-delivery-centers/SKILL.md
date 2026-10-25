@@ -1,12 +1,12 @@
 ---
 name: refresh-delivery-centers
-description: Refresh the Tesla delivery centres bundled in the app (app/src/main/assets/delivery_centers.json) from tesla.com/findus, through the user's Chrome. Use when asked to update, regenerate or re-fetch the delivery centre list, or when an order's centre isn't found in it.
+description: Refresh the Tesla delivery centres bundled in the app (data/src/main/assets/delivery_centers.json) from tesla.com/findus, through the user's Chrome. Use when asked to update, regenerate or re-fetch the delivery centre list, or when an order's centre isn't found in it.
 ---
 
 # Refresh the delivery centre list
 
 The app finds an order's delivery centre by the name Tesla gives (`deliveryAddressTitle`) in
-`app/src/main/assets/delivery_centers.json`, then opens it in Google Maps. Tesla has no public API for this list;
+`data/src/main/assets/delivery_centers.json`, then opens it in Google Maps. Tesla has no public API for this list;
 it comes from the two endpoints behind the map at https://www.tesla.com/fr_FR/findus:
 
 - `GET /api/findus/get-locations?country=FR&view=map`: every Tesla location in the world (despite `country=FR`),
@@ -48,12 +48,12 @@ it comes from the two endpoints behind the map at https://www.tesla.com/fr_FR/fi
    `window.__dc.rows.length`.
 5. Build the asset from the repository root:
    ```bash
-   python3 -I .claude/skills/refresh-delivery-centers/build_asset.py <scratchpad>/rows.tsv app/src/main/assets/delivery_centers.json
+   python3 -I .claude/skills/refresh-delivery-centers/build_asset.py <scratchpad>/rows.tsv data/src/main/assets/delivery_centers.json
    ```
    It refuses an empty or malformed file, and a list more than 20 % shorter than the current one (a run cut short);
    pass `--allow-shrink` only after the user confirms Tesla really removed that many. It prints the count, the
    statuses, and the names added and removed since the previous list.
-6. Close the tab you opened. Run `./gradlew :app:testDebugUnitTest` (with the `JAVA_HOME` from CLAUDE.md), then report
+6. Close the tab you opened. Run `./gradlew :domain:test` (with the `JAVA_HOME` from CLAUDE.md), then report
    to the user: how many centres, the added and removed names (the French ones in particular) and any errors. Don't
    commit unless asked; if asked, update the snapshot date in the `DeliveryCenterCatalog` KDoc too.
 

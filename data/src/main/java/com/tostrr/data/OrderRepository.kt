@@ -28,6 +28,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
+import org.koin.core.annotation.Provided
 import org.koin.core.annotation.Single
 import java.io.File
 import java.time.Instant
@@ -43,8 +44,8 @@ class OrderRepository(
     private val auth: TeslaAuth,
     private val catalog: OptionCatalog,
     private val notifier: OrderNotifier,
-    /** Told after each successful sync, e.g. to refresh the home-screen widgets. */
-    private val refreshListener: OrderRefreshListener,
+    /** Told after each successful sync, e.g. to refresh the home-screen widgets. Defined by the app module. */
+    @Provided private val refreshListener: OrderRefreshListener,
 ) {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()

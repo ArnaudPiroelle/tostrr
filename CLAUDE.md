@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Tostrr is a single-module Android app (`:app`, package `com.tostrr`) that tracks Tesla vehicle orders: it logs into the Tesla owner API, polls the (undocumented) order endpoints, shows order progress, records a change history, sends notifications, and offers home-screen widgets and a native delivery-day checklist. Kotlin, Jetpack Compose (Material 3), Glance widgets, WorkManager, Room, OkHttp, kotlinx.serialization. DI is Koin with Koin Annotations (KSP): classes are annotated `@Single` / `@KoinViewModel` / `@KoinWorker` and picked up by `@ComponentScan` in `di/AppModule`. Our own classes always carry the annotation themselves (take `Context` and derive paths inside rather than being built in a provider); `AppModule` only provides types we don't construct (OkHttp, Room database/DAO, `WorkManager`, the app `CoroutineScope`); `TostrrApp.onCreate()` calls `startKoin`. `KOIN_CONFIG_CHECK` makes a missing dependency fail the build. Koin is pinned to 4.1.x because 4.2 needs Kotlin 2.3. WorkManager is initialised through Koin's `workManagerFactory()` (default initializer removed in the manifest); Glance widgets get dependencies as `KoinComponent`s.
+Tostrr is an Android app (package `com.tostrr`) that tracks Tesla vehicle orders: it logs into the Tesla owner API, polls the (undocumented) order endpoints, shows order progress, records a change history, sends notifications, and offers home-screen widgets and a native delivery-day checklist. Kotlin, Jetpack Compose (Material 3), Glance widgets, WorkManager, Room, OkHttp, kotlinx.serialization. DI is Koin with Koin Annotations (KSP): classes are annotated `@Single` / `@KoinViewModel` / `@KoinWorker` and picked up by `@ComponentScan`: one Koin module per Gradle module, `DataModule` in `:data` (`com.tostrr.data.di`) included by `AppModule` in `:app`. Our own classes always carry the annotation themselves (take `Context` and derive paths inside rather than being built in a provider); the module classes only provide types we don't construct (`DataModule`: OkHttp, Room database/DAO, `WorkManager`; `AppModule`: the app `CoroutineScope`). A `:data` dependency implemented in `:app` (e.g. `OrderRefreshListener`) is marked `@Provided` so the `:data` check accepts it; `TostrrApp.onCreate()` calls `startKoin`. `KOIN_CONFIG_CHECK` makes a missing dependency fail the build. Koin is pinned to 4.1.x because 4.2 needs Kotlin 2.3. WorkManager is initialised through Koin's `workManagerFactory()` (default initializer removed in the manifest); Glance widgets get dependencies as `KoinComponent`s.
 
 User-facing strings are hardcoded in French in the Kotlin code (not in `strings.xml`); keep new UI text in French. Code comments and identifiers are in English.
 
@@ -16,17 +16,17 @@ The system `java` here is a JRE without javac and Android Studio's JBR is too ne
 JAVA_HOME=/home/arnaud/.gradle/jdks/eclipse_adoptium-21-amd64-linux.2 ./gradlew :app:assembleDebug
 ```
 
-- Unit tests: `./gradlew :app:testDebugUnitTest`
-- Single test: `./gradlew :app:testDebugUnitTest --tests 'com.tostrr.domain.OrderAlertsTest'` (append `.methodName` for one method)
+- Unit tests: `./gradlew :domain:test`
+- Single test: `./gradlew :domain:test --tests 'com.tostrr.domain.OrderAlertsTest'` (append `.methodName` for one method)
 - Install: `ANDROID_SERIAL=<serial> ./gradlew :app:installDebug` — always set `ANDROID_SERIAL`, otherwise it installs on every connected device.
 
-There is no lint/format config beyond `kotlin.code.style=official`. Tests are plain JUnit 4 under `app/src/test`, covering only the pure `domain` package (no Android/instrumented tests).
+There is no lint/format config beyond `kotlin.code.style=official`. Tests are plain JUnit 4 under `domain/src/test`, covering only the pure `:domain` module (no Android/instrumented tests).
 
 `api/` contains only stale build output from removed modules; it is not part of the Gradle build.
 
 ## Architecture
 
-**Layers**: `data/` (network, auth, persistence, notifications, background work) → `domain/` (pure Kotlin, JSON → model, rules; this is what's unit-tested) → `ui/` (Compose screens + ViewModels) and `widget/` (Glance).
+**Modules / layers**: `:domain` (Kotlin JVM library, no Android: JSON → model, rules; this is what's unit-tested) ← `:data` (Android library: network, auth, persistence, notifications, background work; exposes `:domain` as `api`) ← `:app` (`ui/` Compose screens + ViewModels, `widget/` Glance, `MainActivity`, `TostrrApp`). Packages stay `com.tostrr.domain` / `com.tostrr.data`. `:data` must not reference `:app`: notifications open the launcher intent and use the application icon rather than `MainActivity` / `R`.
 
 **Sync pipeline** — the core flow, centred on `OrderRepository.refresh()`:
 1. `TeslaAuth` provides a valid access token (OAuth2 code + PKCE with Tesla's public `ownerapi` client; redirect `tesla://auth/callback` is caught by the manifest intent filter on `MainActivity`, or pasted manually). Tokens are encrypted with a Keystore key in `TokenStore`.
@@ -35,13 +35,13 @@ There is no lint/format config beyond `kotlin.code.style=official`. Tests are pl
 4. The raw JSON of old vs new is pruned by `HistoryIgnore` and diffed by `JsonDiff`; deltas become `Change` entries in the per-order history.
 5. `OrderNotifier` (using rules in `OrderAlerts`) posts step-change, option-change, delivery-window, reminder, digest and sync-problem notifications.
 6. State is persisted as JSON files in `filesDir` (`orders.json`, `history.json`) and exposed as `StateFlow`s; every pull is also archived as gzipped JSON in `getExternalFilesDir("snapshots")/<order>/` (pullable over adb for analysing real payloads).
-7. `onRefreshed` triggers `OrderWidget`/`CountdownWidget` `updateAll`.
+7. `OrderRefreshListener` (implemented in `:app` by `WidgetRefresher`) triggers `OrderWidget`/`CountdownWidget` `updateAll`.
 
 Refreshes run from the UI (`MainViewModel`) and from `RefreshWorker` (15-minute periodic WorkManager job, scheduled by `RefreshScheduler` when logged in). A `Mutex` serialises them so diffs never see half-updated state. `AuthException`/`SessionExpiredException` mean "drop the session"; other failures retry.
 
 **Unverified rules**: Tesla doesn't document how steps like "Production terminée", "Documents envoyés" or "Véhicule immatriculé" appear. `StepDetector` / `PayloadStepDetectors`, `HistoryIgnore` and parts of `OrderMapper` are guesses, not observed changes in real payloads. Treat them as hypotheses: when real snapshots with new values are available, check them against these rules before trusting either. Swap step logic through `StepDetectors` rather than editing `OrderMapper`.
 
-**Catalogues**: `OptionCatalog` downloads option-code labels from tesla-order-status-tracker.de (best effort, cached, never fails a sync). `DeliveryCenterCatalog` reads the bundled `assets/delivery_centers.json`, a snapshot of tesla.com/findus; regenerate it with the project skill `refresh-delivery-centers` (`.claude/skills/`).
+**Catalogues**: `OptionCatalog` downloads option-code labels from tesla-order-status-tracker.de (best effort, cached, never fails a sync). `DeliveryCenterCatalog` reads the bundled `data/src/main/assets/delivery_centers.json`, a snapshot of tesla.com/findus; regenerate it with the project skill `refresh-delivery-centers` (`.claude/skills/`).
 
 **Checklist**: delivery-day checklist content is defined in `domain/DeliveryChecklist.kt`; answers and photos are stored per order in Room (`ChecklistDatabase`, version 1, no migrations yet — bumping the schema needs a migration) via `ChecklistRepository`, with photos under `filesDir/checklist_photos` shared through the `FileProvider`.
 
