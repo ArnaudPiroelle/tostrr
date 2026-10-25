@@ -120,10 +120,10 @@ fun DetailScreen(
                 if (order.hasAppointment || checklist != null) {
                     ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
                 }
-                Section("Informations de livraison", initiallyExpanded = true) { DeliveryContent(order, deliveryCenter) }
-                Section("Progression de la commande", initiallyExpanded = true) { ProgressContent(order) }
-                Section("Configuration", initiallyExpanded = false) { ConfigurationContent(order, options) }
-                Section("Historique des modifications", initiallyExpanded = false) { HistoryContent(history) }
+                Section("Informations de livraison") { DeliveryContent(order, deliveryCenter) }
+                Section("Progression de la commande") { ProgressContent(order) }
+                Section("Configuration") { ConfigurationContent(order, options) }
+                Section("Historique des modifications") { HistoryContent(history) }
             }
         }
         // Drawn after the scrolling content so it stays pinned on top of it.
@@ -295,8 +295,8 @@ private fun statusLabel(status: String): String = when (status) {
 }
 
 @Composable
-private fun Section(title: String, initiallyExpanded: Boolean, content: @Composable () -> Unit) {
-    var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+private fun Section(title: String, content: @Composable () -> Unit) {
+    var expanded by rememberSaveable(title) { mutableStateOf(true) }
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = TostrrColors.Surface,
