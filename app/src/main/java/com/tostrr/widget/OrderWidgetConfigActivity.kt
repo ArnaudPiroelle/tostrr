@@ -34,6 +34,8 @@ import org.koin.android.ext.android.inject
 class OrderWidgetConfigActivity : ComponentActivity() {
 
     private val observeOrdersUseCase: ObserveOrdersUseCase by inject()
+    private val orderWidget: OrderWidget by inject()
+    private val countdownWidget: CountdownWidget by inject()
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,7 +93,7 @@ class OrderWidgetConfigActivity : ComponentActivity() {
             }
             // Both widgets share this screen; only the one being configured knows how to draw itself.
             val provider = AppWidgetManager.getInstance(this@OrderWidgetConfigActivity).getAppWidgetInfo(widgetId)?.provider
-            val widget = if (provider?.className == CountdownWidgetReceiver::class.java.name) CountdownWidget() else OrderWidget()
+            val widget = if (provider?.className == CountdownWidgetReceiver::class.java.name) countdownWidget else orderWidget
             widget.update(this@OrderWidgetConfigActivity, glanceId)
             setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
             finish()

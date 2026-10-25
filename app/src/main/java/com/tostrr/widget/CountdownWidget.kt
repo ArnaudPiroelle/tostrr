@@ -37,12 +37,13 @@ import com.tostrr.domain.order.DeliveryCountdown
 import com.tostrr.domain.order.Order
 import com.tostrr.domain.order.deliveryCountdown
 import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
+import org.koin.core.annotation.Single
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /** 2x1 countdown to the delivery: days to the appointment, or to / inside the delivery window while there is none. */
-class CountdownWidget : GlanceAppWidget(), KoinComponent {
-    private val observeOrdersUseCase: ObserveOrdersUseCase by inject()
+@Single
+class CountdownWidget(private val observeOrdersUseCase: ObserveOrdersUseCase) : GlanceAppWidget() {
 
     override val stateDefinition = PreferencesGlanceStateDefinition
 
@@ -59,8 +60,9 @@ class CountdownWidget : GlanceAppWidget(), KoinComponent {
     }
 }
 
-class CountdownWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = CountdownWidget()
+/** Instantiated by Android, so it can't take constructor parameters: it fetches its widget from Koin. */
+class CountdownWidgetReceiver : GlanceAppWidgetReceiver(), KoinComponent {
+    override val glanceAppWidget: GlanceAppWidget by inject<CountdownWidget>()
 }
 
 /**

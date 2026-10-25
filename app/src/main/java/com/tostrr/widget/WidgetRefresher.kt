@@ -14,6 +14,8 @@ class WidgetRefresher(
     private val context: Context,
     private val scope: CoroutineScope,
     private val observeOrdersUseCase: ObserveOrdersUseCase,
+    private val orderWidget: OrderWidget,
+    private val countdownWidget: CountdownWidget,
 ) {
 
     /** Starts watching the orders for the life of the process; called once at startup. */
@@ -21,8 +23,8 @@ class WidgetRefresher(
         scope.launch {
             // The first value is the cache read at startup, which the widgets already show.
             observeOrdersUseCase().drop(1).collect {
-                OrderWidget().updateAll(context)
-                CountdownWidget().updateAll(context)
+                orderWidget.updateAll(context)
+                countdownWidget.updateAll(context)
             }
         }
     }

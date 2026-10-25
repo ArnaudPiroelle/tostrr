@@ -56,15 +56,14 @@ import com.tostrr.R
 import com.tostrr.domain.order.Order
 import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import com.tostrr.ui.common.formatDateTime
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import org.koin.core.annotation.Single
 
 /** Which order a widget instance shows; stored in its Glance state. */
 val OrderRefKey = stringPreferencesKey("order_reference")
 
 /** Home-screen version of the card shown in the orders list: the order picked for this widget and its step tracker. */
-class OrderWidget : GlanceAppWidget(), KoinComponent {
-    private val observeOrdersUseCase: ObserveOrdersUseCase by inject()
+@Single
+class OrderWidget(private val observeOrdersUseCase: ObserveOrdersUseCase) : GlanceAppWidget() {
 
     override val stateDefinition = PreferencesGlanceStateDefinition
 
