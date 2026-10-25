@@ -16,9 +16,16 @@ enum class DetailBlock(override val id: String) : LayoutBlock {
 }
 
 /**
- * The user's arrangement of a screen: block ids in their order, and the hidden ones. Empty means the default
- * order with every block shown, so a default layout is never stored.
+ * The user's arrangement of a screen: block ids in their order, the hidden ones and the collapsed ones. Empty means
+ * the default order with every block shown and expanded, so a default layout is never stored.
  */
-data class BlockLayout(val order: List<String> = emptyList(), val hidden: List<String> = emptyList()) {
-    val isDefault: Boolean get() = order.isEmpty() && hidden.isEmpty()
+data class BlockLayout(
+    val order: List<String> = emptyList(),
+    val hidden: List<String> = emptyList(),
+    val collapsed: List<String> = emptyList(),
+) {
+    /** Order and visibility are the default; collapsing isn't part of the arrangement "reset" undoes. */
+    val isArrangementDefault: Boolean get() = order.isEmpty() && hidden.isEmpty()
+
+    val isDefault: Boolean get() = isArrangementDefault && collapsed.isEmpty()
 }

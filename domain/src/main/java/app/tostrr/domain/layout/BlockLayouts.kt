@@ -42,10 +42,22 @@ object BlockLayouts {
     fun <T : LayoutBlock> toggle(all: List<T>, layout: BlockLayout, id: String): BlockLayout {
         if (all.none { it.id == id }) return layout
         val hidden = if (id in layout.hidden) layout.hidden - id else layout.hidden + id
-        return normalized(all, BlockLayout(resolved(all, layout).map { it.id }, hidden))
+        return normalized(all, layout.copy(order = resolved(all, layout).map { it.id }, hidden = hidden))
     }
 
-    /** A layout equal to the default becomes the empty one, so "reset" knows there is nothing left to undo. */
+    /** Whether a block shows its content; blocks are expanded unless the user collapsed them. */
+    fun isExpanded(layout: BlockLayout, id: String): Boolean = id !in layout.collapsed
+
+    /** Collapses an expanded block or expands a collapsed one. */
+    fun <T : LayoutBlock> toggleExpanded(all: List<T>, layout: BlockLayout, id: String): BlockLayout {
+        if (all.none { it.id == id }) return layout
+        return layout.copy(collapsed = if (id in layout.collapsed) layout.collapsed - id else layout.collapsed + id)
+    }
+
+    /** Back to the default order and visibility; collapsed blocks stay collapsed. */
+    fun resetArrangement(layout: BlockLayout): BlockLayout = BlockLayout(collapsed = layout.collapsed)
+
+    /** An order equal to the default becomes the empty one, so "reset" knows there is nothing left to undo. */
     private fun <T : LayoutBlock> normalized(all: List<T>, layout: BlockLayout) =
-        if (layout.hidden.isEmpty() && layout.order == all.map { it.id }) BlockLayout() else layout
+        if (layout.hidden.isEmpty() && layout.order == all.map { it.id }) layout.copy(order = emptyList()) else layout
 }

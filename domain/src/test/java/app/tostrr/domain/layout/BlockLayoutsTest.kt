@@ -66,4 +66,26 @@ class BlockLayoutsTest {
         val moved = BlockLayouts.move(all, BlockLayout(), "b", 1)
         assertTrue(BlockLayouts.move(all, moved, "b", -1).isDefault)
     }
+
+    @Test fun `blocks are expanded until collapsed, and toggle back`() {
+        assertTrue(BlockLayouts.isExpanded(BlockLayout(), "b"))
+        val collapsed = BlockLayouts.toggleExpanded(all, BlockLayout(), "b")
+        assertEquals(false, BlockLayouts.isExpanded(collapsed, "b"))
+        assertTrue(BlockLayouts.toggleExpanded(all, collapsed, "b").isDefault)
+        assertEquals(BlockLayout(), BlockLayouts.toggleExpanded(all, BlockLayout(), "nope"))
+    }
+
+    @Test fun `moving and hiding keep collapsed blocks collapsed`() {
+        val collapsed = BlockLayout(collapsed = listOf("a"))
+        val movedBack = BlockLayouts.move(all, BlockLayouts.move(all, collapsed, "b", 1), "b", -1)
+        assertEquals(collapsed, movedBack)
+        assertEquals(listOf("a"), BlockLayouts.toggle(all, collapsed, "c").collapsed)
+    }
+
+    @Test fun `resetting the arrangement keeps collapsed blocks and leaves nothing to reset`() {
+        val layout = BlockLayout(order = listOf("d", "c", "b", "a"), hidden = listOf("b"), collapsed = listOf("a"))
+        val reset = BlockLayouts.resetArrangement(layout)
+        assertEquals(listOf("a"), reset.collapsed)
+        assertTrue(reset.isArrangementDefault)
+    }
 }

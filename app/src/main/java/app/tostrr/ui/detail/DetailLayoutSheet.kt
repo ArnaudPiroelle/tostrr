@@ -84,7 +84,7 @@ fun DetailLayoutSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onReset, enabled = !layout.isDefault) { Text("Réinitialiser") }
+            TextButton(onClick = onReset, enabled = !layout.isArrangementDefault) { Text("Réinitialiser") }
             Text(
                 "Organiser la page",
                 Modifier.weight(1f),

@@ -129,15 +129,22 @@ fun DetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 blocks.forEach { block ->
-                    // Keyed so a section keeps its expanded state when the user moves it.
+                    // Keyed so a moved section keeps its own composition (and its expand animation).
                     key(block) {
+                        @Composable
+                        fun section(content: @Composable () -> Unit) = Section(
+                            block.title,
+                            expanded = BlockLayouts.isExpanded(layout, block.id),
+                            onToggle = { layoutViewModel.toggleExpanded(block) },
+                            content = content,
+                        )
                         when (block) {
                             DetailBlock.CHECKLIST ->
                                 ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
-                            DetailBlock.DELIVERY -> Section(block.title) { DeliveryContent(order, deliveryCenter) }
-                            DetailBlock.PROGRESS -> Section(block.title) { ProgressContent(order) }
-                            DetailBlock.CONFIGURATION -> Section(block.title) { ConfigurationContent(order, options) }
-                            DetailBlock.HISTORY -> Section(block.title) { HistoryContent(history) }
+                            DetailBlock.DELIVERY -> section { DeliveryContent(order, deliveryCenter) }
+                            DetailBlock.PROGRESS -> section { ProgressContent(order) }
+                            DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, options) }
+                            DetailBlock.HISTORY -> section { HistoryContent(history) }
                         }
                     }
                 }
@@ -330,8 +337,7 @@ private fun statusLabel(status: String): String = when (status) {
 }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
-    var expanded by rememberSaveable(title) { mutableStateOf(true) }
+private fun Section(title: String, expanded: Boolean, onToggle: () -> Unit, content: @Composable () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = TostrrColors.Surface,
@@ -340,7 +346,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     ) {
         Column {
             Row(
-                Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = 16.dp, vertical = 14.dp),
+                Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
