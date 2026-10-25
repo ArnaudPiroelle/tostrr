@@ -109,10 +109,12 @@ class OrderRepository(
         for (order in new) {
             val before = oldByRef[order.reference]
             // First time we see this order: every step already done counts as new.
-            notifier?.notifyStepChanges(before, order)
+            val notified = notifier?.notifyStepChanges(before, order) ?: false
             if (before == null) continue
             val changes = JsonDiff.diff(HistoryIgnore.prune(before.raw), HistoryIgnore.prune(order.raw)).map { it.toChange(now) }
             if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
+            // The JSON moved but nothing above was worth a notification of its own.
+            if (!notified) notifier?.notifyMinorUpdate(order, changes)
         }
         _history.value = merged
     }

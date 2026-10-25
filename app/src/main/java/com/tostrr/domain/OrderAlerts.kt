@@ -92,5 +92,19 @@ object OrderAlerts {
         return Alert("digest", "$total ${if (total == 1) "modification" else "modifications"} sur $orders", "Ouvrez Tostrr pour voir le détail dans l'historique")
     }
 
+    /**
+     * A sync whose JSON changed without anything the other alerts recognise. First line: how many fields; then up to
+     * [MINOR_SHOWN] paths. The key is fixed so a later minor update replaces the previous one instead of stacking.
+     */
+    fun minorUpdate(changes: List<Change>): Alert? {
+        if (changes.isEmpty()) return null
+        val count = if (changes.size == 1) "1 champ modifié" else "${changes.size} champs modifiés"
+        val paths = changes.map { it.key }.distinct()
+        val lines = paths.take(MINOR_SHOWN).map { "• $it" } +
+            listOfNotNull((paths.size - MINOR_SHOWN).takeIf { it > 0 }?.let { "… et $it autres" })
+        return Alert("minor_update", "Mise à jour mineure de votre commande", (listOf(count) + lines).joinToString("\n"))
+    }
+
+    private const val MINOR_SHOWN = 5
     private val DAY = TimeUnit.DAYS.toMillis(1)
 }

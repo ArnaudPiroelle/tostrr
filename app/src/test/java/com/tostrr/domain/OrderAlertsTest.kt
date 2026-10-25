@@ -102,4 +102,13 @@ class DeliveryDayTest {
         assertTrue(!order(appointment = "30 novembre à 10:30").isDeliveryDay(at("2026-11-30T08:00:00"), zone))
         assertTrue(!order().isDeliveryDay(at("2026-11-30T08:00:00"), zone))
     }
+
+    @Test fun `a minor update lists the changed paths and caps the list`() {
+        assertNull(OrderAlerts.minorUpdate(emptyList()))
+        val one = OrderAlerts.minorUpdate(listOf(Change(0L, "details.a", "1", "2")))!!
+        assertEquals("minor_update", one.key)
+        assertEquals("1 champ modifié\n• details.a", one.text)
+        val many = OrderAlerts.minorUpdate((1..7).map { Change(0L, "p$it", null, "x") })!!
+        assertEquals(listOf("7 champs modifiés", "• p1", "• p2", "• p3", "• p4", "• p5", "… et 2 autres"), many.text.lines())
+    }
 }
