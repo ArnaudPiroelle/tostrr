@@ -6,7 +6,7 @@ import org.junit.Test
 
 class DeliveryCentersTest {
     private fun center(name: String, country: String, address: String = "1 rue X") =
-        DeliveryCenter(name, country, "Ville", address, 0.0, 0.0)
+        DeliveryCenter(name, country, "Ville", address)
 
     private val maurepas = center("Centre de Livraison Tesla Paris-Ouest", "FR", "5-7 Av. Louis Pasteur, 78310 Maurepas")
     private val richmondUs = center("Richmond", "US")

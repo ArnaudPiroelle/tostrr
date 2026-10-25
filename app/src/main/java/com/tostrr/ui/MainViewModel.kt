@@ -128,8 +128,4 @@ class MainViewModel(
         logoutUseCase()
         _loggedIn.value = false
     }
-
-    fun dismissError() {
-        _error.value = null
-    }
 }

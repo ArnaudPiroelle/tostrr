@@ -14,7 +14,7 @@ class DeliveryCountdownTest {
 
     private fun order(window: String? = null, appointment: String? = null, appointmentAt: Long? = null) = Order(
         reference = "RN1", status = "", vin = null, modelName = "Model Y", optionCodes = emptyList(), imageUrl = null,
-        bookedDate = null, steps = emptyList(), deliveryCenter = null, deliveryWindow = window, deliverySlot = null,
+        steps = emptyList(), deliveryCenter = null, deliveryWindow = window, deliverySlot = null,
         appointment = appointment, etaToDeliveryCenter = null, expectedRegistration = null, fetchedAtEpochMs = 0L,
         raw = JsonObject(emptyMap()), appointmentAtEpochMs = appointmentAt,
     )

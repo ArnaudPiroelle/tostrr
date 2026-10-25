@@ -20,7 +20,6 @@ data class Order(
     val modelName: String,
     val optionCodes: List<String>,
     val imageUrl: String?,
-    val bookedDate: String?,
     val steps: List<OrderStep>,
     val deliveryCenter: String?,
     val deliveryWindow: String?,

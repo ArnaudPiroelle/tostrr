@@ -62,7 +62,6 @@ object OrderMapper {
             modelName = modelName(modelCode),
             optionCodes = optionCodes,
             imageUrl = imageUrl(modelCode, optionCodes),
-            bookedDate = formatDate(booked),
             steps = steps,
             deliveryCenter = scheduling.str("deliveryAddressTitle"),
             deliveryWindow = window,

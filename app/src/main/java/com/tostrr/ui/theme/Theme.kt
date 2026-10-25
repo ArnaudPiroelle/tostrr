@@ -21,7 +21,6 @@ object TostrrColors {
     val SurfaceHigh: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh
     val Border: Color @Composable get() = MaterialTheme.colorScheme.outlineVariant
     val Accent: Color @Composable get() = MaterialTheme.colorScheme.primary
-    val Danger: Color @Composable get() = MaterialTheme.colorScheme.error
     val OnSurface: Color @Composable get() = MaterialTheme.colorScheme.onSurface
     val Muted: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
     val Track: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHighest

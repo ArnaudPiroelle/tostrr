@@ -10,8 +10,6 @@ data class DeliveryCenter(
     val country: String,
     val city: String,
     val address: String,
-    val latitude: Double,
-    val longitude: Double,
 )
 
 /**

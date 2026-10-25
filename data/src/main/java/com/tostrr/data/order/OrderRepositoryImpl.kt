@@ -72,8 +72,6 @@ class OrderRepositoryImpl(
     override fun lastSyncAgeMs(now: Long): Long? =
         _orders.value.maxOfOrNull { it.fetchedAtEpochMs }?.takeIf { it > 0 }?.let { now - it }
 
-    fun order(reference: String): Order? = _orders.value.firstOrNull { it.reference == reference }
-
     override suspend fun refresh() {
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException("Non connecté.")

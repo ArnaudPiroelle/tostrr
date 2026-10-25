@@ -22,7 +22,7 @@ class OrderAlertsTest {
         at: Long? = null,
     ) = Order(
         reference = "RN1", status = "", vin = vin, modelName = "Model 3", optionCodes = emptyList(), imageUrl = null,
-        bookedDate = null, steps = emptyList(), deliveryCenter = null, deliveryWindow = window, deliverySlot = null,
+        steps = emptyList(), deliveryCenter = null, deliveryWindow = window, deliverySlot = null,
         appointment = appointment, etaToDeliveryCenter = eta, expectedRegistration = null, fetchedAtEpochMs = 0L,
         raw = JsonObject(emptyMap()), licensePlate = plate, appointmentAtEpochMs = at,
         finalInvoiceReady = invoice, finalPaymentDone = paid,
@@ -86,7 +86,7 @@ class DeliveryDayTest {
     private fun at(s: String) = java.time.LocalDateTime.parse(s).atZone(zone).toInstant().toEpochMilli()
     private fun order(appointment: String? = null, at: Long? = null) = Order(
         reference = "RN1", status = "", vin = null, modelName = "Model 3", optionCodes = emptyList(), imageUrl = null,
-        bookedDate = null, steps = emptyList(), deliveryCenter = null, deliveryWindow = null, deliverySlot = null,
+        steps = emptyList(), deliveryCenter = null, deliveryWindow = null, deliverySlot = null,
         appointment = appointment, etaToDeliveryCenter = null, expectedRegistration = null, fetchedAtEpochMs = 0L,
         raw = JsonObject(emptyMap()), appointmentAtEpochMs = at,
     )
