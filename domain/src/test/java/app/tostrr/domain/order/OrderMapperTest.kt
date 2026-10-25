@@ -5,11 +5,18 @@ import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.LocalDate
 
 class OrderMapperTest {
     private fun obj(json: String) = Json.parseToJsonElement(json).jsonObject
     private fun map(order: String, tasks: String) =
         OrderMapper.map(obj(order), obj("""{"tasks":$tasks}"""), 0L)
+
+    @Test fun `booking day is read from the booked date, wherever it sits`() {
+        val o = map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"orderBookedDate":"2026-07-14T09:12:00.000Z"}}}""")
+        assertEquals(LocalDate.of(2026, 7, 14), o.bookedOn)
+        assertNull(map("""{"referenceNumber":"RN1"}""", "{}").bookedOn)
+    }
 
     @Test fun `a vin only found in the insurance task is ignored`() {
         val o = map("""{"referenceNumber":"RN1"}""", """{"insurance":{"vin":"OTHERCARVIN0000001"}}""")

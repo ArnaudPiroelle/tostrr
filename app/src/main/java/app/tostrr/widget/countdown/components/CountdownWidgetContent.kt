@@ -1,7 +1,6 @@
 package app.tostrr.widget.countdown.components
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,7 +30,7 @@ internal fun CountdownWidgetContent(order: Order?, labels: CountdownLabels?) {
     val context = LocalContext.current
     val open = actionStartActivity(
         Intent(context, MainActivity::class.java).apply {
-            order?.let { data = Uri.parse("${MainActivity.WIDGET_SCHEME}://order/${it.reference}") }
+            order?.let { data = MainActivity.orderUri(it.reference) }
         },
     )
     val root = GlanceModifier

@@ -6,6 +6,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.util.DebugLogger
 import app.tostrr.di.AppModule
+import app.tostrr.shortcut.OrderShortcuts
 import app.tostrr.domain.sync.usecase.StartBackgroundSyncUseCase
 import app.tostrr.widget.WidgetRefresher
 import org.koin.android.ext.android.get
@@ -25,6 +26,7 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
             modules(AppModule().module)
         }
         get<WidgetRefresher>().start()
+        get<OrderShortcuts>().start()
         get<StartBackgroundSyncUseCase>()()
     }
 

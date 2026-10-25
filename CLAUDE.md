@@ -45,7 +45,7 @@ Refreshes run from the UI (`MainViewModel`) and from `RefreshWorker` (15-minute 
 
 **Checklist**: delivery-day checklist content is defined in `domain/checklist/DeliveryChecklist.kt`; answers and photos are stored per order in Room (`ChecklistDatabase`, version 1, no migrations yet — bumping the schema needs a migration) via `ChecklistRepository`, with photos under `filesDir/checklist_photos` shared through the `FileProvider`.
 
-**Navigation**: a single `MainActivity` with a string-route `NavHost` (`login`, `orders`, `order/{ref}`, `order/{ref}/checklist`). Widgets open an order through the internal deep link `tostrr://order/<reference>`.
+**Navigation**: a single `MainActivity` with a string-route `NavHost` (`login`, `orders`, `order/{ref}`, `order/{ref}/checklist`). Widgets and launcher shortcuts use the internal deep links `tostrr://order/<reference>` (`MainActivity.orderUri`) and `tostrr://orders`. Shortcuts: a static "Commandes" one (`res/xml/shortcuts.xml`, whose `targetPackage` must match the applicationId) and up to three dynamic ones for the latest orders awaiting delivery, kept in sync with the orders flow by `shortcut/OrderShortcuts` (started in `TostrrApp`).
 
 ## Conventions
 

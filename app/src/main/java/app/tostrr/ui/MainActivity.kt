@@ -36,8 +36,11 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModel()
 
-    /** Order to open as soon as it is available, set by a tap on a home-screen widget. */
+    /** Order to open as soon as it is available, set by a tap on a home-screen widget or a launcher shortcut. */
     private var pendingOrderRef by mutableStateOf<String?>(null)
+
+    /** Set by the "Commandes" launcher shortcut: go back to the orders list, wherever the app was. */
+    private var pendingOrdersList by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +65,12 @@ class MainActivity : ComponentActivity() {
                     if (!loggedIn || orders.isEmpty()) return@LaunchedEffect
                     if (orders.any { it.reference == ref }) nav.navigate("order/$ref") { launchSingleTop = true }
                     pendingOrderRef = null
+                }
+
+                LaunchedEffect(pendingOrdersList, loggedIn) {
+                    if (!pendingOrdersList || !loggedIn) return@LaunchedEffect
+                    nav.popBackStack("orders", inclusive = false)
+                    pendingOrdersList = false
                 }
 
                 LaunchedEffect(loggedIn) {
@@ -129,7 +138,8 @@ class MainActivity : ComponentActivity() {
     private fun handleDeepLink(intent: Intent?) {
         val data = intent?.data ?: return
         if (data.scheme == "tesla" && data.host == "auth") viewModel.handleRedirect(data.toString())
-        if (data.scheme == WIDGET_SCHEME && data.host == "order") pendingOrderRef = data.pathSegments.firstOrNull()
+        if (data.scheme == DEEP_LINK_SCHEME && data.host == "order") pendingOrderRef = data.pathSegments.firstOrNull()
+        if (data.scheme == DEEP_LINK_SCHEME && data.host == "orders") pendingOrdersList = true
     }
 
     private val notificationPermission =
@@ -162,8 +172,11 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        /** Internal link used by the widget: `tostrr://order/<reference>`. */
-        const val WIDGET_SCHEME = "tostrr"
+        /** Internal links used by the widgets and launcher shortcuts: `tostrr://orders` and `tostrr://order/<reference>`. */
+        const val DEEP_LINK_SCHEME = "tostrr"
+
+        /** Opens the order's detail screen. */
+        fun orderUri(reference: String): Uri = Uri.parse("$DEEP_LINK_SCHEME://order/$reference")
 
         private const val KEY_BATTERY_PROMPT = "battery_prompt_shown"
     }

@@ -38,6 +38,8 @@ data class Order(
     val finalPaymentDone: Boolean = false,
     /** ISO country code of the order, e.g. `FR`. */
     val countryCode: String? = null,
+    /** Day the order was placed. */
+    val bookedOn: LocalDate? = null,
 ) {
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int
@@ -46,6 +48,10 @@ data class Order(
     /** Option codes as the catalogue keys them (no `$` prefix, upper case), sorted, without the model markers. */
     val visibleOptionCodes: List<String>
         get() = optionCodes.map { it.removePrefix("$").uppercase() }.filter { it !in HIDDEN_OPTION_CODES }.distinct().sorted()
+
+    /** Neither delivered nor cancelled: the order is still on its way. */
+    val awaitingDelivery: Boolean
+        get() = status != STATUS_DELIVERED && status != STATUS_CANCELLED
 
     /** Tesla has confirmed a delivery appointment (a mere delivery window doesn't count). */
     val hasAppointment: Boolean
@@ -61,6 +67,16 @@ data class Order(
             ?: appointment?.let { APPOINTMENT_DATE.find(it) }?.destructured
                 ?.let { (d, m, y) -> runCatching { LocalDate.of(y.toInt(), m.toInt(), d.toInt()) }.getOrNull() }
 }
+
+/**
+ * The [limit] most recently placed orders still [awaiting delivery][Order.awaitingDelivery], newest first.
+ * Orders without a known booking day come last.
+ */
+fun List<Order>.latestAwaitingDelivery(limit: Int): List<Order> =
+    filter { it.awaitingDelivery }.sortedWith(compareByDescending(nullsFirst()) { it.bookedOn }).take(limit)
+
+private const val STATUS_DELIVERED = "DELIVERED"
+private const val STATUS_CANCELLED = "CANCELLED"
 
 /** The `dd/MM/yyyy` the mapper puts at the start of an appointment it had to format itself. */
 private val APPOINTMENT_DATE = Regex("""^(\d{2})/(\d{2})/(\d{4})""")

@@ -3,4 +3,7 @@
     <string name="app_name">Tostrr</string>
     <string name="widget_description">Suivi de votre commande Tesla</string>
     <string name="countdown_widget_description">Compte à rebours avant la livraison</string>
+    <!-- Static shortcuts need string resources; the per-order ones are labelled in Kotlin. -->
+    <string name="shortcut_orders_short">Commandes</string>
+    <string name="shortcut_orders_long">Mes commandes</string>
 </resources>

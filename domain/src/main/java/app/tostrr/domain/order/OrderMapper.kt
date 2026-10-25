@@ -76,6 +76,7 @@ object OrderMapper {
             finalInvoiceReady = tasks.flag("finalPayment.data.hasFinalInvoice") || tasks.flag("finalPayment.data.hasActiveInvoice"),
             finalPaymentDone = tasks.flag("finalPayment.complete"),
             countryCode = order.str("countryCode") ?: scheduling.str("countryCode"),
+            bookedOn = booked?.let { runCatching { LocalDate.parse(it.take(10)) }.getOrNull() },
         )
     }
 
