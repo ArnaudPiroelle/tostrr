@@ -34,7 +34,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
-import org.koin.core.annotation.Provided
 import org.koin.core.annotation.Single
 import java.io.File
 import java.time.Instant
@@ -50,8 +49,6 @@ class OrderRepositoryImpl(
     private val auth: TeslaAuth,
     private val catalog: OptionCatalog,
     private val notifier: OrderNotifier,
-    /** Told after each successful sync, e.g. to refresh the home-screen widgets. Defined by the app module. */
-    @Provided private val refreshListener: OrderRefreshListener,
 ) : OrderRepository {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()
@@ -95,7 +92,6 @@ class OrderRepositoryImpl(
             notifier.clearSyncProblem()
             fresh.forEach { notifier.notifyReminder(it, now) }
             notifier.notifyDigest(_history.value, now)
-            refreshListener.onOrdersRefreshed()
         }
         // Best effort and outside the lock: a slow or unreachable catalogue must not delay or fail a sync.
         catalog.refreshIfStale()

@@ -2,22 +2,28 @@ package com.tostrr.widget
 
 import android.content.Context
 import androidx.glance.appwidget.updateAll
-import com.tostrr.data.order.OrderRefreshListener
+import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 
-/** Redraws every home-screen widget once a sync has updated the orders. */
+/** Redraws every home-screen widget each time the orders change, i.e. after every successful sync. */
 @Single
 class WidgetRefresher(
     private val context: Context,
     private val scope: CoroutineScope,
-) : OrderRefreshListener {
+    private val observeOrdersUseCase: ObserveOrdersUseCase,
+) {
 
-    override fun onOrdersRefreshed() {
+    /** Starts watching the orders for the life of the process; called once at startup. */
+    fun start() {
         scope.launch {
-            OrderWidget().updateAll(context)
-            CountdownWidget().updateAll(context)
+            // The first value is the cache read at startup, which the widgets already show.
+            observeOrdersUseCase().drop(1).collect {
+                OrderWidget().updateAll(context)
+                CountdownWidget().updateAll(context)
+            }
         }
     }
 }
