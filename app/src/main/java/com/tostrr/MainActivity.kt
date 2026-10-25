@@ -21,10 +21,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tostrr.ui.MainViewModel
+import com.tostrr.ui.checklist.ChecklistScreen
 import com.tostrr.ui.detail.DetailScreen
 import com.tostrr.ui.login.LoginScreen
 import com.tostrr.ui.orders.OrdersScreen
@@ -94,13 +96,20 @@ class MainActivity : ComponentActivity() {
                     composable("order/{ref}") { entry ->
                         val order = entry.arguments?.getString("ref")?.let { ref -> orders.firstOrNull { it.reference == ref } }
                         if (order != null) {
+                            val checklist by remember(order.reference) { viewModel.checklists.observe(order.reference) }
+                                .collectAsState(null)
                             DetailScreen(
                                 order,
                                 history[order.reference].orEmpty(),
                                 optionCodes,
+                                checklist = checklist,
+                                onOpenChecklist = { nav.navigate("order/${order.reference}/checklist") },
                                 onBack = { nav.popBackStack() },
                             )
                         }
+                    }
+                    composable("order/{ref}/checklist") {
+                        ChecklistScreen(onClose = { nav.popBackStack() })
                     }
                 }
             }

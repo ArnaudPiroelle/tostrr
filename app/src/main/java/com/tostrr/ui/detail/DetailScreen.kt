@@ -23,11 +23,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +57,8 @@ import com.tostrr.ui.common.StepBarThickness
 import com.tostrr.ui.common.StepDot
 import com.tostrr.ui.common.StepDotSize
 import com.tostrr.domain.Change
+import com.tostrr.domain.Checklist
+import com.tostrr.domain.DeliveryChecklist
 import com.tostrr.domain.Order
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -92,7 +93,14 @@ import com.tostrr.ui.common.formatShortTime
 import com.tostrr.ui.theme.TostrrColors
 
 @Composable
-fun DetailScreen(order: Order, history: List<Change>, options: Map<String, OptionInfo>, onBack: () -> Unit) {
+fun DetailScreen(
+    order: Order,
+    history: List<Change>,
+    options: Map<String, OptionInfo>,
+    checklist: Checklist?,
+    onOpenChecklist: () -> Unit,
+    onBack: () -> Unit,
+) {
     val scrollState = rememberScrollState()
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
@@ -101,7 +109,11 @@ fun DetailScreen(order: Order, history: List<Change>, options: Map<String, Optio
                 Modifier.padding(16.dp).navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (order.isDeliveryDay()) DeliveryDayCard()
+                // Once there is an appointment to prepare for; a checklist already started stays reachable even if
+                // the appointment later disappears from Tesla's data.
+                if (order.hasAppointment || checklist != null) {
+                    ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
+                }
                 Section("Informations de livraison", initiallyExpanded = true) { DeliveryContent(order) }
                 Section("Progression de la commande", initiallyExpanded = true) { ProgressContent(order) }
                 Section("Configuration", initiallyExpanded = false) { ConfigurationContent(order, options) }
@@ -113,15 +125,22 @@ fun DetailScreen(order: Order, history: List<Change>, options: Map<String, Optio
     }
 }
 
-private const val DELIVERY_CHECK_URL = "https://check.mytsla.app/fr/"
-
-/** Shown on the day of the appointment only: the checklist site is what you want open while inspecting the car. */
+/**
+ * Entry to the delivery checklist. Highlighted on the day of the appointment, when it is what you want open while
+ * inspecting the car; otherwise a quieter card, so it can be prepared or reviewed any day.
+ */
 @Composable
-private fun DeliveryDayCard() {
-    val uriHandler = LocalUriHandler.current
+private fun ChecklistCard(deliveryDay: Boolean, checklist: Checklist?, onOpen: () -> Unit) {
+    val answered = checklist?.answers?.size ?: 0
+    val (subtitle, action) = when {
+        checklist == null -> "Contrôlez votre Tesla point par point avant de signer." to "Commencer la checklist"
+        checklist.completed -> "Terminée : ${checklist.verifiedPercent} % des points vérifiés." to "Voir le récapitulatif"
+        else -> "En cours : $answered / ${DeliveryChecklist.questionCount} points traités." to "Reprendre la checklist"
+    }
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = TostrrColors.Accent.copy(alpha = 0.12f),
+        color = if (deliveryDay) TostrrColors.Accent.copy(alpha = 0.12f) else TostrrColors.Surface,
+        border = if (deliveryDay) null else BorderStroke(0.5.dp, TostrrColors.Border),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -135,22 +154,21 @@ private fun DeliveryDayCard() {
                     )
                 }
                 Column {
-                    Text("C'est le jour de la livraison", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Contrôlez votre Tesla point par point avant de signer.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TostrrColors.Muted,
+                        if (deliveryDay) "C'est le jour de la livraison" else "Checklist de livraison",
+                        style = MaterialTheme.typography.titleMedium,
                     )
+                    Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted)
                 }
             }
-            Button(
-                onClick = { runCatching { uriHandler.openUri(DELIVERY_CHECK_URL) } },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Text("Ouvrir la checklist de livraison")
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+            if (deliveryDay || checklist != null) {
+                Button(onClick = onOpen, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                    Text(action)
+                }
+            } else {
+                OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                    Text(action)
+                }
             }
         }
     }

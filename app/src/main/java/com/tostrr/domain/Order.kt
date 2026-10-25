@@ -46,6 +46,10 @@ data class Order(
     val visibleOptionCodes: List<String>
         get() = optionCodes.map { it.removePrefix("$").uppercase() }.filter { it !in HIDDEN_OPTION_CODES }.distinct().sorted()
 
+    /** Tesla has confirmed a delivery appointment (a mere delivery window doesn't count). */
+    val hasAppointment: Boolean
+        get() = !appointment.isNullOrBlank() || appointmentAtEpochMs != null
+
     /** True from midnight to midnight on the day of the delivery appointment, in [zone]. */
     fun isDeliveryDay(now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Boolean =
         appointmentDay(zone) == Instant.ofEpochMilli(now).atZone(zone).toLocalDate()

@@ -5,6 +5,7 @@ import androidx.glance.appwidget.updateAll
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import com.tostrr.data.ChecklistRepository
 import com.tostrr.data.OptionCatalog
 import com.tostrr.data.OrderNotifier
 import com.tostrr.data.OrderRepository
@@ -12,6 +13,7 @@ import com.tostrr.data.RefreshScheduler
 import com.tostrr.data.TeslaApi
 import com.tostrr.data.TeslaAuth
 import com.tostrr.data.TokenStore
+import com.tostrr.data.TostrrDatabase
 import com.tostrr.widget.CountdownWidget
 import com.tostrr.widget.OrderWidget
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +30,8 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
     lateinit var catalog: OptionCatalog
         private set
     lateinit var repository: OrderRepository
+        private set
+    lateinit var checklists: ChecklistRepository
         private set
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -55,6 +59,7 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
                 }
             },
         )
+        checklists = ChecklistRepository(TostrrDatabase.create(this).checklistDao(), File(filesDir, "checklist_photos"))
         if (auth.isLoggedIn()) RefreshScheduler.schedule(this)
     }
 
