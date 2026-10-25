@@ -54,8 +54,8 @@ class MainActivity : ComponentActivity() {
                 val refreshing by viewModel.refreshing.collectAsState()
                 val lastRefreshAt by viewModel.lastRefreshAt.collectAsState()
                 val error by viewModel.error.collectAsState()
-                val orders by viewModel.repository.orders.collectAsState()
-                val history by viewModel.repository.history.collectAsState()
+                val orders by viewModel.orders.collectAsState()
+                val history by viewModel.history.collectAsState()
                 val optionCodes by viewModel.optionCodes.collectAsState()
 
                 LaunchedEffect(pendingOrderRef, loggedIn, orders) {
@@ -98,10 +98,10 @@ class MainActivity : ComponentActivity() {
                     composable("order/{ref}") { entry ->
                         val order = entry.arguments?.getString("ref")?.let { ref -> orders.firstOrNull { it.reference == ref } }
                         if (order != null) {
-                            val checklist by remember(order.reference) { viewModel.checklists.observe(order.reference) }
+                            val checklist by remember(order.reference) { viewModel.checklist(order.reference) }
                                 .collectAsState(null)
                             val deliveryCenter by produceState<DeliveryCenter?>(null, order.deliveryCenter, order.countryCode) {
-                                value = viewModel.deliveryCenters.centers().find(order.deliveryCenter, order.countryCode)
+                                value = viewModel.deliveryCenter(order)
                             }
                             DetailScreen(
                                 order,

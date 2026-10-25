@@ -2,15 +2,16 @@ package com.tostrr.data.order
 
 import android.content.Context
 import com.tostrr.data.api.TeslaApi
-import com.tostrr.data.auth.AuthException
 import com.tostrr.data.auth.TeslaAuth
 import com.tostrr.data.catalog.OptionCatalog
 import com.tostrr.data.notification.OrderNotifier
+import com.tostrr.domain.error.AuthException
 import com.tostrr.domain.history.HistoryIgnore
 import com.tostrr.domain.history.JsonDiff
 import com.tostrr.domain.order.Change
 import com.tostrr.domain.order.Order
 import com.tostrr.domain.order.OrderMapper
+import com.tostrr.domain.order.OrderRepository
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.booleanOrNull
@@ -43,7 +44,7 @@ import java.util.zip.GZIPOutputStream
 
 /** Fetches orders, caches the last snapshot on disk and records what changed between two syncs. */
 @Single
-class OrderRepository(
+class OrderRepositoryImpl(
     context: Context,
     private val api: TeslaApi,
     private val auth: TeslaAuth,
@@ -51,7 +52,7 @@ class OrderRepository(
     private val notifier: OrderNotifier,
     /** Told after each successful sync, e.g. to refresh the home-screen widgets. Defined by the app module. */
     @Provided private val refreshListener: OrderRefreshListener,
-) {
+) : OrderRepository {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()
 
@@ -66,19 +67,17 @@ class OrderRepository(
     private val archiveDir = context.getExternalFilesDir("snapshots") ?: File(dir, "snapshots")
 
     private val _orders = MutableStateFlow(loadCache())
-    val orders: StateFlow<List<Order>> = _orders.asStateFlow()
+    override val orders: StateFlow<List<Order>> = _orders.asStateFlow()
 
     private val _history = MutableStateFlow(loadHistory().let(::dropIgnored))
-    val history: StateFlow<Map<String, List<Change>>> = _history.asStateFlow()
+    override val history: StateFlow<Map<String, List<Change>>> = _history.asStateFlow()
 
-    /** Age of the last successful pull, or null if there has never been one. */
-    fun lastSyncAgeMs(now: Long = System.currentTimeMillis()): Long? =
+    override fun lastSyncAgeMs(now: Long): Long? =
         _orders.value.maxOfOrNull { it.fetchedAtEpochMs }?.takeIf { it > 0 }?.let { now - it }
 
     fun order(reference: String): Order? = _orders.value.firstOrNull { it.reference == reference }
 
-    /** Throws [AuthException] when the session is gone, [ApiException] on API failures. */
-    suspend fun refresh() {
+    override suspend fun refresh() {
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException("Non connecté.")
             val now = System.currentTimeMillis()
@@ -102,7 +101,7 @@ class OrderRepository(
         catalog.refreshIfStale()
     }
 
-    fun clear() {
+    override fun clear() {
         ordersFile.delete()
         historyFile.delete()
         _orders.value = emptyList()

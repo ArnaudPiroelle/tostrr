@@ -53,8 +53,8 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.tostrr.MainActivity
 import com.tostrr.R
-import com.tostrr.data.order.OrderRepository
 import com.tostrr.domain.order.Order
+import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import com.tostrr.ui.common.formatDateTime
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -64,7 +64,7 @@ val OrderRefKey = stringPreferencesKey("order_reference")
 
 /** Home-screen version of the card shown in the orders list: the order picked for this widget and its step tracker. */
 class OrderWidget : GlanceAppWidget(), KoinComponent {
-    private val repository: OrderRepository by inject()
+    private val observeOrdersUseCase: ObserveOrdersUseCase by inject()
 
     override val stateDefinition = PreferencesGlanceStateDefinition
 
@@ -75,7 +75,7 @@ class OrderWidget : GlanceAppWidget(), KoinComponent {
             // Read inside the composition: a Glance session outlives a single update, so the chosen order
             // and the orders list have to be observed rather than captured once.
             val chosen = currentState<Preferences>()[OrderRefKey]
-            val orders by repository.orders.collectAsState()
+            val orders by observeOrdersUseCase().collectAsState()
             // A widget with no choice yet, or whose order is gone, falls back to the first order.
             val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()
             val url = order?.imageUrl

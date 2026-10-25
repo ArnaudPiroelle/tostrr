@@ -2,6 +2,7 @@ package com.tostrr.data.catalog
 
 import android.content.Context
 import com.tostrr.domain.deliverycenter.DeliveryCenter
+import com.tostrr.domain.deliverycenter.DeliveryCenterRepository
 import com.tostrr.domain.deliverycenter.DeliveryCenters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,10 +25,10 @@ private data class CenterEntry(
  * 2026-10-25 (Tesla has no public API for it). Read once, on first use.
  */
 @Single
-class DeliveryCenterCatalog(private val context: Context) {
+class DeliveryCenterCatalog(private val context: Context) : DeliveryCenterRepository {
     private var cached: DeliveryCenters? = null
 
-    suspend fun centers(): DeliveryCenters = cached ?: withContext(Dispatchers.IO) {
+    override suspend fun centers(): DeliveryCenters = cached ?: withContext(Dispatchers.IO) {
         val text = context.assets.open(ASSET).bufferedReader().use { it.readText() }
         val entries = Json.decodeFromString<List<CenterEntry>>(text)
         DeliveryCenters(entries.map { DeliveryCenter(it.name, it.country, it.city, it.address, it.lat, it.lng) })

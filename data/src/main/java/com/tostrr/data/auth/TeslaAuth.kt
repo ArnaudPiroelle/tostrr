@@ -1,6 +1,9 @@
 package com.tostrr.data.auth
 
 import android.net.Uri
+import com.tostrr.domain.auth.AuthRepository
+import com.tostrr.domain.error.AuthException
+import com.tostrr.domain.error.SessionExpiredException
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,11 +18,6 @@ import org.koin.core.annotation.Single
 import java.security.MessageDigest
 import java.security.SecureRandom
 
-open class AuthException(message: String) : Exception(message)
-
-/** The refresh token was rejected (revoked/expired): the only case where we must drop the session. */
-class SessionExpiredException : AuthException("Session expirée, reconnectez-vous.")
-
 /**
  * Tesla owner-API OAuth2 (authorization code + PKCE) using the public "ownerapi" client.
  * The redirect target `tesla://auth/callback` is caught via the intent filter in the manifest
@@ -29,9 +27,9 @@ class SessionExpiredException : AuthException("Session expirée, reconnectez-vou
 class TeslaAuth(
     private val client: OkHttpClient,
     private val store: TokenStore,
-) {
+) : AuthRepository {
     /** Builds the login URL and persists the PKCE verifier/state for the callback. */
-    fun startLogin(): Uri {
+    override fun startLogin(): String {
         val verifier = randomUrlSafe(32)
         val challenge = Base64.encodeToString(
             MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray()),
@@ -48,10 +46,11 @@ class TeslaAuth(
             .appendQueryParameter("code_challenge", challenge)
             .appendQueryParameter("code_challenge_method", "S256")
             .build()
+            .toString()
     }
 
     /** Completes the login from the redirect URI (`tesla://auth/callback?code=...&state=...`). */
-    suspend fun completeLogin(redirect: String): Tokens {
+    override suspend fun completeLogin(redirect: String) {
         val uri = Uri.parse(redirect.trim())
         val code = uri.getQueryParameter("code") ?: throw AuthException("Aucun code d'autorisation dans l'URL.")
         val verifier = store.pendingVerifier() ?: throw AuthException("Session de connexion expirée, relancez la connexion.")
@@ -66,7 +65,7 @@ class TeslaAuth(
             .add("redirect_uri", REDIRECT_URI)
             .add("code_verifier", verifier)
             .build()
-        return tokenRequest(body, previousRefresh = null).also {
+        tokenRequest(body, previousRefresh = null).also {
             store.save(it)
             // A code can only be exchanged once: replaying the same redirect must start a new login.
             store.clearPending()
@@ -87,9 +86,9 @@ class TeslaAuth(
         return tokenRequest(body, previousRefresh = tokens.refreshToken).also(store::save).accessToken
     }
 
-    fun isLoggedIn(): Boolean = store.load() != null
+    override fun isLoggedIn(): Boolean = store.load() != null
 
-    fun logout() = store.clear()
+    override fun logout() = store.clear()
 
     private suspend fun tokenRequest(body: FormBody, previousRefresh: String?): Tokens =
         withContext(Dispatchers.IO) {

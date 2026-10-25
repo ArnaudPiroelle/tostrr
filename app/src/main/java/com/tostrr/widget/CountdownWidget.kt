@@ -33,16 +33,16 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import com.tostrr.MainActivity
-import com.tostrr.data.order.OrderRepository
 import com.tostrr.domain.order.DeliveryCountdown
 import com.tostrr.domain.order.Order
 import com.tostrr.domain.order.deliveryCountdown
+import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /** 2x1 countdown to the delivery: days to the appointment, or to / inside the delivery window while there is none. */
 class CountdownWidget : GlanceAppWidget(), KoinComponent {
-    private val repository: OrderRepository by inject()
+    private val observeOrdersUseCase: ObserveOrdersUseCase by inject()
 
     override val stateDefinition = PreferencesGlanceStateDefinition
 
@@ -51,7 +51,7 @@ class CountdownWidget : GlanceAppWidget(), KoinComponent {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
                 provideContent {
             val chosen = currentState<Preferences>()[OrderRefKey]
-            val orders by repository.orders.collectAsState()
+            val orders by observeOrdersUseCase().collectAsState()
             val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()
             // Today is read on every composition: each refresh's updateAll moves the count past midnight.
             GlanceTheme { CountdownContent(order, order?.deliveryCountdown()?.let(::countdownLabels)) }

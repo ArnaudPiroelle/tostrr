@@ -3,16 +3,26 @@ package com.tostrr.ui
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tostrr.data.api.ApiException
-import com.tostrr.data.auth.AuthException
-import com.tostrr.data.auth.SessionExpiredException
-import com.tostrr.data.auth.TeslaAuth
-import com.tostrr.data.catalog.DeliveryCenterCatalog
-import com.tostrr.data.catalog.OptionCatalog
-import com.tostrr.data.checklist.ChecklistRepository
-import com.tostrr.data.order.OrderRepository
-import com.tostrr.data.sync.RefreshScheduler
+import com.tostrr.domain.auth.usecase.CompleteLoginUseCase
+import com.tostrr.domain.auth.usecase.IsLoggedInUseCase
+import com.tostrr.domain.auth.usecase.LogoutUseCase
+import com.tostrr.domain.auth.usecase.StartLoginUseCase
+import com.tostrr.domain.checklist.Checklist
+import com.tostrr.domain.checklist.usecase.ObserveChecklistUseCase
+import com.tostrr.domain.deliverycenter.DeliveryCenter
+import com.tostrr.domain.deliverycenter.usecase.FindDeliveryCenterUseCase
+import com.tostrr.domain.error.ApiException
+import com.tostrr.domain.error.AuthException
+import com.tostrr.domain.error.SessionExpiredException
+import com.tostrr.domain.order.Change
+import com.tostrr.domain.order.OptionInfo
+import com.tostrr.domain.order.Order
+import com.tostrr.domain.order.usecase.ObserveOptionCodesUseCase
+import com.tostrr.domain.order.usecase.ObserveOrderHistoryUseCase
+import com.tostrr.domain.order.usecase.ObserveOrdersUseCase
+import com.tostrr.domain.order.usecase.RefreshOrdersUseCase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,16 +34,22 @@ const val REFRESH_COOLDOWN_MS = 30_000L
 
 @KoinViewModel
 class MainViewModel(
-    private val auth: TeslaAuth,
-    private val scheduler: RefreshScheduler,
-    val repository: OrderRepository,
-    catalog: OptionCatalog,
-    val checklists: ChecklistRepository,
-    val deliveryCenters: DeliveryCenterCatalog,
+    isLoggedInUseCase: IsLoggedInUseCase,
+    private val startLoginUseCase: StartLoginUseCase,
+    private val completeLoginUseCase: CompleteLoginUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val refreshOrdersUseCase: RefreshOrdersUseCase,
+    private val observeChecklistUseCase: ObserveChecklistUseCase,
+    private val findDeliveryCenterUseCase: FindDeliveryCenterUseCase,
+    observeOrdersUseCase: ObserveOrdersUseCase,
+    observeOrderHistoryUseCase: ObserveOrderHistoryUseCase,
+    observeOptionCodesUseCase: ObserveOptionCodesUseCase,
 ) : ViewModel() {
-    val optionCodes = catalog.codes
+    val orders: StateFlow<List<Order>> = observeOrdersUseCase()
+    val history: StateFlow<Map<String, List<Change>>> = observeOrderHistoryUseCase()
+    val optionCodes: StateFlow<Map<String, OptionInfo>> = observeOptionCodesUseCase()
 
-    private val _loggedIn = MutableStateFlow(auth.isLoggedIn())
+    private val _loggedIn = MutableStateFlow(isLoggedInUseCase())
     val loggedIn: StateFlow<Boolean> = _loggedIn.asStateFlow()
 
     private val _busy = MutableStateFlow(false)
@@ -55,8 +71,12 @@ class MainViewModel(
 
     fun startLogin(): Uri {
         _error.value = null
-        return auth.startLogin()
+        return Uri.parse(startLoginUseCase())
     }
+
+    fun checklist(orderReference: String): Flow<Checklist?> = observeChecklistUseCase(orderReference)
+
+    suspend fun deliveryCenter(order: Order): DeliveryCenter? = findDeliveryCenterUseCase(order.deliveryCenter, order.countryCode)
 
     /** Called with the `tesla://auth/callback?...` URI, from the deep link or a pasted URL. */
     fun handleRedirect(redirect: String) {
@@ -66,8 +86,7 @@ class MainViewModel(
             _busy.value = true
             _error.value = null
             try {
-                auth.completeLogin(redirect)
-                scheduler.schedule()
+                completeLoginUseCase(redirect)
                 _loggedIn.value = true
                 refresh()
             } catch (e: CancellationException) {
@@ -90,7 +109,7 @@ class MainViewModel(
             _refreshing.value = true
             _error.value = null
             try {
-                repository.refresh()
+                refreshOrdersUseCase()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: SessionExpiredException) {
@@ -106,9 +125,7 @@ class MainViewModel(
     }
 
     fun logout() {
-        scheduler.cancel()
-        auth.logout()
-        repository.clear()
+        logoutUseCase()
         _loggedIn.value = false
     }
 

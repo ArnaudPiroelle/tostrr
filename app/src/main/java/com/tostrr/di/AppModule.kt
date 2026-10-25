@@ -1,6 +1,7 @@
 package com.tostrr.di
 
 import com.tostrr.data.di.DataModule
+import com.tostrr.domain.di.DomainModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -9,11 +10,11 @@ import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
 
 /**
- * Root Koin module: includes the data layer's module and scans the app (UI, widgets). Our own classes carry their
- * annotation (`@Single`, `@KoinViewModel`, `@KoinWorker`); the definitions below only cover types we don't
- * construct ourselves.
+ * Root Koin module: includes the domain (use cases) and data (repositories) modules and scans the app (UI,
+ * widgets). Our own classes carry their annotation (`@Single`, `@Factory`, `@KoinViewModel`, `@KoinWorker`); the
+ * definitions below only cover types we don't construct ourselves.
  */
-@Module(includes = [DataModule::class])
+@Module(includes = [DomainModule::class, DataModule::class])
 @ComponentScan("com.tostrr")
 class AppModule {
 

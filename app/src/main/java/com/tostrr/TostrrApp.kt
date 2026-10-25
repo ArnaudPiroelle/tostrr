@@ -4,9 +4,8 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import com.tostrr.data.auth.TeslaAuth
-import com.tostrr.data.sync.RefreshScheduler
 import com.tostrr.di.AppModule
+import com.tostrr.domain.sync.usecase.StartBackgroundSyncUseCase
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.workmanager.koin.workManagerFactory
@@ -23,7 +22,7 @@ class TostrrApp : Application(), SingletonImageLoader.Factory {
             workManagerFactory()
             modules(AppModule().module)
         }
-        if (get<TeslaAuth>().isLoggedIn()) get<RefreshScheduler>().schedule()
+        get<StartBackgroundSyncUseCase>()()
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context).build()

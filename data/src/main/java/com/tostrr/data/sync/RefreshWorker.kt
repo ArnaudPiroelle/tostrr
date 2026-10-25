@@ -8,11 +8,12 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.tostrr.data.auth.AuthException
-import com.tostrr.data.auth.SessionExpiredException
-import com.tostrr.data.auth.TeslaAuth
 import com.tostrr.data.notification.OrderNotifier
-import com.tostrr.data.order.OrderRepository
+import com.tostrr.domain.auth.AuthRepository
+import com.tostrr.domain.error.AuthException
+import com.tostrr.domain.error.SessionExpiredException
+import com.tostrr.domain.order.OrderRepository
+import com.tostrr.domain.sync.SyncScheduler
 import kotlinx.coroutines.CancellationException
 import org.koin.android.annotation.KoinWorker
 import org.koin.core.annotation.Single
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit
 class RefreshWorker(
     context: Context,
     params: WorkerParameters,
-    private val auth: TeslaAuth,
+    private val auth: AuthRepository,
     private val repository: OrderRepository,
     private val notifier: OrderNotifier,
 ) : CoroutineWorker(context, params) {
@@ -58,17 +59,17 @@ class RefreshWorker(
 }
 
 @Single
-class RefreshScheduler(private val workManager: WorkManager) {
+class RefreshScheduler(private val workManager: WorkManager) : SyncScheduler {
 
     /** Idempotent: keeps the existing schedule if one is already enqueued. */
-    fun schedule() {
+    override fun schedule() {
         val request = PeriodicWorkRequestBuilder<RefreshWorker>(15, TimeUnit.MINUTES)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
         workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
-    fun cancel() {
+    override fun cancel() {
         workManager.cancelUniqueWork(WORK_NAME)
     }
 

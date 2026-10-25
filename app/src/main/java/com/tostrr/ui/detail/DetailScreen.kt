@@ -55,12 +55,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
-import com.tostrr.data.catalog.OptionInfo
 import com.tostrr.domain.checklist.Checklist
 import com.tostrr.domain.checklist.DeliveryChecklist
 import com.tostrr.domain.deliverycenter.DeliveryCenter
 import com.tostrr.domain.deliverycenter.googleMapsUrl
 import com.tostrr.domain.order.Change
+import com.tostrr.domain.order.OptionInfo
 import com.tostrr.domain.order.Order
 import com.tostrr.ui.common.StepBarThickness
 import com.tostrr.ui.common.StepDot

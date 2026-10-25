@@ -1,6 +1,8 @@
 package com.tostrr.data.catalog
 
 import android.content.Context
+import com.tostrr.domain.order.OptionInfo
+import com.tostrr.domain.order.OptionRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,8 +25,6 @@ import okhttp3.Request
 import org.koin.core.annotation.Single
 import java.io.File
 
-data class OptionInfo(val label: String, val category: String?)
-
 /**
  * Option code -> description (e.g. `W38A` -> `18" Photon Wheels`).
  *
@@ -36,12 +36,12 @@ data class OptionInfo(val label: String, val category: String?)
 class OptionCatalog(
     private val client: OkHttpClient,
     context: Context,
-) {
+) : OptionRepository {
     private val cacheFile = File(context.filesDir, "option_codes.json")
     private var fetchedAtMs = 0L
 
     private val _codes = MutableStateFlow<Map<String, OptionInfo>>(emptyMap())
-    val codes: StateFlow<Map<String, OptionInfo>> = _codes.asStateFlow()
+    override val codes: StateFlow<Map<String, OptionInfo>> = _codes.asStateFlow()
 
     init {
         loadCache()

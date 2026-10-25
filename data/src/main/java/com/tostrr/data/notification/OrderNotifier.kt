@@ -11,11 +11,11 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.tostrr.data.catalog.OptionCatalog
 import com.tostrr.domain.alert.Alert
 import com.tostrr.domain.alert.OrderAlerts
 import com.tostrr.domain.order.Change
 import com.tostrr.domain.order.Order
+import com.tostrr.domain.order.OptionRepository
 import org.koin.core.annotation.Single
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 @Single
 class OrderNotifier(
     private val context: Context,
-    private val catalog: OptionCatalog,
+    private val catalog: OptionRepository,
 ) {
     private val prefs = context.getSharedPreferences("tostrr_notifications", Context.MODE_PRIVATE)
 
