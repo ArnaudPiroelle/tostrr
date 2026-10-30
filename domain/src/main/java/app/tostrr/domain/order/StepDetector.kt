@@ -41,20 +41,24 @@ class StepDetectors(
  */
 object PayloadStepDetectors {
 
-    /** Registration paperwork has been sent: an alert reports that the proof of registration is pending. */
-    private val ProofOfRegistrationPending = StepDetector { _, tasks ->
-        ALERT_PATHS.any { tasks.stringAt(it)?.normalised() == PROOF_OF_REG_PENDING }
+    /**
+     * Registration paperwork has been sent: an alert reports that the proof of registration or the appointment is
+     * pending, or that the registration is complete.
+     */
+    private val PapersShippedAlert = StepDetector { _, tasks ->
+        ALERT_PATHS.any { tasks.stringAt(it)?.normalised() in PAPERS_SHIPPED_ALERTS }
     }
 
-    /** A plate exists, or the registration status says the pre-delivery validation is complete. */
+    /** A plate exists, an alert says the registration is complete, or the pre-delivery validation is complete. */
     val VehicleRegistered = StepDetector { _, tasks ->
         PLATE_PATHS.any { !tasks.stringAt(it).isNullOrBlank() } ||
+            ALERT_PATHS.any { tasks.stringAt(it)?.normalised() == ALERT_COMPLETE } ||
             STATUS_PATHS.any { tasks.stringAt(it)?.normalised() == PRE_DELIVERY_VALIDATION_COMPLETE }
     }
 
     /** A registered car necessarily had its papers sent, even once the "pending" alert has gone. */
     val DocumentsSent = StepDetector { order, tasks ->
-        ProofOfRegistrationPending.isDone(order, tasks) || VehicleRegistered.isDone(order, tasks)
+        PapersShippedAlert.isDone(order, tasks) || VehicleRegistered.isDone(order, tasks)
     }
 
     /**
@@ -80,21 +84,23 @@ object PayloadStepDetectors {
         return GATE_LISTS.firstNotNullOfOrNull { gateBlocker(tasks.at(it)) }
     }
 
-    /** `gates` is either a list of `{gateName, isBlocker}` or an object keyed by gate name. */
+    /** `gates` is either a list of `{gateName|gateType|name, isBlocker}` or an object keyed by gate name. */
     private fun gateBlocker(gates: JsonElement?): Boolean? = when (gates) {
         is JsonArray -> gates.filterIsInstance<JsonObject>()
-            .firstOrNull { it.at("gateName")?.let { n -> (n as? JsonPrimitive)?.contentOrNull.equals(FACTORY_GATE, ignoreCase = true) } == true }
+            .firstOrNull { gate -> GATE_NAME_KEYS.any { (gate.at(it) as? JsonPrimitive)?.contentOrNull.equals(FACTORY_GATE, ignoreCase = true) } }
             ?.let { (it.at("isBlocker") as? JsonPrimitive)?.booleanOrNull }
         is JsonObject -> ((gates.at(FACTORY_GATE) as? JsonObject)?.at("isBlocker") as? JsonPrimitive)?.booleanOrNull
         else -> null
     }
 
     private const val FACTORY_GATE = "FACTORY_GATE"
+    private val GATE_NAME_KEYS = listOf("gateName", "gateType", "name")
     private const val PLACEHOLDER_ODOMETER = 30.0
     private val READINESS_ROOTS = listOf("finalPayment.data.deliveryReadiness", "finalPayment.data.deliveryReadinessDetail")
     private val GATE_LISTS = READINESS_ROOTS.map { "$it.gates" } + "deliveryAcceptance.gates"
 
-    private const val PROOF_OF_REG_PENDING = "PROOF_OF_REG_PENDING"
+    private const val ALERT_COMPLETE = "COMPLETE"
+    private val PAPERS_SHIPPED_ALERTS = setOf("PROOF_OF_REG_PENDING", "APPT_PENDING", ALERT_COMPLETE)
     private const val PRE_DELIVERY_VALIDATION_COMPLETE = "PRE-DELIVERY VALIDATION COMPLETE"
 
     private fun String.normalised() = trim().uppercase()

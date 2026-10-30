@@ -15,6 +15,7 @@ class HistoryIgnoreTest {
         assertTrue(HistoryIgnore.isIgnored("details.tasks.scheduling.card.title"))
         assertTrue(HistoryIgnore.isIgnored("details.tasks.scheduling.card"))
         assertTrue(HistoryIgnore.isIgnored("internal.signals.x"))
+        assertTrue(HistoryIgnore.isIgnored("details.tasks.tradeIn.isMatched"))
     }
 
     @Test

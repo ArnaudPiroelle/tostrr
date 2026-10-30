@@ -33,6 +33,18 @@ class PayloadStepDetectorsTest {
         assertFalse(PayloadStepDetectors.DocumentsSent.isDone(noOrder, t))
     }
 
+    @Test fun `pending appointment alert means documents sent but not registered`() {
+        val t = tasks("""{"deliveryDetails":{"regData":{"regAlerts":{"registration":"appt_pending"}}}}""")
+        assertTrue(PayloadStepDetectors.DocumentsSent.isDone(noOrder, t))
+        assertFalse(PayloadStepDetectors.VehicleRegistered.isDone(noOrder, t))
+    }
+
+    @Test fun `complete alert means registered without a plate`() {
+        val t = tasks("""{"registration":{"alertStatuses":{"regDelivery":"Complete"}}}""")
+        assertTrue(PayloadStepDetectors.VehicleRegistered.isDone(noOrder, t))
+        assertTrue(PayloadStepDetectors.DocumentsSent.isDone(noOrder, t))
+    }
+
     @Test fun `plate means registered and implies documents sent`() {
         val t = tasks("""{"deliveryDetails":{"regData":{"reggieLicensePlate":"AB-123-CD"}}}""")
         assertTrue(PayloadStepDetectors.VehicleRegistered.isDone(noOrder, t))
@@ -73,6 +85,13 @@ class PayloadStepDetectorsTest {
     @Test fun `factory gate blocking beats the odometer`() {
         val t = tasks("""{"deliveryAcceptance":{"gates":[{"gateName":"FACTORY_GATE","isBlocker":true}]},"registration":{"orderDetails":{"vehicleOdometer":50}}}""")
         assertFalse(PayloadStepDetectors.CarBuilt.isDone(noOrder, t))
+    }
+
+    @Test fun `factory gate is also found by gate type or name`() {
+        val byType = tasks("""{"deliveryAcceptance":{"gates":[{"gateType":"FACTORY_GATE","isBlocker":false}]}}""")
+        val byName = tasks("""{"finalPayment":{"data":{"deliveryReadiness":{"gates":[{"name":"factory_gate","isBlocker":false}]}}}}""")
+        assertTrue(PayloadStepDetectors.CarBuilt.isDone(noOrder, byType))
+        assertTrue(PayloadStepDetectors.CarBuilt.isDone(noOrder, byName))
     }
 
     @Test fun `gates keyed by name are read`() {

@@ -17,6 +17,7 @@ object HistoryIgnore {
 
     /** A pattern ending in `.` matches the subtree below that key. */
     val Prefixes: List<String> = listOf(
+        "details.tasks.tradeIn.isMatched",
         "details.tasks.registration.isMatched",
         "details.tasks.registration.orderDetails.vehicleModelYear",
         "details.state.",
