@@ -40,6 +40,10 @@ data class Order(
     val countryCode: String? = null,
     /** Day the order was placed. */
     val bookedOn: LocalDate? = null,
+    /** "Livraison à domicile" or "Retrait au centre de livraison". */
+    val deliveryMethod: String? = null,
+    val vehicleInfo: VehicleInfo = VehicleInfo(),
+    val paymentInfo: PaymentInfo = PaymentInfo(),
 ) {
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int

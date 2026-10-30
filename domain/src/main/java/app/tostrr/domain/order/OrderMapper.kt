@@ -41,8 +41,9 @@ object OrderMapper {
         // The payload layout moves around between Tesla app versions, so dates are looked up by key name.
         val booked = tasks.deepFind("orderBookedDate") ?: tasks.deepFind("orderPlacedDate")
         val appointment = appointmentFrom(tasks)
-        val window = scheduling.str("deliveryWindowDisplay")?.takeIf { it.isNotBlank() }
-        val eta = tasks.deepFind("etaToDeliveryCenter")
+        val window = deliveryWindowFrom(tasks)
+        val eta = ETA_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) } ?: tasks.deepFind("etaToDeliveryCenter")
+        val licensePlate = PayloadStepDetectors.PLATE_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }
         val expectedReg = tasks.deepFind("expectedRegDate")
 
         val steps = listOf(
@@ -71,12 +72,15 @@ object OrderMapper {
             expectedRegistration = formatDate(expectedReg),
             fetchedAtEpochMs = fetchedAtEpochMs,
             raw = JsonObject(mapOf("order" to order, "details" to details)),
-            licensePlate = PayloadStepDetectors.PLATE_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) },
+            licensePlate = licensePlate,
             appointmentAtEpochMs = APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }?.let(::appointmentInstant),
             finalInvoiceReady = tasks.flag("finalPayment.data.hasFinalInvoice") || tasks.flag("finalPayment.data.hasActiveInvoice"),
             finalPaymentDone = tasks.flag("finalPayment.complete"),
             countryCode = order.str("countryCode") ?: scheduling.str("countryCode"),
             bookedOn = booked?.let { runCatching { LocalDate.parse(it.take(10)) }.getOrNull() },
+            deliveryMethod = deliveryMethodFrom(tasks),
+            vehicleInfo = OrderInfoMapper.vehicle(tasks, booked, licensePlate),
+            paymentInfo = OrderInfoMapper.payment(tasks),
         )
     }
 
@@ -148,6 +152,37 @@ object OrderMapper {
         "registration.regData.orderDetails.vin",
         "finalPayment.data.vin",
     )
+
+    /** Where the ETA is read first, before any other `etaToDeliveryCenter` in the tree. */
+    private val ETA_PATHS = listOf("scheduling.etaToDeliveryCenter", "finalPayment.data.etaToDeliveryCenter")
+
+    /** Start and end of the delivery window in the self-scheduling data, used when there is no display string. */
+    private val WINDOW_RANGES = listOf(
+        "Display.startDate" to "Display.endDate",
+        "SelfScheduleDisplay.startDate" to "SelfScheduleDisplay.endDate",
+        "deliveryWindow.startDate" to "deliveryWindow.endDate",
+        "selfScheduleDetails.deliveryWindowStartDate" to "selfScheduleDetails.deliveryWindowEndDate",
+    ).map { (start, end) -> "finalPayment.data.selfSchedulingDetails.$start" to "finalPayment.data.selfSchedulingDetails.$end" }
+
+    private fun deliveryWindowFrom(tasks: JsonObject): String? =
+        listOf("scheduling.deliveryWindowDisplay", "scheduling.Display").firstNotNullOfOrNull { tasks.stringAt(it)?.trim() }
+            ?: WINDOW_RANGES.firstNotNullOfOrNull { (start, end) ->
+                val from = formatDate(tasks.stringAt(start)) ?: return@firstNotNullOfOrNull null
+                formatDate(tasks.stringAt(end))?.let { "$from – $it" } ?: from
+            }
+
+    /** Home delivery or pick-up, from the delivery type Tesla gives the handover. */
+    private fun deliveryMethodFrom(tasks: JsonObject): String? {
+        val type = listOf("deliveryAcceptance.deliveryType", "scheduling.deliveryType").firstNotNullOfOrNull { tasks.stringAt(it) }?.uppercase()
+        val toAddress = (tasks.at("deliveryAcceptance.isDeliveryToAddress") as? JsonPrimitive)?.booleanOrNull
+        return when {
+            type == DELIVERY_TO_ADDRESS || toAddress == true -> "Livraison à domicile"
+            type?.startsWith("PICKUP") == true || toAddress == false -> "Retrait au centre de livraison"
+            else -> null
+        }
+    }
+
+    private const val DELIVERY_TO_ADDRESS = "DELIVERY_TO_ADDRESS"
 
     /** Fallback sources for the appointment, local time before UTC; `scheduling` is tried first. */
     private val APPOINTMENT_PATHS = listOf(

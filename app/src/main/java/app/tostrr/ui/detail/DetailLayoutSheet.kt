@@ -15,10 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.FactCheck
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LinearScale
 import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -48,6 +50,8 @@ internal val DetailBlock.title: String
         DetailBlock.CHECKLIST -> "Checklist de livraison"
         DetailBlock.DELIVERY -> "Informations de livraison"
         DetailBlock.PROGRESS_TRACKER, DetailBlock.PROGRESS -> "Progression de la commande"
+        DetailBlock.VEHICLE -> "Commande et véhicule"
+        DetailBlock.PAYMENT -> "Paiement et financement"
         DetailBlock.CONFIGURATION -> "Configuration"
         DetailBlock.HISTORY -> "Historique des modifications"
     }
@@ -66,6 +70,8 @@ private val DetailBlock.blurb: String
         DetailBlock.DELIVERY -> "Centre et fenêtre de livraison."
         DetailBlock.PROGRESS_TRACKER -> "Les étapes sur une ligne, comme dans la liste."
         DetailBlock.PROGRESS -> "Les étapes l'une sous l'autre, avec leurs dates."
+        DetailBlock.VEHICLE -> "Dates de commande, plaque, kilométrage, immatriculation."
+        DetailBlock.PAYMENT -> "Montants, mode de paiement et détails du financement."
         DetailBlock.CONFIGURATION -> "Les options de la voiture."
         DetailBlock.HISTORY -> "Ce qui a changé d'une synchronisation à l'autre."
     }
@@ -76,6 +82,8 @@ private val DetailBlock.icon: ImageVector
         DetailBlock.DELIVERY -> Icons.Outlined.LocalShipping
         DetailBlock.PROGRESS_TRACKER -> Icons.Outlined.LinearScale
         DetailBlock.PROGRESS -> Icons.Outlined.Timeline
+        DetailBlock.VEHICLE -> Icons.Outlined.DirectionsCar
+        DetailBlock.PAYMENT -> Icons.Outlined.Payments
         DetailBlock.CONFIGURATION -> Icons.Outlined.Tune
         DetailBlock.HISTORY -> Icons.Outlined.History
     }

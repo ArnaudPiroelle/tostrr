@@ -145,6 +145,8 @@ fun DetailScreen(
                             DetailBlock.DELIVERY -> section { DeliveryContent(order, deliveryCenter) }
                             DetailBlock.PROGRESS_TRACKER -> section { StepTracker(order) }
                             DetailBlock.PROGRESS -> section { ProgressContent(order) }
+                            DetailBlock.VEHICLE -> section { VehicleContent(order) }
+                            DetailBlock.PAYMENT -> section { PaymentContent(order) }
                             DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, options) }
                             DetailBlock.HISTORY -> section { HistoryContent(history) }
                         }
@@ -426,13 +428,46 @@ private fun DeliveryCenterRow(name: String, center: DeliveryCenter?) {
 @Composable
 private fun DeliveryContent(order: Order, center: DeliveryCenter?) {
     order.deliveryCenter?.takeIf { it.isNotBlank() }?.let { DeliveryCenterRow(it, center) }
+    KeyValue("Mode de livraison", order.deliveryMethod)
     KeyValue("Rendez-vous", order.appointment)
     KeyValue("Fenêtre de livraison", order.deliveryWindow)
     KeyValue("Arrivée au centre", order.etaToDeliveryCenter)
     KeyValue("Immatriculation prévue", order.expectedRegistration)
-    if (listOf(order.deliveryCenter, order.appointment, order.deliveryWindow, order.etaToDeliveryCenter, order.expectedRegistration).all { it.isNullOrBlank() }) {
+    if (listOf(order.deliveryCenter, order.deliveryMethod, order.appointment, order.deliveryWindow, order.etaToDeliveryCenter, order.expectedRegistration).all { it.isNullOrBlank() }) {
         Empty("Aucune information de livraison pour le moment.")
     }
+}
+
+@Composable
+private fun VehicleContent(order: Order) {
+    val info = order.vehicleInfo
+    if (info.isEmpty) return Empty("Aucune information sur le véhicule pour le moment.")
+    KeyValue("Réservée le", info.reservationDate)
+    KeyValue("Commandée le", info.bookedDate)
+    KeyValue("Plaque", info.licensePlate)
+    KeyValue("Kilométrage", info.odometer)
+    KeyValue("Acheminement", info.routingLocation)
+    KeyValue("Statut d'immatriculation", info.registrationStatus)
+}
+
+@Composable
+private fun PaymentContent(order: Order) {
+    val info = order.paymentInfo
+    if (info.isEmpty) return Empty("Aucune information de paiement pour le moment.")
+    KeyValue("Statut du paiement", info.status)
+    KeyValue("Reste à payer", info.amountDue)
+    KeyValue("Reste à payer après remboursement", info.amountDueAfterRefund)
+    KeyValue("Déjà payé", info.amountPaid)
+    KeyValue("Moyen de paiement", info.paymentMethod)
+    KeyValue("Solde du compte", info.accountBalance)
+    KeyValue("Montant financé", info.financedAmount)
+    KeyValue("Type de financement", info.financeProduct)
+    KeyValue("Organisme", info.financePartner)
+    KeyValue("Mensualité", info.monthlyPayment)
+    KeyValue("Durée", info.term)
+    KeyValue("Taux", info.interestRate)
+    KeyValue("Kilométrage annuel", info.yearlyMileage)
+    KeyValue("Montant accordé", info.approvedAmount)
 }
 
 @Composable

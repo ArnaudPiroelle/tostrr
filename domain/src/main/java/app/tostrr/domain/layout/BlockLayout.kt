@@ -16,6 +16,8 @@ enum class DetailBlock(override val id: String, override val hiddenByDefault: Bo
     DELIVERY("delivery"),
     /** The step-by-step view; the one-line tracker above is enough by default. */
     PROGRESS("progress", hiddenByDefault = true),
+    VEHICLE("vehicle"),
+    PAYMENT("payment"),
     CONFIGURATION("configuration"),
     HISTORY("history"),
 }
