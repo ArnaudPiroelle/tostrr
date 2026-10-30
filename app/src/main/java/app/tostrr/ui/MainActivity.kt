@@ -32,6 +32,7 @@ import app.tostrr.ui.checklist.ChecklistScreen
 import app.tostrr.ui.detail.DetailScreen
 import app.tostrr.ui.login.LoginScreen
 import app.tostrr.ui.navigation.Screen
+import app.tostrr.ui.navigation.Transitions
 import app.tostrr.ui.orders.OrdersScreen
 import app.tostrr.ui.theme.TostrrTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -93,6 +94,9 @@ class MainActivity : ComponentActivity() {
                 NavDisplay(
                     backStack = backStack,
                     onBack = { backStack.removeLastOrNull() },
+                    transitionSpec = Transitions.push(),
+                    popTransitionSpec = Transitions.pop(),
+                    predictivePopTransitionSpec = Transitions.predictivePop(),
                     // Each entry keeps its own saved state and ViewModels, cleared when it leaves the stack.
                     entryDecorators = listOf(
                         rememberSaveableStateHolderNavEntryDecorator(),
