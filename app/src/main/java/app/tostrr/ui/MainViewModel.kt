@@ -65,10 +65,6 @@ class MainViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    init {
-        if (loggedIn.value) refresh()
-    }
-
     fun startLogin(): Uri {
         _error.value = null
         return Uri.parse(startLoginUseCase())
