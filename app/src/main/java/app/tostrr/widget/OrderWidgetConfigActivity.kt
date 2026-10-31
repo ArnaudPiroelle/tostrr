@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,9 +25,12 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
 import app.tostrr.R
+import app.tostrr.domain.appearance.usecase.ObserveThemeModeUseCase
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.ui.theme.TostrrTheme
+import app.tostrr.ui.theme.applySystemBars
+import app.tostrr.ui.theme.isDark
 import app.tostrr.widget.countdown.CountdownWidget
 import app.tostrr.widget.order.OrderWidget
 import kotlinx.coroutines.launch
@@ -38,13 +40,16 @@ import org.koin.android.ext.android.inject
 class OrderWidgetConfigActivity : ComponentActivity() {
 
     private val observeOrdersUseCase: ObserveOrdersUseCase by inject()
+    private val observeThemeModeUseCase: ObserveThemeModeUseCase by inject()
     private val orderWidget: OrderWidget by inject()
     private val countdownWidget: CountdownWidget by inject()
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // A short-lived picker: the theme chosen when it opens is kept.
+        val dark = observeThemeModeUseCase().value.isDark(resources.configuration)
+        applySystemBars(dark)
         // If the user backs out, the launcher must not place the widget.
         setResult(RESULT_CANCELED)
         widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
@@ -60,7 +65,7 @@ class OrderWidgetConfigActivity : ComponentActivity() {
         }
 
         setContent {
-            TostrrTheme {
+            TostrrTheme(darkTheme = dark) {
                 Column(Modifier.fillMaxSize().systemBarsPadding().padding(top = 16.dp)) {
                     Text(
                         stringResource(R.string.widget_config_title),

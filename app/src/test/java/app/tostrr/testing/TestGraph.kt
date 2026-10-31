@@ -2,6 +2,8 @@ package app.tostrr.testing
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
+import app.tostrr.domain.appearance.usecase.ObserveThemeModeUseCase
+import app.tostrr.domain.appearance.usecase.SetThemeModeUseCase
 import app.tostrr.domain.auth.usecase.CompleteLoginUseCase
 import app.tostrr.domain.auth.usecase.LoadTeslaAccountUseCase
 import app.tostrr.domain.auth.usecase.LogoutUseCase
@@ -56,6 +58,7 @@ class TestGraph(
     val auth = FakeAuthRepository()
     val scheduler = FakeSyncScheduler()
     val syncSettings = FakeSyncSettingsRepository()
+    val appearance = FakeAppearanceRepository()
     val account = FakeAccountRepository()
     val orders = FakeOrderRepository()
     val options = FakeOptionRepository()
@@ -66,7 +69,7 @@ class TestGraph(
     private val startBackgroundSync get() = StartBackgroundSyncUseCase(auth, scheduler, syncSettings)
     private val logout get() = LogoutUseCase(auth, scheduler, orders, account)
 
-    fun mainViewModel() = MainViewModel(ObserveLoggedInUseCase(auth), ObserveOrdersUseCase(orders))
+    fun mainViewModel() = MainViewModel(ObserveLoggedInUseCase(auth), ObserveOrdersUseCase(orders), ObserveThemeModeUseCase(appearance))
 
     fun loginViewModel() = LoginViewModel(
         ObserveLoggedInUseCase(auth),
@@ -115,9 +118,11 @@ class TestGraph(
         )
 
     fun settingsViewModel() = SettingsViewModel(
+        ObserveThemeModeUseCase(appearance),
         ObserveSyncSettingsUseCase(syncSettings),
         ObserveTeslaAccountUseCase(account),
         LoadTeslaAccountUseCase(auth, account),
+        SetThemeModeUseCase(appearance),
         SetAutoSyncUseCase(syncSettings, startBackgroundSync),
         SetSyncIntervalUseCase(syncSettings, startBackgroundSync),
         logout,

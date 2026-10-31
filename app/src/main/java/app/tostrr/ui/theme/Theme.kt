@@ -23,7 +23,8 @@ object TostrrColors {
     val Accent: Color @Composable get() = MaterialTheme.colorScheme.primary
     val OnSurface: Color @Composable get() = MaterialTheme.colorScheme.onSurface
     val Muted: Color @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
-    val Track: Color @Composable get() = MaterialTheme.colorScheme.surfaceContainerHighest
+    /** Unreached steps and empty progress, as on the widgets: a container colour vanishes on the light cards. */
+    val Track: Color @Composable get() = MaterialTheme.colorScheme.outline
 
     /** Semantic colours for diffs: new value / old value. Green has no Material 3 role, so it adapts to the theme here. */
     val Positive: Color

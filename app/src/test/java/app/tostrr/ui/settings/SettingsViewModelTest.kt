@@ -1,5 +1,6 @@
 package app.tostrr.ui.settings
 
+import app.tostrr.domain.appearance.ThemeMode
 import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncSettings
@@ -23,9 +24,11 @@ class SettingsViewModelTest {
     @Test fun `the saved settings and account show at once`() {
         graph.syncSettings.settings.value = SyncSettings(autoSync = false, interval = SyncInterval.HOURS_2)
         graph.account.account.value = TeslaAccount("Ada Lovelace")
+        graph.appearance.themeMode.value = ThemeMode.DARK
 
         val state = graph.settingsViewModel().state.value
 
+        assertEquals(ThemeMode.DARK, state.themeMode)
         assertEquals(SyncSettings(autoSync = false, interval = SyncInterval.HOURS_2), state.sync)
         assertEquals(TeslaAccount("Ada Lovelace"), state.account)
     }
@@ -39,6 +42,16 @@ class SettingsViewModelTest {
 
         assertEquals(1, graph.account.loads)
         assertEquals(TeslaAccount("New name", avatarPath = "/avatar"), viewModel.state.value.account)
+    }
+
+    @Test fun `a picked theme is saved and shown`() = runTest {
+        val viewModel = graph.settingsViewModel()
+        watch(viewModel)
+
+        viewModel.handle(Action.OnThemeSelected(ThemeMode.LIGHT))
+
+        assertEquals(ThemeMode.LIGHT, graph.appearance.themeMode.value)
+        assertEquals(ThemeMode.LIGHT, viewModel.state.value.themeMode)
     }
 
     @Test fun `turning auto sync off saves it and cancels the background sync`() = runTest {

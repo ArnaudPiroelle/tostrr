@@ -1,5 +1,6 @@
 package app.tostrr.ui
 
+import app.tostrr.domain.appearance.ThemeMode
 import app.tostrr.testing.MainDispatcherRule
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
@@ -35,5 +36,16 @@ class MainViewModelTest {
 
         assertEquals(setOf("RN1", "RN2"), viewModel.state.value.orderReferences)
         assertFalse(viewModel.state.value.loggedIn)
+    }
+
+    @Test fun `follows the chosen theme`() = runTest {
+        graph.appearance.themeMode.value = ThemeMode.LIGHT
+        val viewModel = graph.mainViewModel()
+        assertEquals(ThemeMode.LIGHT, viewModel.state.value.themeMode)
+        watch(viewModel)
+
+        graph.appearance.themeMode.value = ThemeMode.DARK
+
+        assertEquals(ThemeMode.DARK, viewModel.state.value.themeMode)
     }
 }

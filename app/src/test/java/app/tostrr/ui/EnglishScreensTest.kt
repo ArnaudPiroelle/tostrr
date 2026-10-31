@@ -1,11 +1,14 @@
 package app.tostrr.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.checklist.Checklist
 import app.tostrr.domain.error.ApiException
@@ -34,8 +37,11 @@ class EnglishScreensTest {
         graph.account.account.value = TeslaAccount("Ada Lovelace")
         compose.setContent { TostrrTheme { SettingsScreen(onBack = {}, viewModel = graph.settingsViewModel()) } }
 
+        compose.onNodeWithText("Appearance").assertIsDisplayed()
+        compose.onNodeWithText("Dark").assertIsDisplayed()
         compose.onNodeWithText("Automatic refresh").assertIsDisplayed()
         compose.onNodeWithText("Every 15 minutes").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Signed in as"))
         compose.onNodeWithText("Signed in as").assertIsDisplayed()
         compose.onNodeWithText("Sign out").assertExists()
     }

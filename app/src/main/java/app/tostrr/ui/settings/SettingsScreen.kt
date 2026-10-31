@@ -25,6 +25,7 @@ import app.tostrr.R
 import app.tostrr.ui.architecture.watchAsState
 import app.tostrr.ui.settings.SettingsViewModel.Action
 import app.tostrr.ui.settings.components.AccountSection
+import app.tostrr.ui.settings.components.AppearanceSection
 import app.tostrr.ui.settings.components.SyncSection
 import org.koin.androidx.compose.koinViewModel
 
@@ -53,6 +54,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            item { AppearanceSection(state.themeMode, onThemeChange = { viewModel.handle(Action.OnThemeSelected(it)) }) }
             item {
                 SyncSection(
                     state.sync,

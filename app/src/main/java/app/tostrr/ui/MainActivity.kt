@@ -13,7 +13,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -32,6 +31,8 @@ import app.tostrr.ui.navigation.Transitions
 import app.tostrr.ui.orders.OrdersScreen
 import app.tostrr.ui.settings.SettingsScreen
 import app.tostrr.ui.theme.TostrrTheme
+import app.tostrr.ui.theme.applySystemBars
+import app.tostrr.ui.theme.isDark
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -48,13 +49,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Default style: status/navigation bar icons switch between light and dark with the system theme.
-        enableEdgeToEdge()
+        applySystemBars(viewModel.state.value.themeMode.isDark(resources.configuration))
         if (savedInstanceState == null) handleDeepLink(intent)
 
         setContent {
-            TostrrTheme {
-                val state by viewModel.watchAsState()
+            val state by viewModel.watchAsState()
+            val dark = state.themeMode.isDark()
+            LaunchedEffect(dark) { applySystemBars(dark) }
+
+            TostrrTheme(darkTheme = dark) {
                 val loggedIn = state.loggedIn
                 val backStack = rememberNavBackStack(if (loggedIn) Screen.Orders else Screen.Login)
 

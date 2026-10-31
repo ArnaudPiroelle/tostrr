@@ -1,6 +1,5 @@
 package app.tostrr.ui.orders.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,12 +37,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
+import app.tostrr.ui.common.TostrrLogo
 import app.tostrr.domain.order.Order
 import app.tostrr.ui.orders.REFRESH_COOLDOWN_MS
 import app.tostrr.ui.theme.TostrrColors
@@ -99,7 +98,7 @@ internal fun OrdersContent(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(painterResource(R.drawable.ic_logo), contentDescription = null)
+                        TostrrLogo()
                         Spacer(Modifier.width(10.dp))
                         Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold)
                     }

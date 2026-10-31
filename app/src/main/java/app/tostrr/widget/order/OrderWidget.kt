@@ -19,15 +19,19 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import app.tostrr.domain.appearance.usecase.ObserveThemeModeUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.widget.OrderRefKey
-import app.tostrr.widget.TostrrWidgetColors
+import app.tostrr.widget.widgetColors
 import app.tostrr.widget.order.components.OrderWidgetContent
 import org.koin.core.annotation.Single
 
 /** Home-screen version of the card shown in the orders list: the order picked for this widget and its step tracker. */
 @Single
-class OrderWidget(private val observeOrdersUseCase: ObserveOrdersUseCase) : GlanceAppWidget() {
+class OrderWidget(
+    private val observeOrdersUseCase: ObserveOrdersUseCase,
+    private val observeThemeModeUseCase: ObserveThemeModeUseCase,
+) : GlanceAppWidget() {
 
     override val stateDefinition = PreferencesGlanceStateDefinition
 
@@ -39,11 +43,12 @@ class OrderWidget(private val observeOrdersUseCase: ObserveOrdersUseCase) : Glan
             // and the orders list have to be observed rather than captured once.
             val chosen = currentState<Preferences>()[OrderRefKey]
             val orders by observeOrdersUseCase().collectAsState()
+            val themeMode by observeThemeModeUseCase().collectAsState()
             // A widget with no choice yet, or whose order is gone, falls back to the first order.
             val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()
             val url = order?.imageUrl
             val car by produceState<Bitmap?>(null, url) { value = url?.let { loadBitmap(context, it) } }
-            GlanceTheme(TostrrWidgetColors) { OrderWidgetContent(order, car) }
+            GlanceTheme(widgetColors(themeMode)) { OrderWidgetContent(order, car) }
         }
     }
 

@@ -1,5 +1,7 @@
 package app.tostrr.testing
 
+import app.tostrr.domain.appearance.AppearanceRepository
+import app.tostrr.domain.appearance.ThemeMode
 import app.tostrr.domain.auth.AccountRepository
 import app.tostrr.domain.auth.AuthRepository
 import app.tostrr.domain.auth.TeslaAccount
@@ -71,6 +73,14 @@ class FakeSyncSettingsRepository(initial: SyncSettings = SyncSettings()) : SyncS
 
     override fun save(settings: SyncSettings) {
         this.settings.value = settings
+    }
+}
+
+class FakeAppearanceRepository(initial: ThemeMode = ThemeMode.SYSTEM) : AppearanceRepository {
+    override val themeMode = MutableStateFlow(initial)
+
+    override fun saveThemeMode(mode: ThemeMode) {
+        themeMode.value = mode
     }
 }
 

@@ -201,6 +201,12 @@
 
     <!-- Settings -->
     <string name="settings_title">Réglages</string>
+    <string name="settings_appearance_section">Apparence</string>
+    <string name="settings_theme">Thème</string>
+    <string name="settings_theme_summary">Clair, sombre, ou comme le téléphone.</string>
+    <string name="settings_theme_system">Auto</string>
+    <string name="settings_theme_light">Clair</string>
+    <string name="settings_theme_dark">Sombre</string>
     <string name="settings_sync_section">Actualisation automatique</string>
     <string name="settings_sync_auto">Actualiser en arrière-plan</string>
     <string name="settings_sync_auto_on">Les commandes sont récupérées régulièrement, même app fermée.</string>
