@@ -46,11 +46,49 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.tostrr.R
+import app.tostrr.ui.architecture.OnSideEffect
+import app.tostrr.ui.architecture.watchAsState
+import app.tostrr.ui.login.LoginViewModel.Action
+import app.tostrr.ui.login.LoginViewModel.SideEffect
 import app.tostrr.ui.theme.TostrrColors
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import org.koin.androidx.compose.koinViewModel
+
+/** Hands [redirect], the URL Tesla sent back through the deep link, to the login once; [onRedirectHandled] then clears it. */
+@Composable
+fun LoginScreen(
+    redirect: String?,
+    onRedirectHandled: () -> Unit,
+    viewModel: LoginViewModel = koinViewModel(),
+) {
+    val state by viewModel.watchAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(redirect) {
+        if (redirect == null) return@LaunchedEffect
+        viewModel.handle(Action.OnRedirect(redirect))
+        onRedirectHandled()
+    }
+    OnSideEffect(viewModel) { effect ->
+        when (effect) {
+            is SideEffect.OpenLoginPage -> CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(effect.url))
+        }
+    }
+
+    LoginContent(
+        busy = state.busy,
+        error = state.error,
+        onLogin = { viewModel.handle(Action.OnLogin) },
+        onPasteRedirect = { viewModel.handle(Action.OnRedirect(it)) },
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
+private fun LoginContent(
     busy: Boolean,
     error: String?,
     onLogin: () -> Unit,

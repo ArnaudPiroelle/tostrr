@@ -37,7 +37,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -103,20 +102,22 @@ import app.tostrr.ui.common.formatShortDate
 import app.tostrr.ui.common.formatShortTime
 import app.tostrr.ui.theme.TostrrColors
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
+import app.tostrr.ui.architecture.watchAsState
+import app.tostrr.ui.detail.DetailViewModel.Action
 
 @Composable
 fun DetailScreen(
-    order: Order,
-    history: List<Change>,
-    options: Map<String, OptionInfo>,
-    checklist: Checklist?,
-    deliveryCenter: DeliveryCenter?,
+    reference: String,
     onOpenChecklist: () -> Unit,
     onBack: () -> Unit,
-    layoutViewModel: DetailLayoutViewModel = koinViewModel(),
+    viewModel: DetailViewModel = koinViewModel { parametersOf(reference) },
 ) {
+    val state by viewModel.watchAsState()
+    val order = state.order ?: return
+    val checklist = state.checklist
+    val layout = state.layout
     val scrollState = rememberScrollState()
-    val layout by layoutViewModel.layout.collectAsState()
     var arranging by rememberSaveable { mutableStateOf(false) }
     // Once there is an appointment to prepare for; a checklist already started stays reachable even if the
     // appointment later disappears from Tesla's data.
@@ -136,19 +137,19 @@ fun DetailScreen(
                         fun section(content: @Composable () -> Unit) = Section(
                             block.title,
                             expanded = BlockLayouts.isExpanded(layout, block.id),
-                            onToggle = { layoutViewModel.toggleExpanded(block) },
+                            onToggle = { viewModel.handle(Action.OnToggleBlockExpanded(block)) },
                             content = content,
                         )
                         when (block) {
                             DetailBlock.CHECKLIST ->
                                 ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
-                            DetailBlock.DELIVERY -> section { DeliveryContent(order, deliveryCenter) }
+                            DetailBlock.DELIVERY -> section { DeliveryContent(order, state.deliveryCenter) }
                             DetailBlock.PROGRESS_TRACKER -> section { StepTracker(order) }
                             DetailBlock.PROGRESS -> section { ProgressContent(order) }
                             DetailBlock.VEHICLE -> section { VehicleContent(order) }
                             DetailBlock.PAYMENT -> section { PaymentContent(order) }
-                            DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, options) }
-                            DetailBlock.HISTORY -> section { HistoryContent(history) }
+                            DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, state.options) }
+                            DetailBlock.HISTORY -> section { HistoryContent(state.history) }
                         }
                     }
                 }
@@ -166,9 +167,9 @@ fun DetailScreen(
     if (arranging) {
         DetailLayoutSheet(
             layout = layout,
-            onMove = layoutViewModel::move,
-            onToggle = layoutViewModel::toggle,
-            onReset = layoutViewModel::reset,
+            onMove = { block, delta -> viewModel.handle(Action.OnMoveBlock(block, delta)) },
+            onToggle = { viewModel.handle(Action.OnToggleBlock(it)) },
+            onReset = { viewModel.handle(Action.OnResetLayout) },
             onDismiss = { arranging = false },
         )
     }

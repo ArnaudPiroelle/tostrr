@@ -1,17 +1,26 @@
 package app.tostrr.ui.settings
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.auth.usecase.LoadTeslaAccountUseCase
-import app.tostrr.domain.auth.usecase.ObserveTeslaAccountUseCase
 import app.tostrr.domain.auth.usecase.LogoutUseCase
+import app.tostrr.domain.auth.usecase.ObserveTeslaAccountUseCase
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.domain.sync.usecase.ObserveSyncSettingsUseCase
 import app.tostrr.domain.sync.usecase.SetAutoSyncUseCase
 import app.tostrr.domain.sync.usecase.SetSyncIntervalUseCase
+import app.tostrr.ui.architecture.BaseAction
+import app.tostrr.ui.architecture.BaseState
+import app.tostrr.ui.architecture.BaseViewModel
+import app.tostrr.ui.architecture.NoSideEffect
+import app.tostrr.ui.settings.SettingsViewModel.Action
+import app.tostrr.ui.settings.SettingsViewModel.State
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 
@@ -24,19 +33,34 @@ class SettingsViewModel(
     private val setAutoSyncUseCase: SetAutoSyncUseCase,
     private val setSyncIntervalUseCase: SetSyncIntervalUseCase,
     private val logoutUseCase: LogoutUseCase,
-) : ViewModel() {
-    val sync: StateFlow<SyncSettings> = observeSyncSettingsUseCase()
+) : BaseViewModel<Action, State, NoSideEffect>() {
 
-    /** Null until the profile is loaded, or if Tesla didn't give it. */
-    val account: StateFlow<TeslaAccount?> = observeTeslaAccountUseCase()
+    override val state: StateFlow<State> = combine(observeSyncSettingsUseCase(), observeTeslaAccountUseCase(), ::State)
+        // The profile is fetched once the screen watches it; it lands through the account flow.
+        .onStart { viewModelScope.launch { loadTeslaAccountUseCase() } }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            State(observeSyncSettingsUseCase().value, observeTeslaAccountUseCase().value),
+        )
 
-    init {
-        viewModelScope.launch { loadTeslaAccountUseCase() }
+    override suspend fun onHandle(action: Action) {
+        when (action) {
+            is Action.OnAutoSyncChanged -> setAutoSyncUseCase(action.enabled)
+            is Action.OnIntervalSelected -> setSyncIntervalUseCase(action.interval)
+            Action.OnLogout -> logoutUseCase()
+        }
     }
 
-    fun setAutoSync(enabled: Boolean) = setAutoSyncUseCase(enabled)
+    data class State(
+        val sync: SyncSettings = SyncSettings(),
+        /** Null until the profile is loaded, or if Tesla didn't give it. */
+        val account: TeslaAccount? = null,
+    ) : BaseState
 
-    fun setSyncInterval(interval: SyncInterval) = setSyncIntervalUseCase(interval)
-
-    fun logout() = logoutUseCase()
+    sealed class Action : BaseAction {
+        data class OnAutoSyncChanged(val enabled: Boolean) : Action()
+        data class OnIntervalSelected(val interval: SyncInterval) : Action()
+        data object OnLogout : Action()
+    }
 }

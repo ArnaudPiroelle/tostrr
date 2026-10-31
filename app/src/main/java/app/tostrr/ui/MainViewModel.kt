@@ -1,122 +1,42 @@
 package app.tostrr.ui
 
-import android.net.Uri
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.tostrr.domain.auth.usecase.CompleteLoginUseCase
 import app.tostrr.domain.auth.usecase.ObserveLoggedInUseCase
-import app.tostrr.domain.auth.usecase.LogoutUseCase
-import app.tostrr.domain.auth.usecase.StartLoginUseCase
-import app.tostrr.domain.checklist.Checklist
-import app.tostrr.domain.checklist.usecase.ObserveChecklistUseCase
-import app.tostrr.domain.deliverycenter.DeliveryCenter
-import app.tostrr.domain.deliverycenter.usecase.FindDeliveryCenterUseCase
-import app.tostrr.domain.error.ApiException
-import app.tostrr.domain.error.AuthException
-import app.tostrr.domain.error.SessionExpiredException
-import app.tostrr.domain.order.Change
-import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.Order
-import app.tostrr.domain.order.usecase.ObserveOptionCodesUseCase
-import app.tostrr.domain.order.usecase.ObserveOrderHistoryUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
-import app.tostrr.domain.order.usecase.RefreshOrdersUseCase
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import app.tostrr.ui.MainViewModel.State
+import app.tostrr.ui.architecture.BaseState
+import app.tostrr.ui.architecture.BaseViewModel
+import app.tostrr.ui.architecture.NoAction
+import app.tostrr.ui.architecture.NoSideEffect
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import org.koin.android.annotation.KoinViewModel
 
-/** Minimum delay between two refreshes, to avoid hammering Tesla's private API. */
-const val REFRESH_COOLDOWN_MS = 30_000L
-
+/** What the activity needs to pick the screens: the session, and which orders a deep link can open. */
 @KoinViewModel
 class MainViewModel(
     observeLoggedInUseCase: ObserveLoggedInUseCase,
-    private val startLoginUseCase: StartLoginUseCase,
-    private val completeLoginUseCase: CompleteLoginUseCase,
-    private val logoutUseCase: LogoutUseCase,
-    private val refreshOrdersUseCase: RefreshOrdersUseCase,
-    private val observeChecklistUseCase: ObserveChecklistUseCase,
-    private val findDeliveryCenterUseCase: FindDeliveryCenterUseCase,
     observeOrdersUseCase: ObserveOrdersUseCase,
-    observeOrderHistoryUseCase: ObserveOrderHistoryUseCase,
-    observeOptionCodesUseCase: ObserveOptionCodesUseCase,
-) : ViewModel() {
-    val orders: StateFlow<List<Order>> = observeOrdersUseCase()
-    val history: StateFlow<Map<String, List<Change>>> = observeOrderHistoryUseCase()
-    val optionCodes: StateFlow<Map<String, OptionInfo>> = observeOptionCodesUseCase()
+) : BaseViewModel<NoAction, State, NoSideEffect>() {
 
-    /** Logging out happens in the settings; the activity swaps the back stack when this flips. */
-    val loggedIn: StateFlow<Boolean> = observeLoggedInUseCase()
+    // Starts from the current values: the first screen of the back stack depends on the session.
+    override val state: StateFlow<State> = combine(observeLoggedInUseCase(), observeOrdersUseCase(), ::toState)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            toState(observeLoggedInUseCase().value, observeOrdersUseCase().value),
+        )
 
-    private val _busy = MutableStateFlow(false)
-    val busy: StateFlow<Boolean> = _busy.asStateFlow()
+    override suspend fun onHandle(action: NoAction) = Unit
 
-    private val _refreshing = MutableStateFlow(false)
-    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+    private fun toState(loggedIn: Boolean, orders: List<Order>) = State(loggedIn, orders.map { it.reference }.toSet())
 
-    /** Epoch ms of the last refresh attempt; 0 when none yet. Drives the refresh cooldown. */
-    private val _lastRefreshAt = MutableStateFlow(0L)
-    val lastRefreshAt: StateFlow<Long> = _lastRefreshAt.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
-    fun startLogin(): Uri {
-        _error.value = null
-        return Uri.parse(startLoginUseCase())
-    }
-
-    fun checklist(orderReference: String): Flow<Checklist?> = observeChecklistUseCase(orderReference)
-
-    suspend fun deliveryCenter(order: Order): DeliveryCenter? = findDeliveryCenterUseCase(order.deliveryCenter, order.countryCode)
-
-    /** Called with the `tesla://auth/callback?...` URI, from the deep link or a pasted URL. */
-    fun handleRedirect(redirect: String) {
-        // A redirect delivered twice (deep link, then a paste) would fail: its code was already exchanged.
-        if (loggedIn.value) return
-        viewModelScope.launch {
-            _busy.value = true
-            _error.value = null
-            try {
-                completeLoginUseCase(redirect)
-                refresh()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: AuthException) {
-                _error.value = e.message
-            } catch (e: Exception) {
-                _error.value = "Connexion impossible : ${e.message}"
-            } finally {
-                _busy.value = false
-            }
-        }
-    }
-
-    fun refresh() {
-        val now = System.currentTimeMillis()
-        if (_refreshing.value || now - _lastRefreshAt.value < REFRESH_COOLDOWN_MS) return
-        _lastRefreshAt.value = now
-        viewModelScope.launch {
-            _refreshing.value = true
-            _error.value = null
-            try {
-                refreshOrdersUseCase()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: SessionExpiredException) {
-                logoutUseCase()
-                _error.value = e.message
-            } catch (e: Exception) {
-                // Auth and API errors carry a message meant for the user; anything else gets context.
-                _error.value = if (e is AuthException || e is ApiException) e.message else "Synchronisation impossible : ${e.message}"
-            } finally {
-                _refreshing.value = false
-            }
-        }
-    }
-
+    data class State(
+        /** Logging in or out flips it; the activity then swaps the whole back stack. */
+        val loggedIn: Boolean = false,
+        val orderReferences: Set<String> = emptySet(),
+    ) : BaseState
 }

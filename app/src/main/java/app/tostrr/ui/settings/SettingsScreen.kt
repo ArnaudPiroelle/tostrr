@@ -49,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +62,8 @@ import androidx.compose.ui.unit.dp
 import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncSettings
+import app.tostrr.ui.architecture.watchAsState
+import app.tostrr.ui.settings.SettingsViewModel.Action
 import app.tostrr.ui.theme.TostrrColors
 import org.koin.androidx.compose.koinViewModel
 
@@ -70,8 +71,7 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
-    val sync by viewModel.sync.collectAsState()
-    val account by viewModel.account.collectAsState()
+    val state by viewModel.watchAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -92,8 +92,14 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item { SyncSection(sync, onAutoSyncChange = viewModel::setAutoSync, onIntervalChange = viewModel::setSyncInterval) }
-            item { AccountSection(account, onLogout = viewModel::logout) }
+            item {
+                SyncSection(
+                    state.sync,
+                    onAutoSyncChange = { viewModel.handle(Action.OnAutoSyncChanged(it)) },
+                    onIntervalChange = { viewModel.handle(Action.OnIntervalSelected(it)) },
+                )
+            }
+            item { AccountSection(state.account, onLogout = { viewModel.handle(Action.OnLogout) }) }
         }
     }
 }

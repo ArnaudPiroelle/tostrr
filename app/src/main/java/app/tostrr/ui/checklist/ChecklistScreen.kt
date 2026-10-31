@@ -1,6 +1,5 @@
 package app.tostrr.ui.checklist
 
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -57,7 +56,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -91,6 +89,11 @@ import app.tostrr.domain.checklist.DeliveryChecklist
 import app.tostrr.ui.common.formatDateTime
 import app.tostrr.ui.theme.TostrrColors
 import org.koin.androidx.compose.koinViewModel
+import app.tostrr.ui.architecture.OnSideEffect
+import app.tostrr.ui.architecture.watchAsState
+import app.tostrr.ui.checklist.ChecklistViewModel.Action
+import app.tostrr.ui.checklist.ChecklistViewModel.Phase
+import app.tostrr.ui.checklist.ChecklistViewModel.SideEffect
 import org.koin.core.parameter.parametersOf
 import java.io.File
 
@@ -100,17 +103,21 @@ fun ChecklistScreen(
     onClose: () -> Unit,
     viewModel: ChecklistViewModel = koinViewModel { parametersOf(orderReference) },
 ) {
-    val state by viewModel.state.collectAsState()
-    val editingQuestionId by viewModel.editingQuestionId.collectAsState()
+    val state by viewModel.watchAsState()
+    val editingQuestionId = state.editingQuestionId
     val scrollState = rememberScrollState()
     // Each new screen starts at its top, not where the previous one was scrolled to.
-    val screenKey = when (val s = state) {
-        is ChecklistState.InProgress -> s.checklist.cursor
-        is ChecklistState.Completed -> editingQuestionId
+    val screenKey = when (val s = state.phase) {
+        is Phase.InProgress -> s.checklist.cursor
+        is Phase.Completed -> editingQuestionId
         else -> s
     }
     LaunchedEffect(screenKey) { scrollState.scrollTo(0) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+
+    OnSideEffect(viewModel) { effect ->
+        if (effect == SideEffect.Deleted) onClose()
+    }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.fillMaxWidth().statusBarsPadding().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -126,30 +133,30 @@ fun ChecklistScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            when (val s = state) {
-                ChecklistState.Loading -> Unit
-                ChecklistState.NotStarted -> Overview(onStart = viewModel::start, onCancel = onClose)
-                is ChecklistState.InProgress -> {
+            when (val s = state.phase) {
+                Phase.Loading -> Unit
+                Phase.NotStarted -> Overview(onStart = { viewModel.handle(Action.OnStart) }, onCancel = onClose)
+                is Phase.InProgress -> {
                     val cursor = s.checklist.cursor
                     when (val step = DeliveryChecklist.steps[cursor]) {
                         is ChecklistStep.SectionIntro -> SectionIntro(
                             section = step.section,
-                            onStart = { viewModel.moveTo(cursor + 1) },
-                            onOpenQuestion = { viewModel.moveTo(DeliveryChecklist.stepIndexOf(it)) },
-                            onBack = if (cursor > 0) ({ viewModel.moveTo(cursor - 1) }) else null,
+                            onStart = { viewModel.handle(Action.OnMoveTo(cursor + 1)) },
+                            onOpenQuestion = { viewModel.handle(Action.OnMoveTo(DeliveryChecklist.stepIndexOf(it))) },
+                            onBack = if (cursor > 0) ({ viewModel.handle(Action.OnMoveTo(cursor - 1)) }) else null,
                         )
                         is ChecklistStep.Question -> QuestionStep(
                             step = step,
                             saved = s.checklist.answers[step.question.id],
                             viewModel = viewModel,
                             onAnswer = { status, comment, photo, replaced ->
-                                viewModel.answer(cursor, step.question.id, status, comment, photo, replaced)
+                                viewModel.handle(Action.OnAnswer(cursor, step.question.id, status, comment, photo, replaced))
                             },
-                            onBack = { viewModel.moveTo(cursor - 1) },
+                            onBack = { viewModel.handle(Action.OnMoveTo(cursor - 1)) },
                         )
                     }
                 }
-                is ChecklistState.Completed -> {
+                is Phase.Completed -> {
                     val editing = editingQuestionId?.let { id ->
                         DeliveryChecklist.steps.getOrNull(DeliveryChecklist.stepIndexOf(id)) as? ChecklistStep.Question
                     }
@@ -160,17 +167,17 @@ fun ChecklistScreen(
                             saved = s.checklist.answers[editing.question.id],
                             viewModel = viewModel,
                             onAnswer = { status, comment, photo, replaced ->
-                                viewModel.saveEdit(editing.question.id, status, comment, photo, replaced)
+                                viewModel.handle(Action.OnSaveEdit(editing.question.id, status, comment, photo, replaced))
                             },
-                            onBack = viewModel::cancelEdit,
+                            onBack = { viewModel.handle(Action.OnCancelEdit) },
                             editing = true,
                         )
-                        BackHandler(onBack = viewModel::cancelEdit)
+                        BackHandler { viewModel.handle(Action.OnCancelEdit) }
                     } else {
                         Recap(
                             s.checklist,
-                            onEdit = { viewModel.reopen(0) },
-                            onEditQuestion = viewModel::editQuestion,
+                            onEdit = { viewModel.handle(Action.OnReopen(0)) },
+                            onEditQuestion = { viewModel.handle(Action.OnEditQuestion(it)) },
                             onDelete = { confirmDelete = true },
                             onClose = onClose,
                         )
@@ -187,7 +194,7 @@ fun ChecklistScreen(
             confirm = "Supprimer",
             onConfirm = {
                 confirmDelete = false
-                viewModel.delete(onDeleted = onClose)
+                viewModel.handle(Action.OnDelete)
             },
             onDismiss = { confirmDelete = false },
         )
@@ -332,8 +339,30 @@ private fun ColumnScope.QuestionStep(
 
     /** Sets the draft photo; a previous draft photo nobody else points to is deleted. */
     fun replacePhoto(path: String?) {
-        photo?.takeIf { it != saved?.photoPath && it != path }?.let(viewModel::deletePhoto)
+        photo?.takeIf { it != saved?.photoPath && it != path }?.let { viewModel.handle(Action.OnDeletePhoto(it)) }
         photo = path
+    }
+
+    val context = LocalContext.current
+    // Survives the camera activity recreating this screen.
+    var pendingShot by rememberSaveable { mutableStateOf<String?>(null) }
+    val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
+        val path = pendingShot ?: return@rememberLauncherForActivityResult
+        pendingShot = null
+        if (taken) replacePhoto(path) else File(path).delete()
+    }
+    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) viewModel.handle(Action.OnImportPhoto(questionId, uri))
+    }
+    OnSideEffect(viewModel) { effect ->
+        when (effect) {
+            is SideEffect.TakePhoto -> if (effect.questionId == questionId) {
+                pendingShot = effect.path
+                takePicture.launch(FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(effect.path)))
+            }
+            is SideEffect.PhotoImported -> if (effect.questionId == questionId) replacePhoto(effect.path)
+            SideEffect.Deleted -> Unit
+        }
     }
 
     val total = step.section.questions.size
@@ -366,9 +395,9 @@ private fun ColumnScope.QuestionStep(
         FieldLabel("Photo (facultatif)")
         PhotoField(
             photo = photo,
-            newPhotoFile = { viewModel.newPhotoFile(questionId) },
-            onImport = { uri -> viewModel.importPhoto(questionId, uri) { replacePhoto(it) } },
-            onPhoto = ::replacePhoto,
+            onTakePhoto = { viewModel.handle(Action.OnTakePhoto(questionId)) },
+            onPickImage = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onDelete = { replacePhoto(null) },
         )
         Spacer(Modifier.height(20.dp))
         PrimaryButton("J'ai vérifié 👍") { onAnswer(AnswerStatus.VERIFIED, comment, photo, saved?.photoPath) }
@@ -396,18 +425,7 @@ private fun ColumnScope.QuestionStep(
 
 /** Dashed drop zone with camera and gallery buttons, or the chosen photo with a delete button. */
 @Composable
-private fun PhotoField(photo: String?, newPhotoFile: () -> File, onImport: (Uri) -> Unit, onPhoto: (String?) -> Unit) {
-    val context = LocalContext.current
-    // Survives the camera activity recreating this screen.
-    var pendingShot by rememberSaveable { mutableStateOf<String?>(null) }
-    val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
-        val path = pendingShot ?: return@rememberLauncherForActivityResult
-        pendingShot = null
-        if (taken) onPhoto(path) else File(path).delete()
-    }
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) onImport(uri)
-    }
+private fun PhotoField(photo: String?, onTakePhoto: () -> Unit, onPickImage: () -> Unit, onDelete: () -> Unit) {
     val accent = TostrrColors.Accent
     val border = TostrrColors.Border
 
@@ -424,7 +442,7 @@ private fun PhotoField(photo: String?, newPhotoFile: () -> File, onImport: (Uri)
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                 modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
             ) {
-                IconButton(onClick = { onPhoto(null) }) { Icon(Icons.Filled.Delete, contentDescription = "Supprimer la photo") }
+                IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Supprimer la photo") }
             }
         }
         return
@@ -449,16 +467,12 @@ private fun PhotoField(photo: String?, newPhotoFile: () -> File, onImport: (Uri)
         }
         Text("JPEG · PNG", style = MaterialTheme.typography.labelMedium, color = TostrrColors.Muted)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = {
-                val file = newPhotoFile()
-                pendingShot = file.absolutePath
-                takePicture.launch(FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file))
-            }) {
+            TextButton(onClick = onTakePhoto) {
                 Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Appareil photo")
             }
-            TextButton(onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
+            TextButton(onClick = onPickImage) {
                 Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Galerie")

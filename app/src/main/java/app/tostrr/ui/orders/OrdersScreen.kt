@@ -44,7 +44,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import app.tostrr.domain.order.Order
-import app.tostrr.ui.REFRESH_COOLDOWN_MS
+import app.tostrr.ui.architecture.watchAsState
+import app.tostrr.ui.orders.OrdersViewModel.Action
+import org.koin.androidx.compose.koinViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -90,9 +92,27 @@ private fun rememberBelowAnchorPositionProvider(): PopupPositionProvider {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrdersScreen(
+    onOpen: (Order) -> Unit,
+    onOpenSettings: () -> Unit,
+    viewModel: OrdersViewModel = koinViewModel(),
+) {
+    val state by viewModel.watchAsState()
+    OrdersContent(
+        orders = state.orders,
+        refreshing = state.sync.refreshing,
+        lastRefreshAtMs = state.sync.lastRefreshAtMs,
+        error = state.sync.error,
+        onRefresh = { viewModel.handle(Action.OnRefresh) },
+        onOpen = onOpen,
+        onOpenSettings = onOpenSettings,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OrdersContent(
     orders: List<Order>,
     refreshing: Boolean,
     lastRefreshAtMs: Long,

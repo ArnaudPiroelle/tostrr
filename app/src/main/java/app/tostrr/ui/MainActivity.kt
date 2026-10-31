@@ -14,20 +14,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.browser.customtabs.CustomTabsIntent
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import app.tostrr.domain.deliverycenter.DeliveryCenter
+import app.tostrr.ui.architecture.watchAsState
 import app.tostrr.ui.checklist.ChecklistScreen
 import app.tostrr.ui.detail.DetailScreen
 import app.tostrr.ui.login.LoginScreen
@@ -47,6 +43,9 @@ class MainActivity : ComponentActivity() {
     /** Set by the "Commandes" launcher shortcut: go back to the orders list, wherever the app was. */
     private var pendingOrdersList by mutableStateOf(false)
 
+    /** The `tesla://auth/callback?...` URL Tesla redirected to, until the login screen takes it. */
+    private var pendingRedirect by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Default style: status/navigation bar icons switch between light and dark with the system theme.
@@ -55,21 +54,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             TostrrTheme {
-                val loggedIn by viewModel.loggedIn.collectAsState()
+                val state by viewModel.watchAsState()
+                val loggedIn = state.loggedIn
                 val backStack = rememberNavBackStack(if (loggedIn) Screen.Orders else Screen.Login)
-                val busy by viewModel.busy.collectAsState()
-                val refreshing by viewModel.refreshing.collectAsState()
-                val lastRefreshAt by viewModel.lastRefreshAt.collectAsState()
-                val error by viewModel.error.collectAsState()
-                val orders by viewModel.orders.collectAsState()
-                val history by viewModel.history.collectAsState()
-                val optionCodes by viewModel.optionCodes.collectAsState()
 
-                LaunchedEffect(pendingOrderRef, loggedIn, orders) {
+                LaunchedEffect(pendingOrderRef, loggedIn, state.orderReferences) {
                     val ref = pendingOrderRef ?: return@LaunchedEffect
-                    if (!loggedIn || orders.isEmpty()) return@LaunchedEffect
+                    if (!loggedIn || state.orderReferences.isEmpty()) return@LaunchedEffect
                     val target = Screen.OrderDetail(ref)
-                    if (orders.any { it.reference == ref } && backStack.lastOrNull() != target) backStack.add(target)
+                    if (ref in state.orderReferences && backStack.lastOrNull() != target) backStack.add(target)
                     pendingOrderRef = null
                 }
 
@@ -81,6 +74,8 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(loggedIn) {
                     if (loggedIn) {
+                        // A redirect delivered again once logged in has nothing left to do.
+                        pendingRedirect = null
                         requestNotificationPermission()
                         requestBatteryOptimizationExemption()
                     }
@@ -105,42 +100,20 @@ class MainActivity : ComponentActivity() {
                     ),
                     entryProvider = entryProvider {
                         entry<Screen.Login> {
-                            LoginScreen(
-                                busy = busy,
-                                error = error,
-                                onLogin = { openLogin() },
-                                onPasteRedirect = viewModel::handleRedirect,
-                            )
+                            LoginScreen(redirect = pendingRedirect, onRedirectHandled = { pendingRedirect = null })
                         }
                         entry<Screen.Orders> {
                             OrdersScreen(
-                                orders = orders,
-                                refreshing = refreshing,
-                                lastRefreshAtMs = lastRefreshAt,
-                                error = error,
-                                onRefresh = viewModel::refresh,
                                 onOpen = { backStack.add(Screen.OrderDetail(it.reference)) },
                                 onOpenSettings = { backStack.add(Screen.Settings) },
                             )
                         }
                         entry<Screen.OrderDetail> { key ->
-                            val order = orders.firstOrNull { it.reference == key.reference }
-                            if (order != null) {
-                                val checklist by remember(order.reference) { viewModel.checklist(order.reference) }
-                                    .collectAsState(null)
-                                val deliveryCenter by produceState<DeliveryCenter?>(null, order.deliveryCenter, order.countryCode) {
-                                    value = viewModel.deliveryCenter(order)
-                                }
-                                DetailScreen(
-                                    order,
-                                    history[order.reference].orEmpty(),
-                                    optionCodes,
-                                    checklist = checklist,
-                                    deliveryCenter = deliveryCenter,
-                                    onOpenChecklist = { backStack.add(Screen.Checklist(order.reference)) },
-                                    onBack = { backStack.removeLastOrNull() },
-                                )
-                            }
+                            DetailScreen(
+                                reference = key.reference,
+                                onOpenChecklist = { backStack.add(Screen.Checklist(key.reference)) },
+                                onBack = { backStack.removeLastOrNull() },
+                            )
                         }
                         entry<Screen.Checklist> { key ->
                             ChecklistScreen(orderReference = key.reference, onClose = { backStack.removeLastOrNull() })
@@ -161,7 +134,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleDeepLink(intent: Intent?) {
         val data = intent?.data ?: return
-        if (data.scheme == "tesla" && data.host == "auth") viewModel.handleRedirect(data.toString())
+        if (data.scheme == "tesla" && data.host == "auth") pendingRedirect = data.toString()
         if (data.scheme == DEEP_LINK_SCHEME && data.host == "order") pendingOrderRef = data.pathSegments.firstOrNull()
         if (data.scheme == DEEP_LINK_SCHEME && data.host == "orders") pendingOrdersList = true
     }
@@ -188,11 +161,6 @@ class MainActivity : ComponentActivity() {
         ) return
         prefs.edit().putBoolean(KEY_BATTERY_PROMPT, true).apply()
         startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
-    }
-
-    private fun openLogin() {
-        val uri = viewModel.startLogin()
-        CustomTabsIntent.Builder().build().launchUrl(this, uri)
     }
 
     companion object {
