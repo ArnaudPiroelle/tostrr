@@ -1,9 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+}
+
+/**
+ * The release signing key, from Gradle properties (on CI, `ORG_GRADLE_PROJECT_tostrr…` environment variables) or else
+ * from a git-ignored `signing.properties` at the project root. Without it the release build is left unsigned.
+ */
+val signing = Properties().apply {
+    rootProject.file("signing.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+    listOf("tostrrStoreFile", "tostrrStorePassword", "tostrrKeyAlias", "tostrrKeyPassword").forEach { key ->
+        providers.gradleProperty(key).orNull?.let { setProperty(key, it) }
+    }
 }
 
 android {
@@ -14,13 +27,26 @@ android {
         applicationId = "app.tostrr"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        // The release workflow sets the code from its run number; bump the name to publish a new release from main.
+        versionCode = providers.gradleProperty("tostrrVersionCode").orNull?.toInt() ?: 1
         versionName = "0.1.0"
+    }
+
+    signingConfigs {
+        if (signing.getProperty("tostrrStoreFile") != null) {
+            create("release") {
+                storeFile = file(signing.getProperty("tostrrStoreFile"))
+                storePassword = signing.getProperty("tostrrStorePassword")
+                keyAlias = signing.getProperty("tostrrKeyAlias")
+                keyPassword = signing.getProperty("tostrrKeyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {

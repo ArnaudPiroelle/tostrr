@@ -93,7 +93,15 @@ You do **not** need a Tesla developer account, a Fleet API key, a server or any 
 
 ## Installing Tostrr
 
-Tostrr isn't on the Play Store yet: [build it from source](#build-from-source) and install it on your phone with Android Studio or `adb`.
+Tostrr isn't on the Play Store. Each version is published as a signed APK on the [Releases](https://github.com/ArnaudPiroelle/tostrr/releases) page:
+
+1. On your phone, download `tostrr-<version>.apk` from the [latest release](https://github.com/ArnaudPiroelle/tostrr/releases/latest).
+2. Open it. Android asks once to allow installing apps from your browser or file manager: allow it, then tap **Install**.
+3. Later versions install over it the same way and keep your data.
+
+> Every release is signed with the same key, so an update always installs over the previous one. A build you made yourself is signed with your own debug key: uninstall it before installing a release.
+
+Or [build it from source](#build-from-source).
 
 ---
 

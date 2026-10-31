@@ -5,3 +5,6 @@ local.properties
 build/
 .kotlin/
 .DS_Store
+signing.properties
+*.jks
+*.keystore
