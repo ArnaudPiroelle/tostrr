@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import app.tostrr.domain.order.Order
+import app.tostrr.ui.common.labelRes
 
 /**
  * Same look as the in-app tracker: a bar behind the dots, filled up to the current step. Glance can't
@@ -22,6 +24,7 @@ import app.tostrr.domain.order.Order
  */
 @Composable
 internal fun Tracker(order: Order, k: Float) {
+    val context = LocalContext.current
     val current = order.currentStepIndex
     val last = order.steps.lastIndex
     val accent = GlanceTheme.colors.primary
@@ -44,7 +47,7 @@ internal fun Tracker(order: Order, k: Float) {
         order.steps.forEachIndexed { i, step ->
             val strong = step.done || i == current
             Text(
-                step.label,
+                context.getString(step.kind.labelRes),
                 modifier = GlanceModifier.defaultWeight(),
                 style = TextStyle(
                     color = if (strong) GlanceTheme.colors.onSurface else GlanceTheme.colors.onSurfaceVariant,

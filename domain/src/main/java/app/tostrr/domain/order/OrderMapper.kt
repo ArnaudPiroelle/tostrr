@@ -12,8 +12,6 @@ import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * Builds an [Order] from the two raw payloads returned by Tesla:
@@ -47,13 +45,13 @@ object OrderMapper {
         val expectedReg = tasks.deepFind("expectedRegDate")
 
         val steps = listOf(
-            OrderStep("Commande passée", formatDate(booked), booked != null, "Votre commande Tesla est bien enregistrée"),
-            OrderStep("VIN attribué", null, vin != null, "Votre Tesla a maintenant un VIN attribué"),
-            OrderStep("Production terminée", null, detectors.carBuilt.isDone(order, tasks), "Votre Tesla est sortie de production"),
-            OrderStep("Documents envoyés", null, detectors.documentsSent.isDone(order, tasks), "Les documents de votre Tesla ont été envoyés"),
-            OrderStep("Véhicule immatriculé", formatDate(expectedReg), detectors.vehicleRegistered.isDone(order, tasks), "Votre Tesla est maintenant immatriculée"),
+            OrderStep(StepKind.ORDERED, formatDate(booked), booked != null),
+            OrderStep(StepKind.VIN_ASSIGNED, null, vin != null),
+            OrderStep(StepKind.BUILT, null, detectors.carBuilt.isDone(order, tasks)),
+            OrderStep(StepKind.DOCUMENTS_SENT, null, detectors.documentsSent.isDone(order, tasks)),
+            OrderStep(StepKind.REGISTERED, formatDate(expectedReg), detectors.vehicleRegistered.isDone(order, tasks)),
             // Only a confirmed appointment is shown under the step; the delivery window lives in Order.deliverySlot.
-            OrderStep("Livraison", appointment, appointment != null, "Votre rendez-vous de livraison est confirmé"),
+            OrderStep(StepKind.DELIVERY, appointment, appointment != null),
         )
 
         return Order(
@@ -128,12 +126,10 @@ object OrderMapper {
             ?.build()?.toString()
     }
 
-    private val dateOut = DateTimeFormatter.ofPattern("dd/MM/yy", Locale.FRANCE)
-
-    /** Formats an ISO date/datetime as dd/MM/yy; returns the input untouched if it isn't ISO. */
+    /** Formats an ISO date/datetime as a short date in the device's language; returns the input untouched if it isn't ISO. */
     fun formatDate(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
-        return runCatching { LocalDate.parse(raw.take(10)).format(dateOut) }.getOrDefault(raw)
+        return runCatching { LocalDate.parse(raw.take(10)).format(LocalDateFormats.date()) }.getOrDefault(raw)
     }
 
     /** "29 Novembre - 29 Décembre" -> "29 Nov\n29 Déc" so it fits under a stepper dot. */
@@ -172,12 +168,12 @@ object OrderMapper {
             }
 
     /** Home delivery or pick-up, from the delivery type Tesla gives the handover. */
-    private fun deliveryMethodFrom(tasks: JsonObject): String? {
+    private fun deliveryMethodFrom(tasks: JsonObject): DeliveryMethod? {
         val type = listOf("deliveryAcceptance.deliveryType", "scheduling.deliveryType").firstNotNullOfOrNull { tasks.stringAt(it) }?.uppercase()
         val toAddress = (tasks.at("deliveryAcceptance.isDeliveryToAddress") as? JsonPrimitive)?.booleanOrNull
         return when {
-            type == DELIVERY_TO_ADDRESS || toAddress == true -> "Livraison à domicile"
-            type?.startsWith("PICKUP") == true || toAddress == false -> "Retrait au centre de livraison"
+            type == DELIVERY_TO_ADDRESS || toAddress == true -> DeliveryMethod.HOME
+            type?.startsWith("PICKUP") == true || toAddress == false -> DeliveryMethod.PICKUP
             else -> null
         }
     }
@@ -195,8 +191,6 @@ object OrderMapper {
     private val WINDOW_SEPARATOR = Regex("""\s*[-–]\s*""")
     private val WHITESPACE = Regex("""\s+""")
 
-    private val appointmentOut = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.FRANCE)
-
     private fun appointmentFrom(tasks: JsonObject): String? {
         // Already a display string in the user's language, so it is kept as is.
         tasks.obj("scheduling").str("deliveryAppointmentDate")?.trim()?.takeIf { it.isNotEmpty() }
@@ -205,8 +199,8 @@ object OrderMapper {
             ?.let(::formatAppointment)
     }
 
-    /** ISO instants and local date-times become `dd/MM/yyyy HH:mm` in the device time zone; anything else is kept. */
-    internal fun formatAppointment(raw: String): String = parseAppointment(raw)?.format(appointmentOut) ?: raw
+    /** ISO instants and local date-times become a date and time in the device's language and time zone; anything else is kept. */
+    internal fun formatAppointment(raw: String): String = parseAppointment(raw)?.format(LocalDateFormats.dateTime()) ?: raw
 }
 
 internal fun JsonObject?.obj(key: String): JsonObject =

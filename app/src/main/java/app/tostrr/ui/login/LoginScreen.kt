@@ -6,8 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import app.tostrr.R
 import app.tostrr.ui.architecture.OnSideEffect
 import app.tostrr.ui.architecture.watchAsState
+import app.tostrr.ui.common.uiErrorText
 import app.tostrr.ui.login.LoginViewModel.Action
 import app.tostrr.ui.login.LoginViewModel.SideEffect
 import app.tostrr.ui.login.components.LoginContent
@@ -36,7 +38,7 @@ fun LoginScreen(
 
     LoginContent(
         busy = state.busy,
-        error = state.error,
+        error = state.error?.let { uiErrorText(it, R.string.error_login_failed) },
         onLogin = { viewModel.handle(Action.OnLogin) },
         onPasteRedirect = { viewModel.handle(Action.OnRedirect(it)) },
     )

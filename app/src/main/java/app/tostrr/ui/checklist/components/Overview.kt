@@ -34,7 +34,7 @@ internal fun ColumnScope.Overview(onStart: () -> Unit, onCancel: () -> Unit) {
         DeliveryChecklist.sections.forEachIndexed { i, section ->
             if (i > 0) HorizontalDivider(thickness = 1.dp, color = TostrrColors.Border)
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(section.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(stringResource(section.titleRes), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 CountPill(stringResource(R.string.checklist_section_questions, section.questions.size))
             }
         }

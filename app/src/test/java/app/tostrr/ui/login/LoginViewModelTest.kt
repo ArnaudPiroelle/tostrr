@@ -1,11 +1,13 @@
 package app.tostrr.ui.login
 
+import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.testing.FakeAuthRepository
 import app.tostrr.testing.MainDispatcherRule
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.sideEffects
+import app.tostrr.ui.common.UiError
 import app.tostrr.ui.login.LoginViewModel.Action
 import app.tostrr.ui.login.LoginViewModel.SideEffect
 import kotlinx.coroutines.test.runTest
@@ -45,13 +47,13 @@ class LoginViewModelTest {
     @Test fun `a rejected redirect shows why`() = runTest {
         val graph = TestGraph().apply {
             auth.loggedIn.value = false
-            auth.loginFailure = AuthException("État OAuth invalide, relancez la connexion.")
+            auth.loginFailure = AuthException(AuthError.INVALID_STATE)
         }
         val viewModel = graph.loginViewModel()
 
         viewModel.handle(Action.OnRedirect("tesla://auth/callback?code=1&state=bad"))
 
-        assertEquals("État OAuth invalide, relancez la connexion.", viewModel.state.value.error)
+        assertEquals(UiError.Auth(AuthError.INVALID_STATE), viewModel.state.value.error)
         assertFalse(viewModel.state.value.busy)
         assertEquals(0, graph.orders.refreshes)
     }
@@ -65,7 +67,7 @@ class LoginViewModelTest {
 
         viewModel.handle(Action.OnRedirect("tesla://auth/callback?code=1"))
 
-        assertEquals("Connexion impossible : timeout", viewModel.state.value.error)
+        assertEquals(UiError.Unexpected("timeout"), viewModel.state.value.error)
     }
 
     @Test fun `a redirect delivered again once logged in is ignored`() = runTest {

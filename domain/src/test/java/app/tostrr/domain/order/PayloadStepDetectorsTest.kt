@@ -64,8 +64,8 @@ class PayloadStepDetectorsTest {
     @Test fun `mapper uses the injected detectors`() {
         val always = StepDetector { _, _ -> true }
         val order = OrderMapper.map(tasks("""{"referenceNumber":"RN1"}"""), tasks("{}"), 0L, StepDetectors(always, always, always))
-        assertTrue(order.steps.first { it.label == "Documents envoyés" }.done)
-        assertTrue(order.steps.first { it.label == "Véhicule immatriculé" }.done)
+        assertTrue(order.steps.first { it.kind == StepKind.DOCUMENTS_SENT }.done)
+        assertTrue(order.steps.first { it.kind == StepKind.REGISTERED }.done)
     }
 
     @Test fun `no gate and placeholder odometer means not built`() {

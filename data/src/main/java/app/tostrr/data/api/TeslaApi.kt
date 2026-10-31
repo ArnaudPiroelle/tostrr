@@ -47,7 +47,7 @@ class TeslaApi(private val client: OkHttpClient) {
             .build()
         client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
-            if (!response.isSuccessful) throw ApiException(response.code, "Erreur API Tesla (HTTP ${response.code}).")
+            if (!response.isSuccessful) throw ApiException(response.code)
             Json.parseToJsonElement(text)
         }
     }

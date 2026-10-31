@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.tostrr.R
 import app.tostrr.domain.order.Order
 import app.tostrr.ui.theme.TostrrColors
 
@@ -62,7 +64,7 @@ internal fun StepTracker(order: Order, modifier: Modifier = Modifier) {
             order.steps.forEachIndexed { i, step ->
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        step.label,
+                        stringResource(step.kind.labelRes),
                         style = StepLabelStyle,
                         fontWeight = if (step.done || i == current) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (step.done || i == current) TostrrColors.OnSurface else TostrrColors.Muted,

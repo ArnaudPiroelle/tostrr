@@ -95,12 +95,12 @@ internal fun ColumnScope.Recap(
         val verified = section.questions.count { checklist.answers[it.id]?.status == AnswerStatus.VERIFIED }
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(section.title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(section.titleRes), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 CountPill(stringResource(R.string.checklist_progress, verified, section.questions.size))
             }
             section.questions.forEach { question ->
                 RecapRow(
-                    question.text,
+                    stringResource(question.textRes),
                     checklist.answers[question.id],
                     onClick = { onEditQuestion(question.id) },
                     onPhoto = { zoomedPhoto = it },

@@ -27,3 +27,9 @@ dependencies {
     ksp(libs.koin.ksp.compiler)
     testImplementation(libs.junit)
 }
+
+// Dates are written in the device's language: the tests expect the French way.
+tasks.test {
+    systemProperty("user.language", "fr")
+    systemProperty("user.country", "FR")
+}

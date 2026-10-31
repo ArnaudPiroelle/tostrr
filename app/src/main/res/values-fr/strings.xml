@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Suivi de votre commande Tesla</string>
+    <string name="countdown_widget_description">Compte à rebours avant la livraison</string>
+    <!-- Launcher shortcuts: the static one, then the long label of the per-order ones. -->
+    <string name="shortcut_orders_short">Commandes</string>
+    <string name="shortcut_orders_long">Mes commandes</string>
+    <string name="shortcut_order_long">%1$s · commande %2$s</string>
+
+    <!-- Shared -->
+    <string name="common_cancel">Annuler</string>
+    <string name="common_back">Retour</string>
+    <string name="common_close">Fermer</string>
+    <string name="common_ok">OK</string>
+    <string name="common_photo">Photo</string>
+    <string name="order_label">Commande</string>
+    <string name="order_reference">#%1$s</string>
+    <string name="order_title">Commande #%1$s</string>
+    <string name="order_vin">VIN: %1$s</string>
+    <string name="order_vin_unknown">inconnu</string>
+    <string name="order_slot">Créneau : %1$s</string>
+    <string name="order_updated_at">Mise à jour %1$s</string>
+    <string name="order_status_booked">Commandée</string>
+    <string name="order_status_delivered">Livrée</string>
+    <string name="order_status_cancelled">Annulée</string>
+
+    <string name="step_ordered">Commande passée</string>
+    <string name="step_vin_assigned">VIN attribué</string>
+    <string name="step_built">Production terminée</string>
+    <string name="step_documents_sent">Documents envoyés</string>
+    <string name="step_registered">Véhicule immatriculé</string>
+    <string name="step_delivery">Livraison</string>
+
+    <!-- Errors -->
+    <string name="error_auth_not_logged_in">Non connecté.</string>
+    <string name="error_auth_no_code">Aucun code d\'autorisation dans l\'URL.</string>
+    <string name="error_auth_login_expired">Session de connexion expirée, relancez la connexion.</string>
+    <string name="error_auth_invalid_state">État OAuth invalide, relancez la connexion.</string>
+    <string name="error_auth_http">Échec de l\'authentification Tesla (HTTP %1$d).</string>
+    <string name="error_auth_missing_token">Réponse Tesla sans jeton.</string>
+    <string name="error_auth_session_expired">Session expirée, reconnectez-vous.</string>
+    <string name="error_api">Erreur API Tesla (HTTP %1$d).</string>
+    <string name="error_sync_failed">Synchronisation impossible : %1$s</string>
+    <string name="error_login_failed">Connexion impossible : %1$s</string>
+
+    <!-- Login -->
+    <string name="login_tagline">Suivez votre commande Tesla, de la réservation à la livraison.</string>
+    <string name="login_feature_tracking_title">Suivi et historique</string>
+    <string name="login_feature_tracking_text">Chaque étape de la commande, ses changements et des alertes à chaque nouveauté.</string>
+    <string name="login_feature_private_title">Privé par conception</string>
+    <string name="login_feature_private_text">Vos jetons restent chiffrés sur le téléphone, sans serveur intermédiaire.</string>
+    <string name="login_feature_read_only_title">Lecture seule</string>
+    <string name="login_feature_read_only_text">Tostrr consulte vos commandes et ne modifie jamais rien.</string>
+    <string name="login_button">Se connecter avec Tesla</string>
+    <string name="login_redirect_broken">La redirection ne fonctionne pas ?</string>
+    <string name="login_promises">Lecture seule · Jetons chiffrés · Aucun serveur tiers</string>
+    <string name="login_paste_title">Coller l\'URL de redirection</string>
+    <string name="login_paste_text">Après connexion, la page « introuvable » affiche une URL commençant par tesla://auth/callback. Collez-la ici.</string>
+    <string name="login_paste_placeholder">tesla://auth/callback?code=…</string>
+    <string name="login_paste_submit">Valider</string>
+
+    <!-- Orders -->
+    <string name="orders_refresh">Actualiser</string>
+    <string name="orders_refresh_too_soon">Actualisation trop récente. Réessayez dans %1$d s.</string>
+    <string name="orders_settings">Réglages</string>
+    <string name="orders_loading">Récupération de vos commandes…</string>
+    <string name="orders_empty">Aucune commande en cours.</string>
+
+    <!-- Order detail -->
+    <string name="detail_arrange">Organiser la page</string>
+    <string name="detail_arrange_reset">Réinitialiser</string>
+    <string name="detail_arrange_shown">Affichées</string>
+    <string name="detail_arrange_hidden">Masquées</string>
+    <string name="detail_arrange_all_hidden">Tous les blocs sont masqués. Réaffichez-en un ci-dessous.</string>
+    <string name="detail_arrange_hint">Utilisez les flèches pour changer l\'ordre. Un bloc n\'apparaît que s\'il a quelque chose à montrer.</string>
+    <string name="detail_arrange_move_up">Monter « %1$s »</string>
+    <string name="detail_arrange_move_down">Descendre « %1$s »</string>
+    <string name="detail_arrange_show">Afficher « %1$s »</string>
+    <string name="detail_arrange_hide">Masquer « %1$s »</string>
+    <string name="detail_block_checklist">Checklist de livraison</string>
+    <string name="detail_block_delivery">Informations de livraison</string>
+    <string name="detail_block_progress">Progression de la commande</string>
+    <string name="detail_block_progress_tracker_label">Progression de la commande (horizontale)</string>
+    <string name="detail_block_progress_label">Progression de la commande (verticale)</string>
+    <string name="detail_block_vehicle">Commande et véhicule</string>
+    <string name="detail_block_payment">Paiement et financement</string>
+    <string name="detail_block_configuration">Configuration</string>
+    <string name="detail_block_history">Historique des modifications</string>
+    <string name="detail_block_checklist_blurb">Affichée dès qu\'un rendez-vous de livraison est fixé.</string>
+    <string name="detail_block_delivery_blurb">Centre et fenêtre de livraison.</string>
+    <string name="detail_block_progress_tracker_blurb">Les étapes sur une ligne, comme dans la liste.</string>
+    <string name="detail_block_progress_blurb">Les étapes l\'une sous l\'autre, avec leurs dates.</string>
+    <string name="detail_block_vehicle_blurb">Dates de commande, plaque, kilométrage, immatriculation.</string>
+    <string name="detail_block_payment_blurb">Montants, mode de paiement et détails du financement.</string>
+    <string name="detail_block_configuration_blurb">Les options de la voiture.</string>
+    <string name="detail_block_history_blurb">Ce qui a changé d\'une synchronisation à l\'autre.</string>
+    <string name="detail_checklist_delivery_day">C\'est le jour de la livraison</string>
+    <string name="detail_checklist_not_started">Contrôlez votre Tesla point par point avant de signer.</string>
+    <string name="detail_checklist_start">Commencer la checklist</string>
+    <string name="detail_checklist_completed">Terminée : %1$d %% des points vérifiés.</string>
+    <string name="detail_checklist_recap">Voir le récapitulatif</string>
+    <string name="detail_checklist_in_progress">En cours : %1$d / %2$d points traités.</string>
+    <string name="detail_checklist_resume">Reprendre la checklist</string>
+    <string name="detail_delivery_method">Mode de livraison</string>
+    <string name="detail_delivery_appointment">Rendez-vous</string>
+    <string name="detail_delivery_window">Fenêtre de livraison</string>
+    <string name="detail_delivery_eta">Arrivée au centre</string>
+    <string name="detail_delivery_registration">Immatriculation prévue</string>
+    <string name="detail_delivery_empty">Aucune information de livraison pour le moment.</string>
+    <string name="detail_delivery_center">Centre de livraison</string>
+    <string name="detail_delivery_center_maps">Ouvrir dans Google Maps</string>
+    <string name="detail_vehicle_empty">Aucune information sur le véhicule pour le moment.</string>
+    <string name="detail_vehicle_reserved_on">Réservée le</string>
+    <string name="detail_vehicle_booked_on">Commandée le</string>
+    <string name="detail_vehicle_plate">Plaque</string>
+    <string name="detail_vehicle_odometer">Kilométrage</string>
+    <string name="detail_vehicle_routing">Acheminement</string>
+    <string name="detail_vehicle_registration_status">Statut d\'immatriculation</string>
+    <string name="detail_payment_empty">Aucune information de paiement pour le moment.</string>
+    <string name="detail_payment_status">Statut du paiement</string>
+    <string name="detail_payment_amount_due">Reste à payer</string>
+    <string name="detail_payment_amount_due_after_refund">Reste à payer après remboursement</string>
+    <string name="detail_payment_amount_paid">Déjà payé</string>
+    <string name="detail_payment_method">Moyen de paiement</string>
+    <string name="detail_payment_account_balance">Solde du compte</string>
+    <string name="detail_payment_financed_amount">Montant financé</string>
+    <string name="detail_payment_finance_product">Type de financement</string>
+    <string name="detail_payment_finance_partner">Organisme</string>
+    <string name="detail_payment_monthly">Mensualité</string>
+    <string name="detail_payment_term">Durée</string>
+    <string name="detail_payment_rate">Taux</string>
+    <string name="detail_payment_yearly_mileage">Kilométrage annuel</string>
+    <string name="detail_payment_approved_amount">Montant accordé</string>
+    <string name="detail_delivery_method_home">Livraison à domicile</string>
+    <string name="detail_delivery_method_pickup">Retrait au centre de livraison</string>
+    <string name="detail_payment_status_due">Paiement final à effectuer</string>
+    <string name="detail_payment_status_paid">Payé</string>
+    <string name="detail_finance_cash">Comptant</string>
+    <string name="detail_finance_loan">Crédit</string>
+    <string name="detail_finance_lease">Location (LOA/LLD)</string>
+    <plurals name="detail_payment_term_months">
+        <item quantity="one">%1$d mois</item>
+        <item quantity="many">%1$d mois</item>
+        <item quantity="other">%1$d mois</item>
+    </plurals>
+    <string name="detail_payment_yearly_mileage_value">%1$s km/an</string>
+
+    <string name="detail_configuration_empty">Aucune option disponible.</string>
+    <string name="detail_configuration_no_label">Description indisponible</string>
+    <string name="detail_history_empty">Aucun changement détecté depuis la première synchronisation.</string>
+    <plurals name="detail_history_more">
+        <item quantity="one">… et %1$d autre changement plus ancien</item>
+        <item quantity="many">… et %1$d autres changements plus anciens</item>
+        <item quantity="other">… et %1$d autres changements plus anciens</item>
+    </plurals>
+    <string name="detail_change_added">Ajouté</string>
+    <string name="detail_change_removed">Supprimé</string>
+    <string name="detail_change_modified">Modifié</string>
+    <string name="detail_change_details">Afficher les détails</string>
+    <string name="detail_change_before">Avant</string>
+    <string name="detail_change_after">Après</string>
+    <string name="detail_change_fields">{%1$d champs}</string>
+    <string name="detail_change_items">[%1$d éléments]</string>
+
+    <!-- Checklist -->
+    <string name="checklist_title">Checklist de livraison</string>
+    <string name="checklist_tag_check">Vérification</string>
+    <string name="checklist_intro">Contrôlez votre Tesla point par point avant de signer. Pour chaque question : vérifiez ou passez, avec un commentaire ou une photo si besoin.</string>
+    <string name="checklist_section_questions">%1$d questions</string>
+    <string name="checklist_total">%1$d points de contrôle au total</string>
+    <string name="checklist_start">Commencer</string>
+    <string name="checklist_section_title">Vérifications « %1$s »</string>
+    <string name="checklist_section_ready">Êtes-vous prêt ? %1$d points à contrôler.</string>
+    <string name="checklist_section_see_questions">Voir les vérifications</string>
+    <string name="checklist_previous">Revenir</string>
+    <string name="checklist_progress">%1$d / %2$d</string>
+    <string name="checklist_percent">%1$d%%</string>
+    <string name="checklist_comment">Commentaire (facultatif)</string>
+    <string name="checklist_photo">Photo (facultatif)</string>
+    <string name="checklist_verified_button">J\'ai vérifié 👍</string>
+    <string name="checklist_skip">Passer</string>
+    <string name="checklist_already_verified">Déjà marqué comme vérifié</string>
+    <string name="checklist_already_skipped">Déjà passé</string>
+    <string name="checklist_photo_formats">JPEG · PNG</string>
+    <string name="checklist_photo_camera">Appareil photo</string>
+    <string name="checklist_photo_gallery">Galerie</string>
+    <string name="checklist_photo_delete">Supprimer la photo</string>
+    <string name="checklist_recap_tag">Finalisée</string>
+    <string name="checklist_recap_title">Récapitulatif</string>
+    <string name="checklist_recap_check">VÉRIFICATION</string>
+    <string name="checklist_recap_done">Vérification terminée 🎉</string>
+    <string name="checklist_recap_counts">%1$d vérifiés · %2$d passés</string>
+    <string name="checklist_recap_edit">Modifier la checklist</string>
+    <string name="checklist_recap_delete">Supprimer la checklist</string>
+    <string name="checklist_answer_verified">Vérifié</string>
+    <string name="checklist_answer_skipped">Passé</string>
+    <string name="checklist_answer_none">Non traité</string>
+    <string name="checklist_delete_title">Supprimer la checklist ?</string>
+    <string name="checklist_delete_text">Toutes les réponses, commentaires et photos de cette checklist seront effacés.</string>
+    <string name="checklist_delete_confirm">Supprimer</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Réglages</string>
+    <string name="settings_sync_section">Actualisation automatique</string>
+    <string name="settings_sync_auto">Actualiser en arrière-plan</string>
+    <string name="settings_sync_auto_on">Les commandes sont récupérées régulièrement, même app fermée.</string>
+    <string name="settings_sync_auto_off">Seulement quand vous actualisez. Widgets et notifications figés.</string>
+    <string name="settings_sync_interval">Fréquence</string>
+    <string name="settings_sync_interval_summary">Délai entre deux récupérations.</string>
+    <string name="settings_sync_interval_15_min">Toutes les 15 minutes</string>
+    <string name="settings_sync_interval_30_min">Toutes les 30 minutes</string>
+    <string name="settings_sync_interval_1_h">Toutes les heures</string>
+    <string name="settings_sync_interval_2_h">Toutes les 2 heures</string>
+    <string name="settings_sync_interval_6_h">Toutes les 6 heures</string>
+    <string name="settings_account_section">Compte Tesla</string>
+    <string name="settings_account_logged_in_as">Connecté en tant que</string>
+    <string name="settings_logout">Se déconnecter</string>
+    <string name="settings_logout_title">Se déconnecter ?</string>
+    <string name="settings_logout_text">Vos commandes en cache et l\'historique des modifications seront supprimés de cet appareil.</string>
+
+    <!-- Widgets -->
+    <string name="widget_open_app">Ouvrez Tostrr</string>
+    <string name="widget_no_order">Aucune commande, ouvrez Tostrr</string>
+    <string name="widget_order_prefix">"Commande "</string>
+    <string name="widget_config_title">Quelle commande afficher ?</string>
+    <string name="widget_config_empty">Aucune commande pour le moment. Ouvrez Tostrr et connectez-vous.</string>
+    <string name="widget_config_order">%1$s · #%2$s</string>
+    <string name="widget_config_vin">VIN : %1$s</string>
+    <string name="countdown_delivery_day">Jour J</string>
+    <string name="countdown_after_appointment">J+%1$d</string>
+    <string name="countdown_window_first_day">Jour 1</string>
+    <string name="countdown_in_window">+%1$d</string>
+    <string name="countdown_late">j de retard</string>
+    <plurals name="countdown_days">
+        <item quantity="one">jour</item>
+        <item quantity="many">jours</item>
+        <item quantity="other">jours</item>
+    </plurals>
+</resources>

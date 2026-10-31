@@ -14,11 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.tostrr.R
 import app.tostrr.domain.order.Order
 import app.tostrr.ui.common.StepBarThickness
 import app.tostrr.ui.common.StepDot
 import app.tostrr.ui.common.StepDotSize
+import app.tostrr.ui.common.labelRes
 import app.tostrr.ui.theme.TostrrColors
 
 @Composable
@@ -47,7 +50,7 @@ internal fun ProgressContent(order: Order) {
                 StepDot(done = step.done, current = i == current)
                 Spacer(Modifier.width(14.dp))
                 Text(
-                    step.label,
+                    stringResource(step.kind.labelRes),
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (step.done || i == current) TostrrColors.OnSurface else TostrrColors.Muted,

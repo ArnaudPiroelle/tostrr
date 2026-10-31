@@ -40,7 +40,7 @@ class OrderShortcuts(
             // Some launchers (Pixel's) only ever show the short label, in a popup about 16 characters wide: the
             // reference has to fit there next to the model, hence its short name.
             .setShortLabel("${shortModelName(order.modelName)} · ${order.reference}")
-            .setLongLabel("${order.modelName} · commande ${order.reference}")
+            .setLongLabel(context.getString(R.string.shortcut_order_long, order.modelName, order.reference))
             .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_order))
             .setIntent(Intent(Intent.ACTION_VIEW, MainActivity.orderUri(order.reference), context, MainActivity::class.java))
             .setRank(rank)

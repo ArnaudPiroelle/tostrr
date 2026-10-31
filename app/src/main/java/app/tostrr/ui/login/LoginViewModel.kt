@@ -3,12 +3,13 @@ package app.tostrr.ui.login
 import app.tostrr.domain.auth.usecase.CompleteLoginUseCase
 import app.tostrr.domain.auth.usecase.ObserveLoggedInUseCase
 import app.tostrr.domain.auth.usecase.StartLoginUseCase
-import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.order.usecase.RefreshOrdersUseCase
 import app.tostrr.ui.architecture.BaseAction
 import app.tostrr.ui.architecture.BaseSideEffect
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel2
+import app.tostrr.ui.common.UiError
+import app.tostrr.ui.common.toUiError
 import app.tostrr.ui.login.LoginViewModel.Action
 import app.tostrr.ui.login.LoginViewModel.SideEffect
 import app.tostrr.ui.login.LoginViewModel.State
@@ -47,10 +48,8 @@ class LoginViewModel(
             appScope.launch { runCatching { refreshOrdersUseCase() } }
         } catch (e: CancellationException) {
             throw e
-        } catch (e: AuthException) {
-            updateState { it.copy(error = e.message) }
         } catch (e: Exception) {
-            updateState { it.copy(error = "Connexion impossible : ${e.message}") }
+            updateState { it.copy(error = e.toUiError()) }
         } finally {
             updateState { it.copy(busy = false) }
         }
@@ -58,7 +57,7 @@ class LoginViewModel(
 
     data class State(
         val busy: Boolean = false,
-        val error: String? = null,
+        val error: UiError? = null,
     ) : BaseState
 
     sealed class SideEffect : BaseSideEffect {

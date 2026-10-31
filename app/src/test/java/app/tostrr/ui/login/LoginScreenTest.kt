@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
 import app.tostrr.testing.TestGraph
 import app.tostrr.ui.theme.TostrrTheme
@@ -42,7 +43,7 @@ class LoginScreenTest {
     }
 
     @Test fun `a pasted redirect that is rejected shows why`() {
-        graph.auth.loginFailure = AuthException("État OAuth invalide, relancez la connexion.")
+        graph.auth.loginFailure = AuthException(AuthError.INVALID_STATE)
         compose.setContent {
             TostrrTheme { LoginScreen(redirect = null, onRedirectHandled = {}, viewModel = graph.loginViewModel()) }
         }

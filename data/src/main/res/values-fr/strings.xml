@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notifications posted by the sync. -->
+<resources>
+    <string name="channel_progress">Avancement de la commande</string>
+    <string name="channel_alerts">Changements de la commande</string>
+    <string name="channel_reminders">Rappels de livraison</string>
+    <string name="channel_minor">Mises à jour mineures</string>
+    <string name="channel_digest">Résumé quotidien</string>
+    <string name="channel_sync">Problèmes de synchronisation</string>
+
+    <string name="notif_order_fallback">%1$s · %2$s</string>
+
+    <string name="notif_step_ordered">Votre commande Tesla est bien enregistrée</string>
+    <string name="notif_step_vin_assigned">Votre Tesla a maintenant un VIN attribué</string>
+    <string name="notif_step_built">Votre Tesla est sortie de production</string>
+    <string name="notif_step_documents_sent">Les documents de votre Tesla ont été envoyés</string>
+    <string name="notif_step_registered">Votre Tesla est maintenant immatriculée</string>
+    <string name="notif_step_delivery">Votre rendez-vous de livraison est confirmé</string>
+    <string name="step_ordered">Commande passée</string>
+    <string name="step_vin_assigned">VIN attribué</string>
+    <string name="step_built">Production terminée</string>
+    <string name="step_documents_sent">Documents envoyés</string>
+    <string name="step_registered">Véhicule immatriculé</string>
+    <string name="step_delivery">Livraison</string>
+    <string name="notif_step_quoted">« %1$s »</string>
+    <plurals name="notif_regression">
+        <item quantity="one">Votre commande est revenue en arrière : l\'étape %1$s n\'est plus validée</item>
+        <item quantity="many">Votre commande est revenue en arrière : les étapes %1$s ne sont plus validées</item>
+        <item quantity="other">Votre commande est revenue en arrière : les étapes %1$s ne sont plus validées</item>
+    </plurals>
+
+    <string name="notif_change">%1$s → %2$s</string>
+    <string name="notif_appointment_cancelled">Rendez-vous de livraison annulé</string>
+    <string name="notif_appointment_cancelled_text">Il était prévu le %1$s</string>
+    <string name="notif_appointment_moved">Rendez-vous de livraison déplacé</string>
+    <string name="notif_window_gone">La fenêtre de livraison a disparu</string>
+    <string name="notif_window_gone_text">Elle était : %1$s</string>
+    <string name="notif_window_changed">Votre fenêtre de livraison a changé</string>
+    <string name="notif_vin_changed">Le VIN de votre Tesla a changé</string>
+    <string name="notif_plate_assigned">Plaque d\'immatriculation attribuée</string>
+    <string name="notif_plate_changed">Plaque d\'immatriculation modifiée</string>
+    <string name="notif_final_invoice">Facture finale disponible</string>
+    <string name="notif_final_invoice_text">Le paiement final peut être effectué</string>
+    <string name="notif_final_payment">Paiement final enregistré</string>
+    <string name="notif_final_payment_text">Tesla a bien reçu le paiement</string>
+    <string name="notif_eta_set">Arrivée estimée au centre de livraison</string>
+    <string name="notif_eta_changed">Arrivée estimée au centre de livraison modifiée</string>
+    <string name="notif_registration_set">Date d\'immatriculation prévue</string>
+    <string name="notif_registration_changed">Date d\'immatriculation prévue modifiée</string>
+
+    <string name="notif_reminder_tomorrow">Livraison dans moins de 24 h</string>
+    <plurals name="notif_reminder_days">
+        <item quantity="one">Livraison dans %1$d jour</item>
+        <item quantity="many">Livraison dans %1$d jours</item>
+        <item quantity="other">Livraison dans %1$d jours</item>
+    </plurals>
+    <string name="notif_reminder_text">À prévoir : %1$s</string>
+    <string name="notif_reminder_id">pièce d\'identité</string>
+    <string name="notif_reminder_insurance">assurance du véhicule</string>
+    <string name="notif_reminder_final_payment">paiement final à effectuer</string>
+
+    <string name="notif_digest_title">%1$s sur %2$s</string>
+    <plurals name="notif_digest_changes">
+        <item quantity="one">%1$d modification</item>
+        <item quantity="many">%1$d modifications</item>
+        <item quantity="other">%1$d modifications</item>
+    </plurals>
+    <plurals name="notif_digest_orders">
+        <item quantity="one">%1$d commande</item>
+        <item quantity="many">%1$d commandes</item>
+        <item quantity="other">%1$d commandes</item>
+    </plurals>
+    <string name="notif_digest_text">Ouvrez Tostrr pour voir le détail dans l\'historique</string>
+
+    <string name="notif_minor_title">Mise à jour mineure de votre commande</string>
+    <plurals name="notif_minor_fields">
+        <item quantity="one">%1$d champ modifié</item>
+        <item quantity="many">%1$d champs modifiés</item>
+        <item quantity="other">%1$d champs modifiés</item>
+    </plurals>
+    <string name="notif_bullet">• %1$s</string>
+    <plurals name="notif_minor_more">
+        <item quantity="one">… et %1$d autre</item>
+        <item quantity="many">… et %1$d autres</item>
+        <item quantity="other">… et %1$d autres</item>
+    </plurals>
+
+    <string name="notif_config_title">La configuration de votre Tesla évolue</string>
+    <string name="notif_config_added">Ajouté</string>
+    <string name="notif_config_removed">Retiré</string>
+    <string name="notif_config_heading">%1$s :</string>
+    <string name="notif_config_count">%1$s : %2$d</string>
+
+    <string name="notif_sync_expired">Connexion à Tesla expirée</string>
+    <string name="notif_sync_expired_text">Ouvrez Tostrr et reconnectez-vous pour reprendre le suivi</string>
+    <string name="notif_sync_stale">Tostrr ne reçoit plus de mises à jour</string>
+    <string name="notif_sync_stale_since">Dernière synchronisation il y a %1$d h</string>
+    <string name="notif_sync_stale_never">Aucune synchronisation n\'a abouti</string>
+</resources>

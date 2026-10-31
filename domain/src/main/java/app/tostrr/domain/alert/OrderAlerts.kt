@@ -4,8 +4,66 @@ import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.Order
 import java.util.concurrent.TimeUnit
 
-/** What to tell the user; [key] is stable per kind of event so a repeat replaces the earlier notification. */
-data class Alert(val key: String, val title: String, val text: String)
+/**
+ * Something worth a notification, with what it needs to be worded; the notifier writes the text. [key] is stable per
+ * kind of event so a repeat replaces the earlier notification.
+ */
+sealed interface Alert {
+    val key: String
+
+    data class AppointmentCancelled(val was: String) : Alert {
+        override val key get() = "appointment"
+    }
+
+    data class AppointmentMoved(val from: String, val to: String) : Alert {
+        override val key get() = "appointment"
+    }
+
+    data class WindowGone(val was: String) : Alert {
+        override val key get() = "window_gone"
+    }
+
+    data class VinChanged(val from: String, val to: String) : Alert {
+        override val key get() = "vin"
+    }
+
+    /** [from] is null when the car had no plate yet. */
+    data class Plate(val from: String?, val to: String) : Alert {
+        override val key get() = "plate"
+    }
+
+    data object FinalInvoiceReady : Alert {
+        override val key get() = "final_invoice"
+    }
+
+    data object FinalPaymentDone : Alert {
+        override val key get() = "final_payment"
+    }
+
+    /** A date Tesla announces: set when [from] is null, else moved. */
+    data class DateChanged(val date: TrackedDate, val from: String?, val to: String) : Alert {
+        override val key get() = date.key
+    }
+
+    /** [days] before the appointment at [appointmentAt]; [tomorrow] when less than 24 h are left. */
+    data class Reminder(val appointmentAt: Long, val days: Long, val tomorrow: Boolean, val finalPaymentDue: Boolean) : Alert {
+        override val key get() = "reminder_${appointmentAt}_${if (tomorrow) "d1" else "d3"}"
+    }
+
+    data class Digest(val changes: Int, val orders: Int) : Alert {
+        override val key get() = "digest"
+    }
+
+    /** [paths] are the first changed fields, [more] how many others there are. */
+    data class MinorUpdate(val fields: Int, val paths: List<String>, val more: Int) : Alert {
+        override val key get() = "minor_update"
+    }
+}
+
+enum class TrackedDate(val key: String) {
+    ETA_TO_DELIVERY_CENTER("eta"),
+    REGISTRATION("registration_date"),
+}
 
 /** Decides which notifications a pair of syncs deserves. Step changes, options and delivery window live in the notifier. */
 object OrderAlerts {
@@ -16,8 +74,8 @@ object OrderAlerts {
         vin(before, after)?.let(::add)
         plate(before, after)?.let(::add)
         payment(before, after).forEach(::add)
-        date("eta", "Arrivée estimée au centre de livraison", before.etaToDeliveryCenter, after.etaToDeliveryCenter)?.let(::add)
-        date("registration_date", "Date d'immatriculation prévue", before.expectedRegistration, after.expectedRegistration)?.let(::add)
+        date(TrackedDate.ETA_TO_DELIVERY_CENTER, before.etaToDeliveryCenter, after.etaToDeliveryCenter)?.let(::add)
+        date(TrackedDate.REGISTRATION, before.expectedRegistration, after.expectedRegistration)?.let(::add)
     }
 
     /** Created appointments are reported by the step itself; only a move or a cancellation is news here. */
@@ -26,8 +84,8 @@ object OrderAlerts {
         val new = after.appointment
         return when {
             new == old -> null
-            new == null -> Alert("appointment", "Rendez-vous de livraison annulé", "Il était prévu le $old")
-            else -> Alert("appointment", "Rendez-vous de livraison déplacé", "$old → $new")
+            new == null -> Alert.AppointmentCancelled(old)
+            else -> Alert.AppointmentMoved(old, new)
         }
     }
 
@@ -35,76 +93,57 @@ object OrderAlerts {
     private fun windowGone(before: Order, after: Order): Alert? {
         val old = before.deliveryWindow?.takeIf { it.isNotBlank() } ?: return null
         if (!after.deliveryWindow.isNullOrBlank() || after.appointment != null) return null
-        return Alert("window_gone", "La fenêtre de livraison a disparu", "Elle était : $old")
+        return Alert.WindowGone(old)
     }
 
-    /** A VIN appearing is the "VIN attribué" step; a VIN that changes is unusual. */
+    /** A VIN appearing is the "VIN assigned" step; a VIN that changes is unusual. */
     private fun vin(before: Order, after: Order): Alert? {
         val old = before.vin ?: return null
         val new = after.vin ?: return null
-        return if (old == new) null else Alert("vin", "Le VIN de votre Tesla a changé", "$old → $new")
+        return if (old == new) null else Alert.VinChanged(old, new)
     }
 
     private fun plate(before: Order, after: Order): Alert? {
         val new = after.licensePlate ?: return null
-        val old = before.licensePlate
-        return when (old) {
-            new -> null
-            null -> Alert("plate", "Plaque d'immatriculation attribuée", new)
-            else -> Alert("plate", "Plaque d'immatriculation modifiée", "$old → $new")
-        }
+        return if (before.licensePlate == new) null else Alert.Plate(before.licensePlate, new)
     }
 
     private fun payment(before: Order, after: Order): List<Alert> = buildList {
-        if (!before.finalInvoiceReady && after.finalInvoiceReady) {
-            add(Alert("final_invoice", "Facture finale disponible", "Le paiement final peut être effectué"))
-        }
-        if (!before.finalPaymentDone && after.finalPaymentDone) {
-            add(Alert("final_payment", "Paiement final enregistré", "Tesla a bien reçu le paiement"))
-        }
+        if (!before.finalInvoiceReady && after.finalInvoiceReady) add(Alert.FinalInvoiceReady)
+        if (!before.finalPaymentDone && after.finalPaymentDone) add(Alert.FinalPaymentDone)
     }
 
-    private fun date(key: String, title: String, old: String?, new: String?): Alert? = when {
-        new == null || new == old -> null
-        old == null -> Alert(key, title, new)
-        else -> Alert(key, "$title modifiée", "$old → $new")
-    }
+    private fun date(date: TrackedDate, old: String?, new: String?): Alert? =
+        if (new == null || new == old) null else Alert.DateChanged(date, old, new)
 
-    /** A reminder is due once per horizon (3 days, then 1 day) before the appointment; [key] tells which one. */
-    fun reminder(order: Order, now: Long): Alert? {
+    /** A reminder is due once per horizon (3 days, then 1 day) before the appointment; [Alert.key] tells which one. */
+    fun reminder(order: Order, now: Long): Alert.Reminder? {
         val at = order.appointmentAtEpochMs ?: return null
         val left = at - now
         if (left <= 0 || left > 3 * DAY) return null
-        val tomorrow = left <= DAY
-        val title = if (tomorrow) "Livraison dans moins de 24 h" else "Livraison dans ${TimeUnit.MILLISECONDS.toDays(left + DAY - 1)} jours"
-        val todo = buildList {
-            add("pièce d'identité")
-            add("assurance du véhicule")
-            if (!order.finalPaymentDone) add("paiement final à effectuer")
-        }
-        return Alert("reminder_${at}_${if (tomorrow) "d1" else "d3"}", title, "À prévoir : ${todo.joinToString(", ")}")
+        return Alert.Reminder(
+            appointmentAt = at,
+            days = TimeUnit.MILLISECONDS.toDays(left + DAY - 1),
+            tomorrow = left <= DAY,
+            finalPaymentDue = !order.finalPaymentDone,
+        )
     }
 
-    /** One line for the changes recorded since [since]; null when there is nothing to say. */
-    fun digest(history: Map<String, List<Change>>, since: Long): Alert? {
+    /** The changes recorded since [since]; null when there is nothing to say. */
+    fun digest(history: Map<String, List<Change>>, since: Long): Alert.Digest? {
         val recent = history.mapValues { (_, changes) -> changes.count { it.timestampEpochMs > since } }.filterValues { it > 0 }
         val total = recent.values.sum()
-        if (total == 0) return null
-        val orders = if (recent.size == 1) "1 commande" else "${recent.size} commandes"
-        return Alert("digest", "$total ${if (total == 1) "modification" else "modifications"} sur $orders", "Ouvrez Tostrr pour voir le détail dans l'historique")
+        return if (total == 0) null else Alert.Digest(total, recent.size)
     }
 
     /**
-     * A sync whose JSON changed without anything the other alerts recognise. First line: how many fields; then up to
-     * [MINOR_SHOWN] paths. The key is fixed so a later minor update replaces the previous one instead of stacking.
+     * A sync whose JSON changed without anything the other alerts recognise: how many fields, and up to [MINOR_SHOWN]
+     * paths. The key is fixed so a later minor update replaces the previous one instead of stacking.
      */
-    fun minorUpdate(changes: List<Change>): Alert? {
+    fun minorUpdate(changes: List<Change>): Alert.MinorUpdate? {
         if (changes.isEmpty()) return null
-        val count = if (changes.size == 1) "1 champ modifié" else "${changes.size} champs modifiés"
         val paths = changes.map { it.key }.distinct()
-        val lines = paths.take(MINOR_SHOWN).map { "• $it" } +
-            listOfNotNull((paths.size - MINOR_SHOWN).takeIf { it > 0 }?.let { "… et $it autres" })
-        return Alert("minor_update", "Mise à jour mineure de votre commande", (listOf(count) + lines).joinToString("\n"))
+        return Alert.MinorUpdate(changes.size, paths.take(MINOR_SHOWN), (paths.size - MINOR_SHOWN).coerceAtLeast(0))
     }
 
     private const val MINOR_SHOWN = 5

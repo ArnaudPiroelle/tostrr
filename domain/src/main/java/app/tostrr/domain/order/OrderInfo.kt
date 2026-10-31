@@ -24,7 +24,11 @@ data class VehicleInfo(
     val isEmpty: Boolean get() = this == VehicleInfo()
 }
 
-/** Final payment and financing, as display strings. Every field is null until Tesla sends it. */
+/**
+ * Final payment and financing, as display strings, except the codes the screens word ([status], [financeProduct]:
+ * Tesla's code, upper case) and the units they add ([termMonths], [yearlyMileage] in km). Every field is null until
+ * Tesla sends it.
+ */
 data class PaymentInfo(
     val status: String? = null,
     val amountDue: String? = null,
@@ -36,13 +40,18 @@ data class PaymentInfo(
     val financeProduct: String? = null,
     val financePartner: String? = null,
     val monthlyPayment: String? = null,
-    val term: String? = null,
+    val termMonths: Int? = null,
     val interestRate: String? = null,
     val yearlyMileage: String? = null,
     val approvedAmount: String? = null,
 ) {
     val isEmpty: Boolean get() = this == PaymentInfo()
 }
+
+/** `MAKE_YOUR_FINAL_PAYMENT` -> `Make your final payment`, for codes without a known label. */
+fun humanizeCode(code: String): String =
+    if (code.any(Char::isLowerCase) || ' ' in code) code
+    else code.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }
 
 /**
  * Reads the fields shown besides the steps: order status and dates, vehicle, payment and
@@ -72,7 +81,7 @@ internal object OrderInfoMapper {
         fun money(vararg paths: String) = paths.firstNotNullOfOrNull { tasks.at(it).moneyIn(currency) }
         val paid = tasks.at("$data.paymentDetails")
         return PaymentInfo(
-            status = tasks.text("finalPayment.status")?.let { PAYMENT_STATUSES[it.uppercase()] ?: humanize(it) },
+            status = tasks.text("finalPayment.status")?.uppercase(),
             amountDue = money("$data.amountDue", "finalPayment.amountDue"),
             amountDueAfterRefund = money("$data.amountDueAfterRefund"),
             amountPaid = paymentEntries(paid).mapNotNull { (it as? JsonObject)?.at("amountPaid")?.number() }
@@ -81,13 +90,13 @@ internal object OrderInfoMapper {
                 .distinct().takeIf { it.isNotEmpty() }?.joinToString(", ") { humanize(it) },
             accountBalance = money("$data.accountBalance"),
             financedAmount = money("$data.amountDueFinancier"),
-            financeProduct = tasks.text("$data.financingDetails.financialProductType")?.let { FINANCE_PRODUCTS[it.uppercase()] ?: humanize(it) },
+            financeProduct = tasks.text("$data.financingDetails.financialProductType")?.uppercase(),
             // The agreements task names the partner as soon as a loan or lease is chosen, long before the final payment.
             financePartner = tasks.text("$finance.financePartnerName") ?: tasks.text("agreements.teslaFinanceDetails.partnerName"),
             monthlyPayment = money("$finance.monthlyPayment"),
-            term = tasks.number("$finance.termsInMonths")?.let { "${plain(it)} mois" },
+            termMonths = tasks.number("$finance.termsInMonths")?.toInt(),
             interestRate = tasks.number("$finance.interestRate")?.let { "${decimal(it)} %" },
-            yearlyMileage = tasks.number("$finance.mileage")?.let { "${plain(it)} km/an" },
+            yearlyMileage = tasks.number("$finance.mileage")?.let(::plain),
             approvedAmount = money("$finance.approvedLoanAmount"),
         )
     }
@@ -118,39 +127,25 @@ internal object OrderInfoMapper {
     private fun JsonObject.text(path: String): String? =
         (at(path) as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }
 
-    internal fun formatMoney(amount: Double, currencyCode: String?): String {
-        val format = NumberFormat.getCurrencyInstance(Locale.FRANCE)
+    /** In Tesla's currency, written the device's way: `5 000 €` in French, `€5,000` in English. */
+    internal fun formatMoney(amount: Double, currencyCode: String?, locale: Locale = Locale.getDefault()): String {
+        val format = NumberFormat.getCurrencyInstance(locale)
         runCatching { Currency.getInstance(currencyCode ?: "EUR") }.getOrNull()?.let { format.currency = it }
         if (amount % 1.0 == 0.0) format.maximumFractionDigits = 0
         return format.format(amount)
     }
 
     private fun plain(value: Double): String =
-        NumberFormat.getIntegerInstance(Locale.FRANCE).format(Math.round(value))
+        NumberFormat.getIntegerInstance(Locale.getDefault()).format(Math.round(value))
 
     private fun decimal(value: Double): String =
-        NumberFormat.getNumberInstance(Locale.FRANCE).apply { maximumFractionDigits = 2 }.format(BigDecimal.valueOf(value))
+        NumberFormat.getNumberInstance(Locale.getDefault()).apply { maximumFractionDigits = 2 }.format(BigDecimal.valueOf(value))
 
-    /** `MAKE_YOUR_FINAL_PAYMENT` -> `Make your final payment`, for codes without a known label. */
-    private fun humanize(code: String): String =
-        if (code.any(Char::isLowerCase) || ' ' in code) code
-        else code.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }
+    private fun humanize(code: String): String = humanizeCode(code)
 
     private val CURRENCY_PATHS = listOf(
         "finalPayment.currencyFormat.currencyCode",
         "finalPayment.data.currencyCode",
         "tradeIn.currencyCode",
-    )
-
-    private val PAYMENT_STATUSES = mapOf(
-        "MAKE_YOUR_FINAL_PAYMENT" to "Paiement final à effectuer",
-        "COMPLETE" to "Payé",
-        "COMPLETED" to "Payé",
-    )
-
-    private val FINANCE_PRODUCTS = mapOf(
-        "CASH" to "Comptant",
-        "LOAN" to "Crédit",
-        "LEASE" to "Location (LOA/LLD)",
     )
 }

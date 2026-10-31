@@ -5,13 +5,17 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
+/** The fixed steps of an order, in their order; the screens and notifications word them. */
+enum class StepKind { ORDERED, VIN_ASSIGNED, BUILT, DOCUMENTS_SENT, REGISTERED, DELIVERY }
+
 data class OrderStep(
-    val label: String,
+    val kind: StepKind,
     val date: String?,
     val done: Boolean,
-    /** Notification text shown when this step becomes done. */
-    val doneMessage: String = "",
 )
+
+/** How the car is handed over. */
+enum class DeliveryMethod { HOME, PICKUP }
 
 data class Order(
     val reference: String,
@@ -40,8 +44,7 @@ data class Order(
     val countryCode: String? = null,
     /** Day the order was placed. */
     val bookedOn: LocalDate? = null,
-    /** "Livraison à domicile" or "Retrait au centre de livraison". */
-    val deliveryMethod: String? = null,
+    val deliveryMethod: DeliveryMethod? = null,
     val vehicleInfo: VehicleInfo = VehicleInfo(),
     val paymentInfo: PaymentInfo = PaymentInfo(),
 ) {
@@ -82,7 +85,7 @@ fun List<Order>.latestAwaitingDelivery(limit: Int): List<Order> =
 private const val STATUS_DELIVERED = "DELIVERED"
 private const val STATUS_CANCELLED = "CANCELLED"
 
-/** The `dd/MM/yyyy` the mapper puts at the start of an appointment it had to format itself. */
+/** A day-first `dd/MM/yyyy` appointment text, as the mapper writes it in French, when no instant came with it. */
 private val APPOINTMENT_DATE = Regex("""^(\d{2})/(\d{2})/(\d{4})""")
 
 data class Change(

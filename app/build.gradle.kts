@@ -31,6 +31,10 @@ android {
         compose = true
         buildConfig = true
     }
+    // English (the default resources) and French only: libraries' other translations are left out of the APK.
+    androidResources {
+        localeFilters += listOf("en", "fr")
+    }
     // Robolectric renders the screens on the JVM: it needs the merged resources and manifest.
     testOptions {
         unitTests.isIncludeAndroidResources = true

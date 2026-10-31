@@ -35,8 +35,8 @@ class OrderAlertsTest {
     }
 
     @Test fun `a moved or cancelled appointment is reported`() {
-        assertEquals("12 nov → 14 nov", OrderAlerts.changes(order(appointment = "12 nov"), order(appointment = "14 nov")).single().text)
-        assertEquals("Rendez-vous de livraison annulé", OrderAlerts.changes(order(appointment = "12 nov"), order()).single().title)
+        assertEquals(Alert.AppointmentMoved("12 nov", "14 nov"), OrderAlerts.changes(order(appointment = "12 nov"), order(appointment = "14 nov")).single())
+        assertEquals(Alert.AppointmentCancelled("12 nov"), OrderAlerts.changes(order(appointment = "12 nov"), order()).single())
     }
 
     @Test fun `a window that vanishes alone is reported, not one replaced by an appointment`() {
@@ -49,14 +49,19 @@ class OrderAlertsTest {
     }
 
     @Test fun `plate and payment transitions`() {
-        assertEquals(listOf("plate"), keys(order(), order(plate = "AB-123-CD")))
+        assertEquals(listOf(Alert.Plate(null, "AB-123-CD")), OrderAlerts.changes(order(), order(plate = "AB-123-CD")))
+        assertEquals(listOf(Alert.Plate("AB-123-CD", "EF-456-GH")), OrderAlerts.changes(order(plate = "AB-123-CD"), order(plate = "EF-456-GH")))
         assertEquals(listOf("final_invoice"), keys(order(), order(invoice = true)))
         assertEquals(listOf("final_payment"), keys(order(invoice = true), order(invoice = true, paid = true)))
         assertEquals(emptyList<String>(), keys(order(invoice = true), order(invoice = true)))
     }
 
     @Test fun `eta change names both dates`() {
-        assertEquals("01/11/26 → 05/11/26", OrderAlerts.changes(order(eta = "01/11/26"), order(eta = "05/11/26")).single().text)
+        assertEquals(
+            Alert.DateChanged(TrackedDate.ETA_TO_DELIVERY_CENTER, "01/11/26", "05/11/26"),
+            OrderAlerts.changes(order(eta = "01/11/26"), order(eta = "05/11/26")).single(),
+        )
+        assertEquals(listOf("eta"), keys(order(), order(eta = "05/11/26")))
     }
 
     @Test fun `reminders cover three days then one day, nothing outside`() {
@@ -66,16 +71,18 @@ class OrderAlertsTest {
         assertNull(OrderAlerts.reminder(order(at = now - 1), now))
         assertNull(OrderAlerts.reminder(order(), now))
         val d3 = OrderAlerts.reminder(order(at = now + 2 * day + 1), now)!!
-        assertEquals("Livraison dans 3 jours", d3.title)
+        assertEquals(3L, d3.days)
+        assertTrue(!d3.tomorrow)
         val d1 = OrderAlerts.reminder(order(at = now + day / 2), now)!!
+        assertTrue(d1.tomorrow)
         assertTrue(d1.key.endsWith("d1"))
-        assertTrue(d1.text.contains("paiement final"))
-        assertTrue(!OrderAlerts.reminder(order(at = now + day / 2, paid = true), now)!!.text.contains("paiement final"))
+        assertTrue(d1.finalPaymentDue)
+        assertTrue(!OrderAlerts.reminder(order(at = now + day / 2, paid = true), now)!!.finalPaymentDue)
     }
 
     @Test fun `digest counts only recent changes`() {
         val h = mapOf("RN1" to listOf(Change(100, "a", "1", "2"), Change(10, "b", "1", "2")))
-        assertEquals("1 modification sur 1 commande", OrderAlerts.digest(h, 50)!!.title)
+        assertEquals(Alert.Digest(changes = 1, orders = 1), OrderAlerts.digest(h, 50))
         assertNull(OrderAlerts.digest(h, 200))
         assertNotNull(OrderAlerts.digest(h, 0))
     }
@@ -109,8 +116,8 @@ class DeliveryDayTest {
         assertNull(OrderAlerts.minorUpdate(emptyList()))
         val one = OrderAlerts.minorUpdate(listOf(Change(0L, "details.a", "1", "2")))!!
         assertEquals("minor_update", one.key)
-        assertEquals("1 champ modifié\n• details.a", one.text)
+        assertEquals(Alert.MinorUpdate(fields = 1, paths = listOf("details.a"), more = 0), one)
         val many = OrderAlerts.minorUpdate((1..7).map { Change(0L, "p$it", null, "x") })!!
-        assertEquals(listOf("7 champs modifiés", "• p1", "• p2", "• p3", "• p4", "• p5", "… et 2 autres"), many.text.lines())
+        assertEquals(Alert.MinorUpdate(fields = 7, paths = listOf("p1", "p2", "p3", "p4", "p5"), more = 2), many)
     }
 }

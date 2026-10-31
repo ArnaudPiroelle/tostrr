@@ -86,7 +86,7 @@ internal fun ColumnScope.QuestionStep(
     }
 
     val total = step.section.questions.size
-    Header(tag = step.section.title, title = step.question.text)
+    Header(tag = stringResource(step.section.titleRes), title = stringResource(step.question.textRes))
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.checklist_progress, step.number, total), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted)

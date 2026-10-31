@@ -5,6 +5,7 @@ import app.tostrr.data.api.TeslaApi
 import app.tostrr.data.auth.TeslaAuth
 import app.tostrr.data.catalog.OptionCatalog
 import app.tostrr.data.notification.OrderNotifier
+import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.history.HistoryIgnore
 import app.tostrr.domain.history.JsonDiff
@@ -89,10 +90,10 @@ class OrderRepositoryImpl(
 
     private suspend fun pull() {
         refreshLock.withLock {
-            val token = auth.validAccessToken() ?: throw AuthException("Non connecté.")
+            val token = auth.validAccessToken() ?: throw AuthException(AuthError.NOT_LOGGED_IN)
             val now = System.currentTimeMillis()
             val fresh = api.listOrders(token).map { it.jsonObject }.map { order ->
-                val ref = order["referenceNumber"]?.jsonPrimitive?.content ?: error("Commande sans référence")
+                val ref = order["referenceNumber"]?.jsonPrimitive?.content ?: error("Order without a reference")
                 OrderMapper.map(order, api.orderTasks(token, ref), now)
             }
             // The cache written by an older version has no archive yet: keep it as the first snapshot.

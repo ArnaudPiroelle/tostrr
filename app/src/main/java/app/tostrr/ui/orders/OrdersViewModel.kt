@@ -2,8 +2,6 @@ package app.tostrr.ui.orders
 
 import androidx.lifecycle.viewModelScope
 import app.tostrr.domain.auth.usecase.LogoutUseCase
-import app.tostrr.domain.error.ApiException
-import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.error.SessionExpiredException
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.usecase.ObserveOrdersSyncingUseCase
@@ -13,6 +11,8 @@ import app.tostrr.ui.architecture.BaseAction
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel
 import app.tostrr.ui.architecture.NoSideEffect
+import app.tostrr.ui.common.UiError
+import app.tostrr.ui.common.toUiError
 import app.tostrr.ui.orders.OrdersViewModel.Action
 import app.tostrr.ui.orders.OrdersViewModel.State
 import kotlinx.coroutines.CancellationException
@@ -61,11 +61,9 @@ class OrdersViewModel(
             throw e
         } catch (e: SessionExpiredException) {
             logoutUseCase()
-            sync.update { it.copy(error = e.message) }
+            sync.update { it.copy(error = e.toUiError()) }
         } catch (e: Exception) {
-            // Auth and API errors carry a message meant for the user; anything else gets context.
-            val message = if (e is AuthException || e is ApiException) e.message else "Synchronisation impossible : ${e.message}"
-            sync.update { it.copy(error = message) }
+            sync.update { it.copy(error = e.toUiError()) }
         } finally {
             sync.update { it.copy(refreshing = false) }
         }
@@ -76,7 +74,7 @@ class OrdersViewModel(
         val refreshing: Boolean = false,
         /** Epoch ms of the last refresh attempt; 0 when none yet. Drives the refresh cooldown. */
         val lastRefreshAtMs: Long = 0L,
-        val error: String? = null,
+        val error: UiError? = null,
     )
 
     data class State(

@@ -2,6 +2,7 @@ package app.tostrr.testing
 
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.OrderStep
+import app.tostrr.domain.order.StepKind
 import kotlinx.serialization.json.JsonObject
 
 /** An order as the mapper would build it, with only what the screens show filled in. */
@@ -20,9 +21,9 @@ fun order(
     optionCodes = emptyList(),
     imageUrl = null,
     steps = listOf(
-        OrderStep("Commande passée", "14/07/26", done = true),
-        OrderStep("VIN attribué", null, done = false),
-        OrderStep("Livraison", null, done = false),
+        OrderStep(StepKind.ORDERED, "14/07/26", done = true),
+        OrderStep(StepKind.VIN_ASSIGNED, null, done = false),
+        OrderStep(StepKind.DELIVERY, null, done = false),
     ),
     deliveryCenter = deliveryCenter,
     deliveryWindow = deliveryWindow,

@@ -49,7 +49,8 @@ class ChecklistScreenTest {
         assertEquals(0, graph.checklists.checklists.value["RN1"]?.cursor)
         compose.onNodeWithText("Commencer").performScrollTo().performClick()
 
-        compose.onNodeWithText(firstQuestion.question.text).assertIsDisplayed()
+        // First question of the exterior section, in French (see robolectric.properties).
+        compose.onNodeWithText("Le numéro VIN sur le pare-brise correspond-il au certificat d'immatriculation ?").assertIsDisplayed()
     }
 
     @Test fun `answering records the answer and moves on`() {

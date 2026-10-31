@@ -27,10 +27,10 @@ class OrderInfoTest {
                "agreements":{"teslaFinanceDetails":{"partnerName":"COFICA BAIL"}},
                "deliveryAcceptance":{"deliveryType":"PICKUP_SERVICE_CENTER","isDeliveryToAddress":false}}""",
         )
-        assertEquals("Paiement final à effectuer", o.paymentInfo.status)
+        assertEquals("MAKE_YOUR_FINAL_PAYMENT", o.paymentInfo.status)
         assertEquals("5 000 €", o.paymentInfo.amountDue.spaces())
         assertEquals("COFICA BAIL", o.paymentInfo.financePartner)
-        assertEquals("Retrait au centre de livraison", o.deliveryMethod)
+        assertEquals(DeliveryMethod.PICKUP, o.deliveryMethod)
     }
 
     @Test fun `vehicle fields are read from the registration order details`() {
@@ -61,19 +61,19 @@ class OrderInfoTest {
             assertEquals("40 000,50 €", financedAmount.spaces())
             assertEquals("2 000 €", amountPaid.spaces())
             assertEquals("Card, Wire", paymentMethod)
-            assertEquals("Location (LOA/LLD)", financeProduct)
+            assertEquals("LEASE", financeProduct)
             assertEquals("Tesla Financial", financePartner)
             assertEquals("499 €", monthlyPayment.spaces())
-            assertEquals("48 mois", term)
+            assertEquals(48, termMonths)
             assertEquals("3,99 %", interestRate)
-            assertEquals("15 000 km/an", yearlyMileage.spaces())
+            assertEquals("15 000", yearlyMileage.spaces())
             assertEquals("40 000 €", approvedAmount.spaces())
         }
     }
 
     @Test fun `home delivery is recognised`() {
-        assertEquals("Livraison à domicile", map("""{"deliveryAcceptance":{"deliveryType":"DELIVERY_TO_ADDRESS"}}""").deliveryMethod)
-        assertEquals("Livraison à domicile", map("""{"deliveryAcceptance":{"isDeliveryToAddress":true}}""").deliveryMethod)
+        assertEquals(DeliveryMethod.HOME, map("""{"deliveryAcceptance":{"deliveryType":"DELIVERY_TO_ADDRESS"}}""").deliveryMethod)
+        assertEquals(DeliveryMethod.HOME, map("""{"deliveryAcceptance":{"isDeliveryToAddress":true}}""").deliveryMethod)
     }
 
     @Test fun `delivery window falls back to the self-scheduling dates`() {

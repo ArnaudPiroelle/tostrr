@@ -2,6 +2,7 @@ package app.tostrr.data.auth
 
 import android.net.Uri
 import app.tostrr.domain.auth.AuthRepository
+import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.error.SessionExpiredException
 import android.util.Base64
@@ -58,11 +59,11 @@ class TeslaAuth(
     /** Completes the login from the redirect URI (`tesla://auth/callback?code=...&state=...`). */
     override suspend fun completeLogin(redirect: String) {
         val uri = Uri.parse(redirect.trim())
-        val code = uri.getQueryParameter("code") ?: throw AuthException("Aucun code d'autorisation dans l'URL.")
-        val verifier = store.pendingVerifier() ?: throw AuthException("Session de connexion expirée, relancez la connexion.")
+        val code = uri.getQueryParameter("code") ?: throw AuthException(AuthError.NO_CODE)
+        val verifier = store.pendingVerifier() ?: throw AuthException(AuthError.LOGIN_EXPIRED)
         // The state is saved with the verifier, so a redirect without it, or with another one, isn't ours.
         if (uri.getQueryParameter("state") != store.pendingState()) {
-            throw AuthException("État OAuth invalide, relancez la connexion.")
+            throw AuthException(AuthError.INVALID_STATE)
         }
         val body = FormBody.Builder()
             .add("grant_type", "authorization_code")
@@ -106,13 +107,13 @@ class TeslaAuth(
                 if (!response.isSuccessful) {
                     // 400/401 on a refresh = refresh token invalid. 403/5xx are transient or edge blocks: keep the session.
                     if (previousRefresh != null && (response.code == 400 || response.code == 401)) throw SessionExpiredException()
-                    throw AuthException("Échec de l'authentification Tesla (HTTP ${response.code}).")
+                    throw AuthException(AuthError.HTTP, response.code)
                 }
                 val json = Json.parseToJsonElement(text).jsonObject
                 val access = json["access_token"]?.jsonPrimitive?.content
-                    ?: throw AuthException("Réponse Tesla sans access_token.")
+                    ?: throw AuthException(AuthError.MISSING_TOKEN)
                 val refresh = json["refresh_token"]?.jsonPrimitive?.content ?: previousRefresh
-                    ?: throw AuthException("Réponse Tesla sans refresh_token.")
+                    ?: throw AuthException(AuthError.MISSING_TOKEN)
                 val expiresIn = json["expires_in"]?.jsonPrimitive?.longOrNull ?: 28_800L
                 Tokens(access, refresh, System.currentTimeMillis() / 1000 + expiresIn)
             }

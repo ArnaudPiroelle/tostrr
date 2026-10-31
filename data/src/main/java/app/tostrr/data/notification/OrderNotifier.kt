@@ -8,14 +8,19 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
+import app.tostrr.data.R
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import app.tostrr.domain.alert.Alert
 import app.tostrr.domain.alert.OrderAlerts
+import app.tostrr.domain.alert.TrackedDate
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.OptionRepository
+import app.tostrr.domain.order.StepKind
 import org.koin.core.annotation.Single
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -31,25 +36,27 @@ class OrderNotifier(
     /** True when at least one notification was posted, so the caller can skip the minor-update one. */
     fun notifyStepChanges(before: Order?, after: Order): Boolean {
         var notified = false
-        val beforeDone = before?.steps.orEmpty().filter { it.done }.map { it.label }.toSet()
-        after.steps.filter { it.done && it.label !in beforeDone && it.doneMessage.isNotEmpty() }
-            .forEach { post(after, it.label, it.doneMessage); notified = true }
+        val beforeDone = before?.steps.orEmpty().filter { it.done }.map { it.kind }.toSet()
+        after.steps.filter { it.done && it.kind !in beforeDone }
+            .forEach { post(after, it.kind.name, string(it.kind.doneMessage)); notified = true }
 
         // A step that was done and no longer is: Tesla moved the order backwards. One notification per sync.
-        val afterDone = after.steps.filter { it.done }.map { it.label }.toSet()
-        val undone = before?.steps.orEmpty().filter { it.done && it.label !in afterDone }.map { it.label }
+        val afterDone = after.steps.filter { it.done }.map { it.kind }.toSet()
+        val undone = before?.steps.orEmpty().filter { it.done && it.kind !in afterDone }.map { it.kind }
         if (undone.isNotEmpty()) {
-            val steps = undone.joinToString(", ") { "« $it »" }
-            val message = if (undone.size == 1) "Votre commande est revenue en arrière : l'étape $steps n'est plus validée"
-            else "Votre commande est revenue en arrière : les étapes $steps ne sont plus validées"
-            post(after, REGRESSION_KEY, message)
+            val steps = undone.joinToString(", ") { string(R.string.notif_step_quoted, string(it.label)) }
+            post(after, REGRESSION_KEY, plural(R.plurals.notif_regression, undone.size, steps))
             notified = true
         }
 
         if (before != null) {
             notified = notifyConfigurationChange(before, after) or notified
             notified = notifyDeliveryWindowChange(before, after) or notified
-            OrderAlerts.changes(before, after).forEach { post(after, it.key, it.title, it.text, channel = Channel.Alerts); notified = true }
+            OrderAlerts.changes(before, after).forEach { alert ->
+                val (title, text) = words(alert)
+                post(after, alert.key, title, text, channel = Channel.Alerts)
+                notified = true
+            }
         }
         return notified
     }
@@ -57,7 +64,10 @@ class OrderNotifier(
     /** Only for a sync whose JSON changed without any other notification covering it; see [OrderAlerts.minorUpdate]. */
     fun notifyMinorUpdate(order: Order, changes: List<Change>) {
         val alert = OrderAlerts.minorUpdate(changes) ?: return
-        post(order, alert.key, alert.title, alert.text.lineSequence().first(), alert.text, channel = Channel.Minor)
+        val count = plural(R.plurals.notif_minor_fields, alert.fields, alert.fields)
+        val lines = alert.paths.map { string(R.string.notif_bullet, it) } +
+            listOfNotNull(alert.more.takeIf { it > 0 }?.let { plural(R.plurals.notif_minor_more, it, it) })
+        post(order, alert.key, string(R.string.notif_minor_title), count, (listOf(count) + lines).joinToString("\n"), channel = Channel.Minor)
     }
 
     /** Once per horizon and appointment: the reminder is remembered so the periodic sync doesn't repeat it. */
@@ -66,7 +76,8 @@ class OrderNotifier(
         val sent = prefs.getStringSet(PREF_REMINDERS, emptySet()).orEmpty()
         val id = order.reference + alert.key
         if (id in sent) return
-        post(order, alert.key, alert.title, alert.text, channel = Channel.Reminders)
+        val (title, text) = words(alert)
+        post(order, alert.key, title, text, channel = Channel.Reminders)
         prefs.edit().putStringSet(PREF_REMINDERS, sent + id).apply()
     }
 
@@ -82,18 +93,20 @@ class OrderNotifier(
         if (hour < 9) return
         prefs.edit().putLong(PREF_DIGEST, now).apply()
         val alert = OrderAlerts.digest(history, last) ?: return
-        postPlain(DIGEST_ID, alert, Channel.Digest)
+        val (title, text) = words(alert)
+        notify(DIGEST_ID, Channel.Digest, title, text, text, onlyAlertOnce = false)
     }
 
     /** The sync has stopped working: [expired] when the session needs a new login, otherwise nothing came through for a while. */
     fun notifySyncProblem(expired: Boolean, sinceMs: Long?) {
-        val alert = if (expired) {
-            Alert("sync", "Connexion à Tesla expirée", "Ouvrez Tostrr et reconnectez-vous pour reprendre le suivi")
+        val (title, text) = if (expired) {
+            string(R.string.notif_sync_expired) to string(R.string.notif_sync_expired_text)
         } else {
             val hours = sinceMs?.let { TimeUnit.MILLISECONDS.toHours(it) }
-            Alert("sync", "Tostrr ne reçoit plus de mises à jour", hours?.let { "Dernière synchronisation il y a $it h" } ?: "Aucune synchronisation n'a abouti")
+            string(R.string.notif_sync_stale) to
+                (hours?.let { string(R.string.notif_sync_stale_since, it) } ?: string(R.string.notif_sync_stale_never))
         }
-        postPlain(SYNC_ID, alert, Channel.Sync, onlyAlertOnce = true)
+        notify(SYNC_ID, Channel.Sync, title, text, text, onlyAlertOnce = true)
     }
 
     fun clearSyncProblem() = NotificationManagerCompat.from(context).cancel(SYNC_ID)
@@ -102,7 +115,7 @@ class OrderNotifier(
     private fun notifyDeliveryWindowChange(before: Order, after: Order): Boolean {
         val window = after.deliveryWindow?.takeIf { it.isNotBlank() } ?: return false
         if (window == before.deliveryWindow) return false
-        post(after, DELIVERY_WINDOW_KEY, "Votre fenêtre de livraison a changé", window)
+        post(after, DELIVERY_WINDOW_KEY, string(R.string.notif_window_changed), window)
         return true
     }
 
@@ -113,16 +126,64 @@ class OrderNotifier(
         val removed = (old - new).map(::label)
         val added = (new - old).map(::label)
         if (removed.isEmpty() && added.isEmpty()) return false
-        val sections = listOf("Ajouté" to added, "Retiré" to removed).filter { it.second.isNotEmpty() }
+        val sections = listOf(string(R.string.notif_config_added) to added, string(R.string.notif_config_removed) to removed)
+            .filter { it.second.isNotEmpty() }
         val expanded = sections.joinToString("\n\n") { (title, items) ->
-            "$title :\n" + items.joinToString("\n") { "• $it" }
+            string(R.string.notif_config_heading, title) + "\n" + items.joinToString("\n") { string(R.string.notif_bullet, it) }
         }
-        val summary = sections.joinToString(" · ") { (title, items) -> "$title : ${items.size}" }
-        post(after, CONFIG_KEY, "La configuration de votre Tesla évolue", summary, expanded)
+        val summary = sections.joinToString(" · ") { (title, items) -> string(R.string.notif_config_count, title, items.size) }
+        post(after, CONFIG_KEY, string(R.string.notif_config_title), summary, expanded)
         return true
     }
 
     private fun label(code: String) = catalog.codes.value[code]?.let { "${it.label} ($code)" } ?: code
+
+    /** Title and text of an [Alert]. */
+    private fun words(alert: Alert): Pair<String, String> = when (alert) {
+        is Alert.AppointmentCancelled ->
+            string(R.string.notif_appointment_cancelled) to string(R.string.notif_appointment_cancelled_text, alert.was)
+        is Alert.AppointmentMoved -> string(R.string.notif_appointment_moved) to change(alert.from, alert.to)
+        is Alert.WindowGone -> string(R.string.notif_window_gone) to string(R.string.notif_window_gone_text, alert.was)
+        is Alert.VinChanged -> string(R.string.notif_vin_changed) to change(alert.from, alert.to)
+        is Alert.Plate -> when (val from = alert.from) {
+            null -> string(R.string.notif_plate_assigned) to alert.to
+            else -> string(R.string.notif_plate_changed) to change(from, alert.to)
+        }
+        Alert.FinalInvoiceReady -> string(R.string.notif_final_invoice) to string(R.string.notif_final_invoice_text)
+        Alert.FinalPaymentDone -> string(R.string.notif_final_payment) to string(R.string.notif_final_payment_text)
+        is Alert.DateChanged -> {
+            val (set, changed) = when (alert.date) {
+                TrackedDate.ETA_TO_DELIVERY_CENTER -> R.string.notif_eta_set to R.string.notif_eta_changed
+                TrackedDate.REGISTRATION -> R.string.notif_registration_set to R.string.notif_registration_changed
+            }
+            when (val from = alert.from) {
+                null -> string(set) to alert.to
+                else -> string(changed) to change(from, alert.to)
+            }
+        }
+        is Alert.Reminder -> {
+            val title = if (alert.tomorrow) string(R.string.notif_reminder_tomorrow)
+            else plural(R.plurals.notif_reminder_days, alert.days.toInt(), alert.days)
+            val todo = listOfNotNull(
+                string(R.string.notif_reminder_id),
+                string(R.string.notif_reminder_insurance),
+                string(R.string.notif_reminder_final_payment).takeIf { alert.finalPaymentDue },
+            )
+            title to string(R.string.notif_reminder_text, todo.joinToString(", "))
+        }
+        is Alert.Digest -> string(
+            R.string.notif_digest_title,
+            plural(R.plurals.notif_digest_changes, alert.changes, alert.changes),
+            plural(R.plurals.notif_digest_orders, alert.orders, alert.orders),
+        ) to string(R.string.notif_digest_text)
+        is Alert.MinorUpdate -> string(R.string.notif_minor_title) to plural(R.plurals.notif_minor_fields, alert.fields, alert.fields)
+    }
+
+    private fun change(from: String, to: String) = string(R.string.notif_change, from, to)
+
+    private fun string(@StringRes id: Int, vararg args: Any): String = context.getString(id, *args)
+
+    private fun plural(@PluralsRes id: Int, count: Int, vararg args: Any): String = context.resources.getQuantityString(id, count, *args)
 
     /** Without [text], the notification names the car and the order. */
     private fun post(
@@ -133,13 +194,10 @@ class OrderNotifier(
         bigText: String? = text,
         channel: Channel = Channel.Progress,
     ) {
-        val fallback = "${order.modelName} · ${order.reference}"
+        val fallback = string(R.string.notif_order_fallback, order.modelName, order.reference)
         // One id per order and key: a repeated detection replaces rather than stacks.
         notify((order.reference + key).hashCode(), channel, title, text ?: fallback, bigText ?: fallback, onlyAlertOnce = false)
     }
-
-    private fun postPlain(id: Int, alert: Alert, channel: Channel, onlyAlertOnce: Boolean = false) =
-        notify(id, channel, alert.title, alert.text, alert.text, onlyAlertOnce)
 
     private fun notify(id: Int, channel: Channel, title: String, text: String, bigText: String, onlyAlertOnce: Boolean) {
         if (!canNotify()) return
@@ -170,18 +228,41 @@ class OrderNotifier(
     private fun ensureChannel(channel: Channel) {
         val manager = context.getSystemService(NotificationManager::class.java)
         if (manager.getNotificationChannel(channel.id) == null) {
-            manager.createNotificationChannel(NotificationChannel(channel.id, channel.title, channel.importance))
+            manager.createNotificationChannel(NotificationChannel(channel.id, string(channel.title), channel.importance))
         }
     }
 
-    private enum class Channel(val id: String, val title: String, val importance: Int) {
-        Progress("order_progress", "Avancement de la commande", NotificationManager.IMPORTANCE_DEFAULT),
-        Alerts("order_alerts", "Changements de la commande", NotificationManager.IMPORTANCE_DEFAULT),
-        Reminders("order_reminders", "Rappels de livraison", NotificationManager.IMPORTANCE_DEFAULT),
-        Minor("order_minor", "Mises à jour mineures", NotificationManager.IMPORTANCE_LOW),
-        Digest("order_digest", "Résumé quotidien", NotificationManager.IMPORTANCE_LOW),
-        Sync("order_sync", "Problèmes de synchronisation", NotificationManager.IMPORTANCE_HIGH),
+    private enum class Channel(val id: String, @StringRes val title: Int, val importance: Int) {
+        Progress("order_progress", R.string.channel_progress, NotificationManager.IMPORTANCE_DEFAULT),
+        Alerts("order_alerts", R.string.channel_alerts, NotificationManager.IMPORTANCE_DEFAULT),
+        Reminders("order_reminders", R.string.channel_reminders, NotificationManager.IMPORTANCE_DEFAULT),
+        Minor("order_minor", R.string.channel_minor, NotificationManager.IMPORTANCE_LOW),
+        Digest("order_digest", R.string.channel_digest, NotificationManager.IMPORTANCE_LOW),
+        Sync("order_sync", R.string.channel_sync, NotificationManager.IMPORTANCE_HIGH),
     }
+
+    /** What a step becoming done tells, and its name in the regression notification. */
+    @get:StringRes
+    private val StepKind.doneMessage: Int
+        get() = when (this) {
+            StepKind.ORDERED -> R.string.notif_step_ordered
+            StepKind.VIN_ASSIGNED -> R.string.notif_step_vin_assigned
+            StepKind.BUILT -> R.string.notif_step_built
+            StepKind.DOCUMENTS_SENT -> R.string.notif_step_documents_sent
+            StepKind.REGISTERED -> R.string.notif_step_registered
+            StepKind.DELIVERY -> R.string.notif_step_delivery
+        }
+
+    @get:StringRes
+    private val StepKind.label: Int
+        get() = when (this) {
+            StepKind.ORDERED -> R.string.step_ordered
+            StepKind.VIN_ASSIGNED -> R.string.step_vin_assigned
+            StepKind.BUILT -> R.string.step_built
+            StepKind.DOCUMENTS_SENT -> R.string.step_documents_sent
+            StepKind.REGISTERED -> R.string.step_registered
+            StepKind.DELIVERY -> R.string.step_delivery
+        }
 
     private companion object {
         const val PREF_REMINDERS = "reminders_sent"

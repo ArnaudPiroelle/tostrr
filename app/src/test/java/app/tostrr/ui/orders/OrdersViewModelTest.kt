@@ -1,11 +1,13 @@
 package app.tostrr.ui.orders
 
 import app.tostrr.domain.error.ApiException
+import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.SessionExpiredException
 import app.tostrr.testing.MainDispatcherRule
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
 import app.tostrr.testing.watch
+import app.tostrr.ui.common.UiError
 import app.tostrr.ui.orders.OrdersViewModel.Action
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -71,14 +73,14 @@ class OrdersViewModelTest {
         assertEquals(1, graph.orders.refreshes)
     }
 
-    @Test fun `an API error shows Tesla's message`() = runTest {
-        graph.orders.onRefresh = { throw ApiException(500, "Erreur API Tesla (HTTP 500).") }
+    @Test fun `an API error keeps its HTTP code`() = runTest {
+        graph.orders.onRefresh = { throw ApiException(500) }
         val viewModel = graph.ordersViewModel()
         watch(viewModel)
 
         viewModel.handle(Action.OnRefresh)
 
-        assertEquals("Erreur API Tesla (HTTP 500).", viewModel.state.value.sync.error)
+        assertEquals(UiError.Api(500), viewModel.state.value.sync.error)
     }
 
     @Test fun `any other failure is explained`() = runTest {
@@ -88,7 +90,7 @@ class OrdersViewModelTest {
 
         viewModel.handle(Action.OnRefresh)
 
-        assertEquals("Synchronisation impossible : boom", viewModel.state.value.sync.error)
+        assertEquals(UiError.Unexpected("boom"), viewModel.state.value.sync.error)
     }
 
     @Test fun `an expired session logs out`() = runTest {
@@ -101,6 +103,6 @@ class OrdersViewModelTest {
 
         assertFalse(graph.auth.loggedIn.value)
         assertEquals(emptyList<Any>(), viewModel.state.value.orders)
-        assertEquals("Session expirée, reconnectez-vous.", viewModel.state.value.sync.error)
+        assertEquals(UiError.Auth(AuthError.SESSION_EXPIRED), viewModel.state.value.sync.error)
     }
 }

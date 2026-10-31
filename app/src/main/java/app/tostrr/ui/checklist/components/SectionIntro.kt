@@ -45,7 +45,7 @@ internal fun ColumnScope.SectionIntro(
     onBack: (() -> Unit)?,
 ) {
     var expanded by rememberSaveable(section.id) { mutableStateOf(false) }
-    Header(tag = stringResource(R.string.checklist_tag_check), title = stringResource(R.string.checklist_section_title, section.title))
+    Header(tag = stringResource(R.string.checklist_tag_check), title = stringResource(R.string.checklist_section_title, stringResource(section.titleRes)))
     Card {
         Text(
             stringResource(R.string.checklist_section_ready, section.questions.size),
@@ -92,7 +92,7 @@ internal fun ColumnScope.SectionIntro(
                                     style = MaterialTheme.typography.labelMedium,
                                     color = TostrrColors.Accent,
                                 )
-                                Text(question.text, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                Text(stringResource(question.textRes), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                 Icon(
                                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
