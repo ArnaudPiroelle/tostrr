@@ -66,6 +66,7 @@ import app.tostrr.ui.architecture.watchAsState
 import app.tostrr.ui.settings.SettingsViewModel.Action
 import app.tostrr.ui.theme.TostrrColors
 import org.koin.androidx.compose.koinViewModel
+import java.io.File
 
 /** The app settings, grouped in sections; add a section as one more item of the list. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,7 +145,7 @@ private fun AccountSection(account: TeslaAccount?, onLogout: () -> Unit) {
             ListItem(
                 overlineContent = { Text("Connecté en tant que", style = MaterialTheme.typography.bodySmall, color = TostrrColors.Muted) },
                 headlineContent = { Text(account.fullName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingContent = { Avatar(account.avatarUrl) },
+                leadingContent = { Avatar(account.avatarPath) },
                 colors = ListItemDefaults.colors(containerColor = TostrrColors.Surface),
             )
         }
@@ -188,14 +189,14 @@ private fun AccountSection(account: TeslaAccount?, onLogout: () -> Unit) {
     }
 }
 
-/** The account picture, round; the generic icon while it loads, or when there is none or it fails. */
+/** The account picture from its local copy, round; the generic icon while it loads, or when there is none. */
 @Composable
-private fun Avatar(url: String?) {
+private fun Avatar(path: String?) {
     val fallback = rememberVectorPainter(Icons.Outlined.AccountCircle)
     // Only the icon is tinted, never the photo.
-    var loaded by remember(url) { mutableStateOf(false) }
+    var loaded by remember(path) { mutableStateOf(false) }
     AsyncImage(
-        model = url,
+        model = path?.let(::File),
         contentDescription = null,
         placeholder = fallback,
         error = fallback,

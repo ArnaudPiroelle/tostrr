@@ -4,13 +4,13 @@ import app.tostrr.domain.auth.AccountRepository
 import app.tostrr.domain.auth.AuthRepository
 import org.koin.core.annotation.Factory
 
-/** Fetches the account's profile if logged in and not loaded yet; never fails. */
+/** Refreshes the account's profile if logged in; the saved one shows meanwhile. Never fails. */
 @Factory
 class LoadTeslaAccountUseCase(
     private val auth: AuthRepository,
     private val repository: AccountRepository,
 ) {
     suspend operator fun invoke() {
-        if (auth.isLoggedIn() && repository.account.value == null) repository.load()
+        if (auth.isLoggedIn()) repository.load()
     }
 }

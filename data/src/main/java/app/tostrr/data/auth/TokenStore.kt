@@ -11,13 +11,16 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+/** The account's name and picture URL, kept so the settings show them at once, offline too. */
+data class StoredProfile(val fullName: String, val avatarUrl: String?)
+
 data class Tokens(
     val accessToken: String,
     val refreshToken: String,
     val expiresAtEpochSec: Long,
 )
 
-/** Stores OAuth tokens and the pending PKCE verifier, encrypted with an Android Keystore AES key. */
+/** Stores OAuth tokens, the pending PKCE verifier and the account profile, encrypted with an Android Keystore AES key. */
 @Single
 class TokenStore(context: Context) {
     private val prefs = context.getSharedPreferences("tostrr_secure", Context.MODE_PRIVATE)
@@ -43,6 +46,15 @@ class TokenStore(context: Context) {
 
     fun clearPending() = prefs.edit().remove(KEY_VERIFIER).remove(KEY_STATE).apply()
 
+    fun saveProfile(profile: StoredProfile) =
+        write(KEY_NAME to profile.fullName, KEY_AVATAR_URL to profile.avatarUrl.orEmpty())
+
+    fun loadProfile(): StoredProfile? {
+        val name = read(KEY_NAME) ?: return null
+        return StoredProfile(name, read(KEY_AVATAR_URL)?.takeIf { it.isNotEmpty() })
+    }
+
+    /** Everything: tokens, pending login and profile. */
     fun clear() = prefs.edit().clear().apply()
 
     private fun write(vararg entries: Pair<String, String>) {
@@ -94,5 +106,7 @@ class TokenStore(context: Context) {
         const val KEY_EXP = "exp"
         const val KEY_VERIFIER = "pkce_verifier"
         const val KEY_STATE = "pkce_state"
+        const val KEY_NAME = "profile_name"
+        const val KEY_AVATAR_URL = "profile_avatar_url"
     }
 }
