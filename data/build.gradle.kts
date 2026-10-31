@@ -17,6 +17,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    testOptions {
+        // The bundled delivery centres and the notification texts, read under Robolectric.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -43,4 +48,7 @@ dependencies {
     implementation(platform(libs.koin.annotations.bom))
     implementation(libs.koin.annotations)
     ksp(libs.koin.ksp.compiler)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
 }
