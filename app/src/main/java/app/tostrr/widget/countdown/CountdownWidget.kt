@@ -32,7 +32,7 @@ class CountdownWidget(private val observeOrdersUseCase: ObserveOrdersUseCase) : 
             val orders by observeOrdersUseCase().collectAsState()
             val order = orders.firstOrNull { it.reference == chosen } ?: orders.firstOrNull()
             // Today is read on every composition: each refresh's updateAll moves the count past midnight.
-            GlanceTheme(TostrrWidgetColors) { CountdownWidgetContent(order, order?.deliveryCountdown()?.let(::countdownLabels)) }
+            GlanceTheme(TostrrWidgetColors) { CountdownWidgetContent(order, order?.deliveryCountdown()?.let { countdownLabels(context.resources, it) }) }
         }
     }
 }

@@ -1,7 +1,5 @@
 package app.tostrr.ui.common
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,53 +7,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.tostrr.domain.order.Order
 import app.tostrr.ui.theme.TostrrColors
-
-/** Size of a step dot and thickness of the bar behind it, shared by the list and detail trackers. */
-val StepDotSize = 14.dp
-val StepBarThickness = 3.dp
-
-/**
- * One step marker: filled when done, ringed when current, hollow when pending.
- * Always opaque so the progress bar drawn behind never shows through.
- */
-@Composable
-fun StepDot(done: Boolean, current: Boolean, modifier: Modifier = Modifier, size: Dp = StepDotSize) {
-    val accent = TostrrColors.Accent
-    val track = TostrrColors.Track
-    val card = TostrrColors.Surface
-    val base = modifier.size(size).clip(CircleShape)
-    Box(
-        when {
-            done -> base.background(accent)
-            current -> base.background(card).border(3.dp, accent, CircleShape)
-            else -> base.background(card).border(2.dp, track, CircleShape)
-        },
-    )
-}
 
 /**
  * Horizontal tracker for the orders list. Same visual language as the vertical timeline in the detail
  * screen: a bar behind the dots, filled up to the current step.
  */
 @Composable
-fun StepTracker(order: Order, modifier: Modifier = Modifier) {
+internal fun StepTracker(order: Order, modifier: Modifier = Modifier) {
     val current = order.currentStepIndex
     val count = order.steps.size
     val track = TostrrColors.Track

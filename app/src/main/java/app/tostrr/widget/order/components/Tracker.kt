@@ -1,29 +1,19 @@
 package app.tostrr.widget.order.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
-import androidx.glance.background
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.Row
-import androidx.glance.layout.RowScope
 import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
-import app.tostrr.R
 import app.tostrr.domain.order.Order
 
 /**
@@ -66,30 +56,3 @@ internal fun Tracker(order: Order, k: Float) {
         }
     }
 }
-
-@Composable
-private fun RowScope.Bar(visible: Boolean, color: ColorProvider, thickness: Dp) {
-    val base = GlanceModifier.defaultWeight().height(thickness)
-    Box(if (visible) base.background(color) else base) {}
-}
-
-@Composable
-private fun Dot(tint: ColorProvider, size: Dp = DotSize) {
-    Image(
-        provider = ImageProvider(R.drawable.widget_dot_fill),
-        contentDescription = null,
-        colorFilter = ColorFilter.tint(tint),
-        modifier = GlanceModifier.size(size),
-    )
-}
-
-/** A tinted disc with a smaller surface-coloured disc on top: Glance renders stroke-only shapes as filled. */
-@Composable
-private fun RingDot(tint: ColorProvider, border: Dp, size: Dp) {
-    Box(contentAlignment = Alignment.Center) {
-        Dot(tint, size)
-        Dot(GlanceTheme.colors.surface, size - border * 2)
-    }
-}
-
-private val DotSize = 14.dp

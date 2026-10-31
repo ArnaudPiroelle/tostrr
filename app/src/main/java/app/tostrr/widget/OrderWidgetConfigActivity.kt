@@ -13,17 +13,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.Preferences
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
+import app.tostrr.R
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.ui.theme.TostrrTheme
@@ -61,13 +63,13 @@ class OrderWidgetConfigActivity : ComponentActivity() {
             TostrrTheme {
                 Column(Modifier.fillMaxSize().systemBarsPadding().padding(top = 16.dp)) {
                     Text(
-                        "Quelle commande afficher ?",
+                        stringResource(R.string.widget_config_title),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                     if (orders.isEmpty()) {
                         Text(
-                            "Aucune commande pour le moment. Ouvrez Tostrr et connectez-vous.",
+                            stringResource(R.string.widget_config_empty),
                             modifier = Modifier.padding(16.dp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -75,8 +77,8 @@ class OrderWidgetConfigActivity : ComponentActivity() {
                     LazyColumn {
                         items(orders, key = { it.reference }) { order ->
                             ListItem(
-                                headlineContent = { Text("${order.modelName} · #${order.reference}") },
-                                supportingContent = { Text(order.deliverySlot?.let { "Créneau : $it" } ?: "VIN : ${order.vin ?: "inconnu"}") },
+                                headlineContent = { Text(stringResource(R.string.widget_config_order, order.modelName, order.reference)) },
+                                supportingContent = { Text(order.deliverySlot?.let { stringResource(R.string.order_slot, it) } ?: stringResource(R.string.widget_config_vin, order.vin ?: stringResource(R.string.order_vin_unknown))) },
                                 modifier = Modifier.clickable { choose(order) },
                             )
                             HorizontalDivider()

@@ -30,6 +30,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import app.tostrr.R
 import app.tostrr.domain.order.Order
 import app.tostrr.ui.MainActivity
 import app.tostrr.ui.common.formatDateTime
@@ -52,7 +53,7 @@ internal fun OrderWidgetContent(order: Order?, car: Bitmap?) {
 
     if (order == null) {
         Box(root, contentAlignment = Alignment.Center) {
-            Text("Aucune commande, ouvrez Tostrr", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp))
+            Text(context.getString(R.string.widget_no_order), style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp))
         }
         return
     }
@@ -65,19 +66,19 @@ internal fun OrderWidgetContent(order: Order?, car: Bitmap?) {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(GlanceModifier.defaultWeight()) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text("Commande ", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (9 * k).sp))
+                    Text(context.getString(R.string.widget_order_prefix), style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (9 * k).sp))
                     Text(
-                        "#${order.reference}",
+                        context.getString(R.string.order_reference, order.reference),
                         style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = (11 * k).sp, fontWeight = FontWeight.Bold),
                     )
                 }
                 Text(order.modelName, style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = (13 * k).sp))
                 Text(
-                    "VIN: ${order.vin ?: "inconnu"}",
+                    context.getString(R.string.order_vin, order.vin ?: context.getString(R.string.order_vin_unknown)),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (10 * k).sp),
                 )
                 order.deliverySlot?.let {
-                    Text("Créneau : $it", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (10 * k).sp))
+                    Text(context.getString(R.string.order_slot, it), style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (10 * k).sp))
                 }
             }
             if (car != null) {
@@ -93,7 +94,7 @@ internal fun OrderWidgetContent(order: Order?, car: Bitmap?) {
         Tracker(order, k)
         Spacer(GlanceModifier.defaultWeight())
         Text(
-            "Mise à jour ${formatDateTime(order.fetchedAtEpochMs)}",
+            context.getString(R.string.order_updated_at, formatDateTime(order.fetchedAtEpochMs)),
             modifier = GlanceModifier.fillMaxWidth(),
             style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = (9 * k).sp, textAlign = TextAlign.End),
         )

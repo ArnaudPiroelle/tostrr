@@ -21,6 +21,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import app.tostrr.R
 import app.tostrr.domain.order.Order
 import app.tostrr.ui.MainActivity
 import app.tostrr.widget.countdown.CountdownLabels
@@ -43,7 +44,7 @@ internal fun CountdownWidgetContent(order: Order?, labels: CountdownLabels?) {
     if (order == null || labels == null) {
         Row(root, verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Ouvrez Tostrr",
+                context.getString(R.string.widget_open_app),
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center),
             )
         }
