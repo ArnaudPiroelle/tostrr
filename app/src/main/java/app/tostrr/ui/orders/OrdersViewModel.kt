@@ -6,6 +6,7 @@ import app.tostrr.domain.error.ApiException
 import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.error.SessionExpiredException
 import app.tostrr.domain.order.Order
+import app.tostrr.domain.order.usecase.ObserveOrdersSyncingUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.domain.order.usecase.RefreshOrdersUseCase
 import app.tostrr.ui.architecture.BaseAction
@@ -30,14 +31,19 @@ const val REFRESH_COOLDOWN_MS = 30_000L
 @KoinViewModel
 class OrdersViewModel(
     observeOrdersUseCase: ObserveOrdersUseCase,
+    observeOrdersSyncingUseCase: ObserveOrdersSyncingUseCase,
     private val refreshOrdersUseCase: RefreshOrdersUseCase,
     private val logoutUseCase: LogoutUseCase,
 ) : BaseViewModel<Action, State, NoSideEffect>() {
 
     private val sync = MutableStateFlow(Sync())
 
-    override val state: StateFlow<State> = combine(observeOrdersUseCase(), sync, ::State)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), State(observeOrdersUseCase().value, sync.value))
+    override val state: StateFlow<State> = combine(observeOrdersUseCase(), observeOrdersSyncingUseCase(), sync, ::State)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            State(observeOrdersUseCase().value, observeOrdersSyncingUseCase().value, sync.value),
+        )
 
     override suspend fun onHandle(action: Action) {
         when (action) {
@@ -75,8 +81,15 @@ class OrdersViewModel(
 
     data class State(
         val orders: List<Order> = emptyList(),
+        /** A fetch is running, started here or elsewhere (first sync after login, background). */
+        val syncing: Boolean = false,
         val sync: Sync = Sync(),
-    ) : BaseState
+    ) : BaseState {
+        /** Nothing to show yet, but orders are on their way. */
+        val loading: Boolean get() = orders.isEmpty() && syncing
+
+        val refreshing: Boolean get() = syncing || sync.refreshing
+    }
 
     sealed class Action : BaseAction {
         data object OnRefresh : Action()

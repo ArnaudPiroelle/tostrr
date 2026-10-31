@@ -39,6 +39,7 @@ import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.GZIPOutputStream
 
 /** Fetches orders, caches the last snapshot on disk and records what changed between two syncs. */
@@ -72,7 +73,21 @@ class OrderRepositoryImpl(
     override fun lastSyncAgeMs(now: Long): Long? =
         _orders.value.maxOfOrNull { it.fetchedAtEpochMs }?.takeIf { it > 0 }?.let { now - it }
 
+    /** Pulls started and not finished yet, waiting for the lock included. */
+    private val pulls = AtomicInteger()
+    private val _syncing = MutableStateFlow(false)
+    override val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
+
     override suspend fun refresh() {
+        _syncing.value = pulls.incrementAndGet() > 0
+        try {
+            pull()
+        } finally {
+            _syncing.value = pulls.decrementAndGet() > 0
+        }
+    }
+
+    private suspend fun pull() {
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException("Non connecté.")
             val now = System.currentTimeMillis()

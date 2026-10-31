@@ -9,6 +9,9 @@ interface OrderRepository {
     /** Changes recorded per order reference, oldest first. */
     val history: StateFlow<Map<String, List<Change>>>
 
+    /** Whether a pull is running, from the app or the background sync. */
+    val syncing: StateFlow<Boolean>
+
     /** Age of the last successful pull, or null if there has never been one. */
     fun lastSyncAgeMs(now: Long = System.currentTimeMillis()): Long?
 

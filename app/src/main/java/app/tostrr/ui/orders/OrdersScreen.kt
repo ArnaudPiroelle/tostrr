@@ -101,7 +101,8 @@ fun OrdersScreen(
     val state by viewModel.watchAsState()
     OrdersContent(
         orders = state.orders,
-        refreshing = state.sync.refreshing,
+        loading = state.loading,
+        refreshing = state.refreshing,
         lastRefreshAtMs = state.sync.lastRefreshAtMs,
         error = state.sync.error,
         onRefresh = { viewModel.handle(Action.OnRefresh) },
@@ -114,6 +115,7 @@ fun OrdersScreen(
 @Composable
 private fun OrdersContent(
     orders: List<Order>,
+    loading: Boolean,
     refreshing: Boolean,
     lastRefreshAtMs: Long,
     error: String?,
@@ -200,7 +202,18 @@ private fun OrdersContent(
                 if (error != null) {
                     item { Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
                 }
-                if (orders.isEmpty() && !refreshing) {
+                if (loading) {
+                    item {
+                        Column(
+                            Modifier.fillMaxWidth().padding(top = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            CircularProgressIndicator(color = TostrrColors.Accent)
+                            Text("Récupération de vos commandes…", color = TostrrColors.Muted, textAlign = TextAlign.Center)
+                        }
+                    }
+                } else if (orders.isEmpty() && !refreshing) {
                     item {
                         Text(
                             "Aucune commande en cours.",
