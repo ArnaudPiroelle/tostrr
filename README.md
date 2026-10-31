@@ -155,7 +155,7 @@ One screen per check: mark it **checked** or **skip** it, with a comment or a **
 
 ```bash
 # Requirements: JDK 21 and the Android SDK (or Android Studio)
-git clone <this repository>
+git clone https://github.com/ArnaudPiroelle/tostrr.git
 cd tostrr
 ./gradlew :app:assembleDebug        # builds app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:installDebug         # installs it on the connected phone
