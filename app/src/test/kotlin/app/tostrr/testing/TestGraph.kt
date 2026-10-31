@@ -27,6 +27,8 @@ import app.tostrr.domain.layout.usecase.ObserveDetailLayoutUseCase
 import app.tostrr.domain.layout.usecase.ResetDetailLayoutUseCase
 import app.tostrr.domain.layout.usecase.ToggleDetailBlockExpandedUseCase
 import app.tostrr.domain.layout.usecase.ToggleDetailBlockUseCase
+import app.tostrr.domain.notification.usecase.ObserveNotificationSettingsUseCase
+import app.tostrr.domain.notification.usecase.SetNotificationEnabledUseCase
 import app.tostrr.domain.order.usecase.ObserveOptionCodesUseCase
 import app.tostrr.domain.order.usecase.ObserveOrderHistoryUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersSyncingUseCase
@@ -59,6 +61,7 @@ class TestGraph(
     val scheduler = FakeSyncScheduler()
     val syncSettings = FakeSyncSettingsRepository()
     val appearance = FakeAppearanceRepository()
+    val notificationSettings = FakeNotificationSettingsRepository()
     val account = FakeAccountRepository()
     val orders = FakeOrderRepository()
     val options = FakeOptionRepository()
@@ -120,11 +123,13 @@ class TestGraph(
     fun settingsViewModel() = SettingsViewModel(
         ObserveThemeModeUseCase(appearance),
         ObserveSyncSettingsUseCase(syncSettings),
+        ObserveNotificationSettingsUseCase(notificationSettings),
         ObserveTeslaAccountUseCase(account),
         LoadTeslaAccountUseCase(auth, account),
         SetThemeModeUseCase(appearance),
         SetAutoSyncUseCase(syncSettings, startBackgroundSync),
         SetSyncIntervalUseCase(syncSettings, startBackgroundSync),
+        SetNotificationEnabledUseCase(notificationSettings),
         logout,
     )
 }

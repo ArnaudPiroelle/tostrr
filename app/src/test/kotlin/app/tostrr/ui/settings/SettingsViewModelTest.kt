@@ -2,6 +2,8 @@ package app.tostrr.ui.settings
 
 import app.tostrr.domain.appearance.ThemeMode
 import app.tostrr.domain.auth.TeslaAccount
+import app.tostrr.domain.notification.NotificationKind
+import app.tostrr.domain.notification.NotificationSettings
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.testing.MainDispatcherRule
@@ -72,6 +74,16 @@ class SettingsViewModelTest {
 
         assertEquals(SyncInterval.HOUR_1, viewModel.state.value.sync.interval)
         assertEquals(listOf<SyncInterval?>(SyncInterval.HOUR_1), graph.scheduler.calls)
+    }
+
+    @Test fun `a notification kind turned off is saved and shown`() = runTest {
+        val viewModel = graph.settingsViewModel()
+        watch(viewModel)
+
+        viewModel.handle(Action.OnNotificationChanged(NotificationKind.DIGEST, false))
+
+        assertEquals(NotificationSettings(setOf(NotificationKind.DIGEST)), graph.notificationSettings.settings.value)
+        assertFalse(viewModel.state.value.notifications.isEnabled(NotificationKind.DIGEST))
     }
 
     @Test fun `logging out ends the session and forgets the orders and the account`() = runTest {

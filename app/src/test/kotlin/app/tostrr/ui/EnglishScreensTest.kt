@@ -37,13 +37,14 @@ class EnglishScreensTest {
         graph.account.account.value = TeslaAccount("Ada Lovelace")
         compose.setContent { TostrrTheme { SettingsScreen(onBack = {}, viewModel = graph.settingsViewModel()) } }
 
+        compose.onNodeWithText("Signed in as").assertIsDisplayed()
+        compose.onNodeWithText("Sign out").assertIsDisplayed()
         compose.onNodeWithText("Appearance").assertIsDisplayed()
         compose.onNodeWithText("Dark").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Every 15 minutes"))
         compose.onNodeWithText("Automatic refresh").assertIsDisplayed()
-        compose.onNodeWithText("Every 15 minutes").assertIsDisplayed()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Signed in as"))
-        compose.onNodeWithText("Signed in as").assertIsDisplayed()
-        compose.onNodeWithText("Sign out").assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Daily summary"))
+        compose.onNodeWithText("Delivery reminders").assertIsDisplayed()
     }
 
     @Test fun `orders, their steps and a refresh error`() {

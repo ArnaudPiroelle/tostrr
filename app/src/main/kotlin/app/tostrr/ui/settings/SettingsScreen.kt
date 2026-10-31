@@ -26,6 +26,7 @@ import app.tostrr.ui.architecture.watchAsState
 import app.tostrr.ui.settings.SettingsViewModel.Action
 import app.tostrr.ui.settings.components.AccountSection
 import app.tostrr.ui.settings.components.AppearanceSection
+import app.tostrr.ui.settings.components.NotificationsSection
 import app.tostrr.ui.settings.components.SyncSection
 import org.koin.androidx.compose.koinViewModel
 
@@ -54,6 +55,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            item { AccountSection(state.account, onLogout = { viewModel.handle(Action.OnLogout) }) }
             item { AppearanceSection(state.themeMode, onThemeChange = { viewModel.handle(Action.OnThemeSelected(it)) }) }
             item {
                 SyncSection(
@@ -62,7 +64,12 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
                     onIntervalChange = { viewModel.handle(Action.OnIntervalSelected(it)) },
                 )
             }
-            item { AccountSection(state.account, onLogout = { viewModel.handle(Action.OnLogout) }) }
+            item {
+                NotificationsSection(
+                    state.notifications,
+                    onChange = { kind, enabled -> viewModel.handle(Action.OnNotificationChanged(kind, enabled)) },
+                )
+            }
         }
     }
 }

@@ -14,6 +14,8 @@ import app.tostrr.domain.deliverycenter.DeliveryCenterRepository
 import app.tostrr.domain.deliverycenter.DeliveryCenters
 import app.tostrr.domain.layout.BlockLayout
 import app.tostrr.domain.layout.DetailLayoutRepository
+import app.tostrr.domain.notification.NotificationSettings
+import app.tostrr.domain.notification.NotificationSettingsRepository
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.OptionRepository
@@ -81,6 +83,14 @@ class FakeAppearanceRepository(initial: ThemeMode = ThemeMode.SYSTEM) : Appearan
 
     override fun saveThemeMode(mode: ThemeMode) {
         themeMode.value = mode
+    }
+}
+
+class FakeNotificationSettingsRepository(initial: NotificationSettings = NotificationSettings()) : NotificationSettingsRepository {
+    override val settings = MutableStateFlow(initial)
+
+    override fun save(settings: NotificationSettings) {
+        this.settings.value = settings
     }
 }
 

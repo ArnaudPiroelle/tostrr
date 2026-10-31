@@ -8,6 +8,10 @@ import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.auth.usecase.LoadTeslaAccountUseCase
 import app.tostrr.domain.auth.usecase.LogoutUseCase
 import app.tostrr.domain.auth.usecase.ObserveTeslaAccountUseCase
+import app.tostrr.domain.notification.NotificationKind
+import app.tostrr.domain.notification.NotificationSettings
+import app.tostrr.domain.notification.usecase.ObserveNotificationSettingsUseCase
+import app.tostrr.domain.notification.usecase.SetNotificationEnabledUseCase
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.domain.sync.usecase.ObserveSyncSettingsUseCase
@@ -32,17 +36,20 @@ import org.koin.android.annotation.KoinViewModel
 class SettingsViewModel(
     observeThemeModeUseCase: ObserveThemeModeUseCase,
     observeSyncSettingsUseCase: ObserveSyncSettingsUseCase,
+    observeNotificationSettingsUseCase: ObserveNotificationSettingsUseCase,
     observeTeslaAccountUseCase: ObserveTeslaAccountUseCase,
     loadTeslaAccountUseCase: LoadTeslaAccountUseCase,
     private val setThemeModeUseCase: SetThemeModeUseCase,
     private val setAutoSyncUseCase: SetAutoSyncUseCase,
     private val setSyncIntervalUseCase: SetSyncIntervalUseCase,
+    private val setNotificationEnabledUseCase: SetNotificationEnabledUseCase,
     private val logoutUseCase: LogoutUseCase,
 ) : BaseViewModel<Action, State, NoSideEffect>() {
 
     override val state: StateFlow<State> = combine(
         observeThemeModeUseCase(),
         observeSyncSettingsUseCase(),
+        observeNotificationSettingsUseCase(),
         observeTeslaAccountUseCase(),
         ::State,
     )
@@ -51,7 +58,12 @@ class SettingsViewModel(
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
-            State(observeThemeModeUseCase().value, observeSyncSettingsUseCase().value, observeTeslaAccountUseCase().value),
+            State(
+                observeThemeModeUseCase().value,
+                observeSyncSettingsUseCase().value,
+                observeNotificationSettingsUseCase().value,
+                observeTeslaAccountUseCase().value,
+            ),
         )
 
     override suspend fun onHandle(action: Action) {
@@ -59,6 +71,7 @@ class SettingsViewModel(
             is Action.OnThemeSelected -> setThemeModeUseCase(action.mode)
             is Action.OnAutoSyncChanged -> setAutoSyncUseCase(action.enabled)
             is Action.OnIntervalSelected -> setSyncIntervalUseCase(action.interval)
+            is Action.OnNotificationChanged -> setNotificationEnabledUseCase(action.kind, action.enabled)
             Action.OnLogout -> logoutUseCase()
         }
     }
@@ -66,6 +79,7 @@ class SettingsViewModel(
     data class State(
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
         val sync: SyncSettings = SyncSettings(),
+        val notifications: NotificationSettings = NotificationSettings(),
         /** Null until the profile is loaded, or if Tesla didn't give it. */
         val account: TeslaAccount? = null,
     ) : BaseState
@@ -74,6 +88,7 @@ class SettingsViewModel(
         data class OnThemeSelected(val mode: ThemeMode) : Action()
         data class OnAutoSyncChanged(val enabled: Boolean) : Action()
         data class OnIntervalSelected(val interval: SyncInterval) : Action()
+        data class OnNotificationChanged(val kind: NotificationKind, val enabled: Boolean) : Action()
         data object OnLogout : Action()
     }
 }

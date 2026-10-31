@@ -6,6 +6,8 @@ import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
+import app.tostrr.domain.notification.NotificationKind
+import app.tostrr.domain.notification.NotificationSettings
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.OptionRepository
@@ -37,7 +39,8 @@ class OrderNotifierTest {
         override val codes = MutableStateFlow(mapOf("PPSW" to OptionInfo("Pearl White", "paint")))
     }
 
-    private val notifier = OrderNotifier(context, FakeOptions())
+    private val settings = NotificationSettingsRepositoryImpl(context)
+    private val notifier = OrderNotifier(context, FakeOptions(), settings)
 
     @Before fun setUp() {
         shadowOf(context).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
@@ -133,7 +136,7 @@ class OrderNotifierTest {
         notifier.notifyReminder(o, now)
         notifier.notifyReminder(o, now + TimeUnit.HOURS.toMillis(1))
         // A new notifier reads what was already sent.
-        OrderNotifier(context, FakeOptions()).notifyReminder(o, now + TimeUnit.HOURS.toMillis(2))
+        OrderNotifier(context, FakeOptions(), settings).notifyReminder(o, now + TimeUnit.HOURS.toMillis(2))
         assertEquals(listOf("Delivery in less than 24 h"), titles)
     }
 
@@ -167,5 +170,22 @@ class OrderNotifierTest {
         assertEquals("Last sync 7 h ago", posted.single().text())
         notifier.notifySyncProblem(expired = false, sinceMs = null)
         assertEquals("No sync has succeeded", posted.single().text())
+    }
+
+    @Test fun `a kind turned off is not posted, the others still are`() {
+        settings.save(NotificationSettings(setOf(NotificationKind.PROGRESS)))
+        notifier.notifyStepChanges(order(StepKind.ORDERED), order(StepKind.ORDERED, StepKind.BUILT))
+        assertTrue(posted.isEmpty())
+        notifier.notifySyncProblem(expired = true, sinceMs = null)
+        assertEquals(listOf("Tesla sign-in expired"), titles)
+    }
+
+    @Test fun `a reminder turned off counts as sent, so turning it back on doesn't repeat it`() {
+        val o = order(appointmentAt = noon + TimeUnit.HOURS.toMillis(12))
+        settings.save(NotificationSettings(setOf(NotificationKind.REMINDERS)))
+        notifier.notifyReminder(o, noon)
+        settings.save(NotificationSettings())
+        notifier.notifyReminder(o, noon + TimeUnit.HOURS.toMillis(1))
+        assertTrue(posted.isEmpty())
     }
 }

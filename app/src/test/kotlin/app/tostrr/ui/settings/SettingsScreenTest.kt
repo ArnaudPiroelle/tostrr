@@ -1,6 +1,8 @@
 package app.tostrr.ui.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -13,6 +15,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import app.tostrr.domain.appearance.ThemeMode
 import app.tostrr.domain.auth.TeslaAccount
+import app.tostrr.domain.notification.NotificationKind
+import app.tostrr.domain.notification.NotificationSettings
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.testing.TestGraph
 import app.tostrr.ui.theme.TostrrTheme
@@ -34,13 +38,12 @@ class SettingsScreenTest {
         TostrrTheme { SettingsScreen(onBack = {}, viewModel = graph.settingsViewModel()) }
     }
 
-    /** The account section is the last one, below the fold of the test screen. */
-    private fun scrollToAccount() = compose.onNode(hasScrollAction()).performScrollToNode(hasText("Compte Tesla"))
+    /** The sync section comes after the account and the theme, below the fold of the test screen. */
+    private fun scrollToSync() = compose.onNode(hasScrollAction()).performScrollToNode(hasText("Fréquence"))
 
     @Test fun `shows who is logged in`() {
         graph.account.account.value = TeslaAccount("Ada Lovelace")
         show()
-        scrollToAccount()
 
         compose.onNodeWithText("Connecté en tant que").assertIsDisplayed()
         compose.onNodeWithText("Ada Lovelace").assertIsDisplayed()
@@ -48,7 +51,6 @@ class SettingsScreenTest {
 
     @Test fun `without a profile, only the logout button is in the account section`() {
         show()
-        scrollToAccount()
 
         compose.onNodeWithText("Compte Tesla").assertIsDisplayed()
         compose.onNodeWithText("Connecté en tant que").assertDoesNotExist()
@@ -68,6 +70,7 @@ class SettingsScreenTest {
 
     @Test fun `the frequency is picked in a dialog and rescheduled`() {
         show()
+        scrollToSync()
         compose.onNodeWithText("Toutes les 15 minutes").assertIsDisplayed()
 
         compose.onNodeWithText("Fréquence").performClick()
@@ -80,6 +83,7 @@ class SettingsScreenTest {
 
     @Test fun `with auto sync off the frequency stays shown but can't be changed`() {
         show()
+        scrollToSync()
 
         compose.onNodeWithText("Actualiser en arrière-plan").performClick()
 
@@ -89,9 +93,21 @@ class SettingsScreenTest {
         assertEquals(listOf<SyncInterval?>(null), graph.scheduler.calls)
     }
 
+    @Test fun `every notification is on until one is turned off`() {
+        show()
+        val digest = hasText("Résumé quotidien")
+        compose.onNode(hasScrollAction()).performScrollToNode(digest)
+        compose.onNode(digest).assertIsOn()
+
+        compose.onNode(digest).performClick()
+
+        compose.onNode(digest).assertIsOff()
+        compose.onNodeWithText("Rappels de livraison").assertIsOn()
+        assertEquals(NotificationSettings(setOf(NotificationKind.DIGEST)), graph.notificationSettings.settings.value)
+    }
+
     @Test fun `logging out asks first`() {
         show()
-        scrollToAccount()
 
         compose.onNodeWithText("Se déconnecter").performClick()
         compose.onNodeWithText("Se déconnecter ?").assertIsDisplayed()

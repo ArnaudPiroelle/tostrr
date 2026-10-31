@@ -17,6 +17,8 @@ import androidx.core.content.ContextCompat
 import app.tostrr.domain.alert.Alert
 import app.tostrr.domain.alert.OrderAlerts
 import app.tostrr.domain.alert.TrackedDate
+import app.tostrr.domain.notification.NotificationKind
+import app.tostrr.domain.notification.NotificationSettingsRepository
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.OptionRepository
@@ -25,11 +27,16 @@ import org.koin.core.annotation.Single
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
-/** Posts what a sync found out: steps done or undone, order changes, delivery reminders, the daily digest and sync problems. */
+/**
+ * Posts what a sync found out: steps done or undone, order changes, delivery reminders, the daily digest and sync problems.
+ * A kind the user turned off in the settings is skipped, but still counts as told (reminders, digest) so turning it back
+ * on doesn't bring back old news.
+ */
 @Single
 class OrderNotifier(
     private val context: Context,
     private val catalog: OptionRepository,
+    private val settings: NotificationSettingsRepository,
 ) {
     private val prefs = context.getSharedPreferences("tostrr_notifications", Context.MODE_PRIVATE)
 
@@ -200,7 +207,7 @@ class OrderNotifier(
     }
 
     private fun notify(id: Int, channel: Channel, title: String, text: String, bigText: String, onlyAlertOnce: Boolean) {
-        if (!canNotify()) return
+        if (!canNotify() || !settings.settings.value.isEnabled(channel.kind)) return
         ensureChannel(channel)
         // The data layer doesn't know the app's activities: open whatever the launcher opens.
         val launch = checkNotNull(context.packageManager.getLaunchIntentForPackage(context.packageName))
@@ -232,13 +239,13 @@ class OrderNotifier(
         }
     }
 
-    private enum class Channel(val id: String, @StringRes val title: Int, val importance: Int) {
-        Progress("order_progress", R.string.channel_progress, NotificationManager.IMPORTANCE_DEFAULT),
-        Alerts("order_alerts", R.string.channel_alerts, NotificationManager.IMPORTANCE_DEFAULT),
-        Reminders("order_reminders", R.string.channel_reminders, NotificationManager.IMPORTANCE_DEFAULT),
-        Minor("order_minor", R.string.channel_minor, NotificationManager.IMPORTANCE_LOW),
-        Digest("order_digest", R.string.channel_digest, NotificationManager.IMPORTANCE_LOW),
-        Sync("order_sync", R.string.channel_sync, NotificationManager.IMPORTANCE_HIGH),
+    private enum class Channel(val id: String, @StringRes val title: Int, val importance: Int, val kind: NotificationKind) {
+        Progress("order_progress", R.string.channel_progress, NotificationManager.IMPORTANCE_DEFAULT, NotificationKind.PROGRESS),
+        Alerts("order_alerts", R.string.channel_alerts, NotificationManager.IMPORTANCE_DEFAULT, NotificationKind.ALERTS),
+        Reminders("order_reminders", R.string.channel_reminders, NotificationManager.IMPORTANCE_DEFAULT, NotificationKind.REMINDERS),
+        Minor("order_minor", R.string.channel_minor, NotificationManager.IMPORTANCE_LOW, NotificationKind.MINOR_UPDATES),
+        Digest("order_digest", R.string.channel_digest, NotificationManager.IMPORTANCE_LOW, NotificationKind.DIGEST),
+        Sync("order_sync", R.string.channel_sync, NotificationManager.IMPORTANCE_HIGH, NotificationKind.SYNC_PROBLEMS),
     }
 
     /** What a step becoming done tells, and its name in the regression notification. */
