@@ -31,6 +31,10 @@ android {
         compose = true
         buildConfig = true
     }
+    // Robolectric renders the screens on the JVM: it needs the merged resources and manifest.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -70,7 +74,13 @@ dependencies {
     implementation(libs.koin.annotations)
     ksp(libs.koin.ksp.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // The empty activity the Compose test rule hosts screens in.
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(platform(libs.koin.bom))
     testImplementation(libs.koin.test)
 }

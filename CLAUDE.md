@@ -16,11 +16,11 @@ The system `java` here is a JRE without javac and Android Studio's JBR is too ne
 JAVA_HOME=/home/arnaud/.gradle/jdks/eclipse_adoptium-21-amd64-linux.2 ./gradlew :app:assembleDebug
 ```
 
-- Unit tests: `./gradlew :domain:test :app:testDebugUnitTest` (the latter is only the Koin graph check)
+- Unit tests: `./gradlew :domain:test :app:testDebugUnitTest` (the latter: ViewModel tests, screen tests and the Koin graph check)
 - Single test: `./gradlew :domain:test --tests 'app.tostrr.domain.alert.OrderAlertsTest'` (append `.methodName` for one method)
 - Install: `ANDROID_SERIAL=<serial> ./gradlew :app:installDebug` — always set `ANDROID_SERIAL`, otherwise it installs on every connected device.
 
-There is no lint/format config beyond `kotlin.code.style=official`. Tests are plain JUnit 4 under `domain/src/test`, covering only the pure `:domain` module, plus `KoinGraphTest` under `app/src/test` (no Android/instrumented tests).
+There is no lint/format config beyond `kotlin.code.style=official`. Tests are JUnit 4, all on the JVM (no instrumented tests: on a device they would run inside the real `app.tostrr` install and its session). `domain/src/test` covers the pure `:domain` module. `app/src/test` has `KoinGraphTest`, a unit test per ViewModel (`MainDispatcherRule`, `watch(viewModel)` to subscribe to its state, `sideEffects(viewModel)`) and a Compose test per screen (`…ScreenTest`, Robolectric on SDK 35 with a bare `Application`, see `app/src/test/resources/robolectric.properties`), which renders the real screen with its real ViewModel and use cases. Both build them through `testing/TestGraph` on the in-memory fakes of `testing/Fakes.kt` (one per repository interface; set their state, read what was called); a new ViewModel or use case gets its factory there, a new repository its fake.
 
 `api/` contains only stale build output from removed modules; it is not part of the Gradle build.
 

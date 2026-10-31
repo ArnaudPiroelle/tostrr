@@ -15,6 +15,7 @@ room = "2.8.1"
 ksp = "2.2.0-2.0.2"
 koin = "4.1.1"
 koinAnnotations = "2.3.1"
+robolectric = "4.16"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.16.0" }
@@ -52,6 +53,10 @@ koin-annotations-bom = { module = "io.insert-koin:koin-annotations-bom", version
 koin-annotations = { module = "io.insert-koin:koin-annotations" }
 koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koinAnnotations" }
 junit = { module = "junit:junit", version = "4.13.2" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

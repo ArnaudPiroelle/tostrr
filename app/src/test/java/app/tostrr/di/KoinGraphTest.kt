@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.work.WorkerParameters
 import app.tostrr.ui.checklist.ChecklistViewModel
+import app.tostrr.ui.detail.DetailViewModel
 import org.junit.Test
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.ksp.generated.module
@@ -24,7 +25,10 @@ class KoinGraphTest {
             // Supplied by Android / Koin at runtime: androidContext(), WorkManager and each screen's saved state.
             extraTypes = listOf(Context::class, WorkerParameters::class, SavedStateHandle::class),
             // Passed by the screen with parametersOf().
-            injections = injectedParameters(definition<ChecklistViewModel>(String::class)),
+            injections = injectedParameters(
+                definition<ChecklistViewModel>(String::class),
+                definition<DetailViewModel>(String::class),
+            ),
         )
     }
 }
