@@ -15,7 +15,7 @@ import org.koin.core.annotation.Single
 import java.util.Locale
 import java.util.UUID
 
-/** Raw, schema-less access to the private Tesla order endpoints (payloads change often). */
+/** Raw, schema-less access to the private Tesla order and account endpoints (payloads change often). */
 @Single
 class TeslaApi(private val client: OkHttpClient) {
 
@@ -23,6 +23,10 @@ class TeslaApi(private val client: OkHttpClient) {
         val root = get(ORDERS_URL.toHttpUrl(), accessToken)
         return root.jsonObject["response"]?.jsonArray ?: JsonArray(emptyList())
     }
+
+    /** The account profile (`full_name`, `email`, ...), unwrapped from `response`. */
+    suspend fun me(accessToken: String): JsonObject? =
+        get(ME_URL.toHttpUrl(), accessToken).jsonObject["response"] as? JsonObject
 
     suspend fun orderTasks(accessToken: String, referenceNumber: String, locale: Locale = Locale.getDefault()): JsonObject {
         val url = TASKS_URL.toHttpUrl().newBuilder()
@@ -50,6 +54,7 @@ class TeslaApi(private val client: OkHttpClient) {
 
     private companion object {
         const val ORDERS_URL = "https://owner-api.teslamotors.com/api/1/users/orders"
+        const val ME_URL = "https://owner-api.teslamotors.com/api/1/users/me"
         const val TASKS_URL = "https://akamai-apigateway-vfx.tesla.com/tasks"
         const val APP_VERSION = "9.99.9-9999"
         const val USER_AGENT = "Tesla/4.55.5 (com.teslamotors.tesla; build:4193; Android 14)"

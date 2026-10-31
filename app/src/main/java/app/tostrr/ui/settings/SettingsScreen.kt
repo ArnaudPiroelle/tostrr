@@ -10,19 +10,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.CircleShape
+import coil3.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -48,6 +60,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.ui.theme.TostrrColors
@@ -58,6 +71,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
     val sync by viewModel.sync.collectAsState()
+    val account by viewModel.account.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -79,7 +93,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             item { SyncSection(sync, onAutoSyncChange = viewModel::setAutoSync, onIntervalChange = viewModel::setSyncInterval) }
-            item { AccountSection(onLogout = viewModel::logout) }
+            item { AccountSection(account, onLogout = viewModel::logout) }
         }
     }
 }
@@ -116,20 +130,32 @@ private fun SyncSection(
 }
 
 @Composable
-private fun AccountSection(onLogout: () -> Unit) {
+private fun AccountSection(account: TeslaAccount?, onLogout: () -> Unit) {
     var confirmLogout by rememberSaveable { mutableStateOf(false) }
-    SettingsSection("Compte") {
-        ListItem(
-            headlineContent = { Text("Se déconnecter", color = MaterialTheme.colorScheme.error) },
-            supportingContent = {
-                Text("Supprime les commandes et l'historique de cet appareil.", color = TostrrColors.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            },
-            leadingContent = {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-            },
-            colors = ListItemDefaults.colors(containerColor = TostrrColors.Surface),
-            modifier = Modifier.clickable(role = Role.Button) { confirmLogout = true },
-        )
+    SettingsSection("Compte Tesla") {
+        // Who is logged in, when Tesla gave the account's name.
+        if (account != null) {
+            ListItem(
+                overlineContent = { Text("Connecté en tant que", style = MaterialTheme.typography.bodySmall, color = TostrrColors.Muted) },
+                headlineContent = { Text(account.fullName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingContent = { Avatar(account.avatarUrl) },
+                colors = ListItemDefaults.colors(containerColor = TostrrColors.Surface),
+            )
+        }
+        // An action, not a setting: a plain button.
+        OutlinedButton(
+            onClick = { confirmLogout = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = if (account != null) 0.dp else 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+            Text("Se déconnecter")
+        }
     }
 
     if (confirmLogout) {
@@ -154,6 +180,27 @@ private fun AccountSection(onLogout: () -> Unit) {
             dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Annuler") } },
         )
     }
+}
+
+/** The account picture, round; the generic icon while it loads, or when there is none or it fails. */
+@Composable
+private fun Avatar(url: String?) {
+    val fallback = rememberVectorPainter(Icons.Outlined.AccountCircle)
+    // Only the icon is tinted, never the photo.
+    var loaded by remember(url) { mutableStateOf(false) }
+    AsyncImage(
+        model = url,
+        contentDescription = null,
+        placeholder = fallback,
+        error = fallback,
+        fallback = fallback,
+        onLoading = { loaded = false },
+        onSuccess = { loaded = true },
+        onError = { loaded = false },
+        contentScale = ContentScale.Crop,
+        colorFilter = if (loaded) null else ColorFilter.tint(TostrrColors.Muted),
+        modifier = Modifier.size(40.dp).clip(CircleShape),
+    )
 }
 
 /** A titled group of settings rows. */
