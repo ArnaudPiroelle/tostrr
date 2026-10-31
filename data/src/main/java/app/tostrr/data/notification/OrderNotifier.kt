@@ -60,7 +60,7 @@ class OrderNotifier(
         post(order, alert.key, alert.title, alert.text.lineSequence().first(), alert.text, channel = Channel.Minor)
     }
 
-    /** Once per horizon and appointment: the reminder is remembered so the 15-minute sync doesn't repeat it. */
+    /** Once per horizon and appointment: the reminder is remembered so the periodic sync doesn't repeat it. */
     fun notifyReminder(order: Order, now: Long) {
         val alert = OrderAlerts.reminder(order, now) ?: return
         val sent = prefs.getStringSet(PREF_REMINDERS, emptySet()).orEmpty()

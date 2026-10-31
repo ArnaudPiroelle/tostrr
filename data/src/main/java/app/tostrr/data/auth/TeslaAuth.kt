@@ -6,6 +6,9 @@ import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.error.SessionExpiredException
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -28,6 +31,9 @@ class TeslaAuth(
     private val client: OkHttpClient,
     private val store: TokenStore,
 ) : AuthRepository {
+    private val _loggedIn = MutableStateFlow(store.load() != null)
+    override val loggedIn: StateFlow<Boolean> = _loggedIn.asStateFlow()
+
     /** Builds the login URL and persists the PKCE verifier/state for the callback. */
     override fun startLogin(): String {
         val verifier = randomUrlSafe(32)
@@ -69,6 +75,7 @@ class TeslaAuth(
             store.save(it)
             // A code can only be exchanged once: replaying the same redirect must start a new login.
             store.clearPending()
+            _loggedIn.value = true
         }
     }
 
@@ -86,9 +93,10 @@ class TeslaAuth(
         return tokenRequest(body, previousRefresh = tokens.refreshToken).also(store::save).accessToken
     }
 
-    override fun isLoggedIn(): Boolean = store.load() != null
-
-    override fun logout() = store.clear()
+    override fun logout() {
+        store.clear()
+        _loggedIn.value = false
+    }
 
     private suspend fun tokenRequest(body: FormBody, previousRefresh: String?): Tokens =
         withContext(Dispatchers.IO) {

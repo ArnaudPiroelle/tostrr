@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tostrr.domain.auth.usecase.CompleteLoginUseCase
-import app.tostrr.domain.auth.usecase.IsLoggedInUseCase
+import app.tostrr.domain.auth.usecase.ObserveLoggedInUseCase
 import app.tostrr.domain.auth.usecase.LogoutUseCase
 import app.tostrr.domain.auth.usecase.StartLoginUseCase
 import app.tostrr.domain.checklist.Checklist
@@ -34,7 +34,7 @@ const val REFRESH_COOLDOWN_MS = 30_000L
 
 @KoinViewModel
 class MainViewModel(
-    isLoggedInUseCase: IsLoggedInUseCase,
+    observeLoggedInUseCase: ObserveLoggedInUseCase,
     private val startLoginUseCase: StartLoginUseCase,
     private val completeLoginUseCase: CompleteLoginUseCase,
     private val logoutUseCase: LogoutUseCase,
@@ -49,8 +49,8 @@ class MainViewModel(
     val history: StateFlow<Map<String, List<Change>>> = observeOrderHistoryUseCase()
     val optionCodes: StateFlow<Map<String, OptionInfo>> = observeOptionCodesUseCase()
 
-    private val _loggedIn = MutableStateFlow(isLoggedInUseCase())
-    val loggedIn: StateFlow<Boolean> = _loggedIn.asStateFlow()
+    /** Logging out happens in the settings; the activity swaps the back stack when this flips. */
+    val loggedIn: StateFlow<Boolean> = observeLoggedInUseCase()
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
@@ -66,7 +66,7 @@ class MainViewModel(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        if (_loggedIn.value) refresh()
+        if (loggedIn.value) refresh()
     }
 
     fun startLogin(): Uri {
@@ -81,13 +81,12 @@ class MainViewModel(
     /** Called with the `tesla://auth/callback?...` URI, from the deep link or a pasted URL. */
     fun handleRedirect(redirect: String) {
         // A redirect delivered twice (deep link, then a paste) would fail: its code was already exchanged.
-        if (_loggedIn.value) return
+        if (loggedIn.value) return
         viewModelScope.launch {
             _busy.value = true
             _error.value = null
             try {
                 completeLoginUseCase(redirect)
-                _loggedIn.value = true
                 refresh()
             } catch (e: CancellationException) {
                 throw e
@@ -113,7 +112,7 @@ class MainViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: SessionExpiredException) {
-                logout()
+                logoutUseCase()
                 _error.value = e.message
             } catch (e: Exception) {
                 // Auth and API errors carry a message meant for the user; anything else gets context.
@@ -124,8 +123,4 @@ class MainViewModel(
         }
     }
 
-    fun logout() {
-        logoutUseCase()
-        _loggedIn.value = false
-    }
 }

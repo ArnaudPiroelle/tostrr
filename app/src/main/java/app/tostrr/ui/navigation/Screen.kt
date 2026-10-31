@@ -17,4 +17,7 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data class Checklist(val reference: String) : Screen
+
+    @Serializable
+    data object Settings : Screen
 }

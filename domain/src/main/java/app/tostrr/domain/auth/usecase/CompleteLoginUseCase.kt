@@ -1,7 +1,7 @@
 package app.tostrr.domain.auth.usecase
 
 import app.tostrr.domain.auth.AuthRepository
-import app.tostrr.domain.sync.SyncScheduler
+import app.tostrr.domain.sync.usecase.StartBackgroundSyncUseCase
 import org.koin.core.annotation.Factory
 
 /**
@@ -11,10 +11,10 @@ import org.koin.core.annotation.Factory
 @Factory
 class CompleteLoginUseCase(
     private val auth: AuthRepository,
-    private val scheduler: SyncScheduler,
+    private val startBackgroundSyncUseCase: StartBackgroundSyncUseCase,
 ) {
     suspend operator fun invoke(redirect: String) {
         auth.completeLogin(redirect)
-        scheduler.schedule()
+        startBackgroundSyncUseCase()
     }
 }

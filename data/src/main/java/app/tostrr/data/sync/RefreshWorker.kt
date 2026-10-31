@@ -13,6 +13,7 @@ import app.tostrr.domain.auth.AuthRepository
 import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.error.SessionExpiredException
 import app.tostrr.domain.order.OrderRepository
+import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncScheduler
 import kotlinx.coroutines.CancellationException
 import org.koin.android.annotation.KoinWorker
@@ -61,9 +62,9 @@ class RefreshWorker(
 @Single
 class RefreshScheduler(private val workManager: WorkManager) : SyncScheduler {
 
-    /** Idempotent: keeps the existing schedule if one is already enqueued. */
-    override fun schedule() {
-        val request = PeriodicWorkRequestBuilder<RefreshWorker>(15, TimeUnit.MINUTES)
+    /** Idempotent: [ExistingPeriodicWorkPolicy.UPDATE] keeps an enqueued schedule, only changing its period if needed. */
+    override fun schedule(interval: SyncInterval) {
+        val request = PeriodicWorkRequestBuilder<RefreshWorker>(interval.minutes, TimeUnit.MINUTES)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
         workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)

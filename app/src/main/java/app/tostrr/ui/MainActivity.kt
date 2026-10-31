@@ -34,6 +34,7 @@ import app.tostrr.ui.login.LoginScreen
 import app.tostrr.ui.navigation.Screen
 import app.tostrr.ui.navigation.Transitions
 import app.tostrr.ui.orders.OrdersScreen
+import app.tostrr.ui.settings.SettingsScreen
 import app.tostrr.ui.theme.TostrrTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -119,7 +120,7 @@ class MainActivity : ComponentActivity() {
                                 error = error,
                                 onRefresh = viewModel::refresh,
                                 onOpen = { backStack.add(Screen.OrderDetail(it.reference)) },
-                                onLogout = viewModel::logout,
+                                onOpenSettings = { backStack.add(Screen.Settings) },
                             )
                         }
                         entry<Screen.OrderDetail> { key ->
@@ -143,6 +144,9 @@ class MainActivity : ComponentActivity() {
                         }
                         entry<Screen.Checklist> { key ->
                             ChecklistScreen(orderReference = key.reference, onClose = { backStack.removeLastOrNull() })
+                        }
+                        entry<Screen.Settings> {
+                            SettingsScreen(onBack = { backStack.removeLastOrNull() })
                         }
                     },
                 )
@@ -173,7 +177,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Asks once, with the system dialog, to exempt the app from battery optimisation: otherwise the 15-minute background
+     * Asks once, with the system dialog, to exempt the app from battery optimisation: otherwise the periodic background
      * sync (hence the widget) can be deferred for hours. Not asked again after a refusal.
      */
     @SuppressLint("BatteryLife")

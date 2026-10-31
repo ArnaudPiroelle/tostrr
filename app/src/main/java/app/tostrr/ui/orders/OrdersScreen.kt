@@ -19,14 +19,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -103,10 +99,9 @@ fun OrdersScreen(
     error: String?,
     onRefresh: () -> Unit,
     onOpen: (Order) -> Unit,
-    onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    var confirmLogout by rememberSaveable { mutableStateOf(false) }
     val tooltipState = rememberTooltipState(isPersistent = true)
 
     // Ticks once per second while the cooldown is running so the label and button state stay current.
@@ -133,29 +128,6 @@ fun OrdersScreen(
         } else {
             onRefresh()
         }
-    }
-
-    if (confirmLogout) {
-        AlertDialog(
-            onDismissRequest = { confirmLogout = false },
-            containerColor = TostrrColors.SurfaceHigh,
-            title = { Text("Se déconnecter ?") },
-            text = {
-                Text(
-                    "Vos commandes en cache et l'historique des modifications seront supprimés de cet appareil.",
-                    color = TostrrColors.Muted,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmLogout = false
-                        onLogout()
-                    },
-                ) { Text("Se déconnecter", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Annuler") } },
-        )
     }
 
     Scaffold(
@@ -192,8 +164,8 @@ fun OrdersScreen(
                             }
                         }
                     }
-                    IconButton(onClick = { confirmLogout = true }) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Se déconnecter")
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Outlined.Settings, contentDescription = "Réglages")
                     }
                 },
             )
