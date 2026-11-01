@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/countdown_widget_description"
+    android:minWidth="110dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:configure="app.tostrr.widget.OrderWidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
+    android:previewImage="@drawable/countdown_widget_preview"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

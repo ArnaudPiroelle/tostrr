@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static launcher shortcut; the per-order ones are published at runtime by OrderShortcuts. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="orders"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_orders"
+        android:shortcutShortLabel="@string/shortcut_orders_short"
+        android:shortcutLongLabel="@string/shortcut_orders_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="tostrr://orders"
+            android:targetClass="app.tostrr.ui.MainActivity"
+            android:targetPackage="app.tostrr" />
+    </shortcut>
+</shortcuts>

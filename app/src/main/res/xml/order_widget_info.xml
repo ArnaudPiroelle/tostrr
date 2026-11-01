@@ -6,7 +6,7 @@
     android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"
-    android:configure="com.tostrr.widget.OrderWidgetConfigActivity"
+    android:configure="app.tostrr.widget.OrderWidgetConfigActivity"
     android:widgetFeatures="reconfigurable"
     android:previewImage="@drawable/widget_preview"
     android:updatePeriodMillis="0"
