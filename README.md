@@ -78,7 +78,7 @@ On every sync, Tostrr:
 3. compares the result with the previous sync and records each change in the order's history;
 4. posts a notification for what matters, and redraws the widgets.
 
-Nothing goes through a third-party server: your phone talks to Tesla directly.
+Nothing goes through a third-party server: your phone talks to Tesla directly (crash reports aside, see [Privacy & security](#privacy--security)).
 
 ---
 
@@ -153,7 +153,8 @@ One screen per check: mark it **checked** or **skip** it, with a comment or a **
 ## Privacy & security
 
 * **Read-only.** Tostrr only reads your orders. It contains nothing that could change, cancel or pay for an order, or control a car.
-* **Your phone talks to Tesla, and nobody else.** No account, no analytics, no trackers, no Tostrr server. The only other requests are to fetch Tesla's car pictures and, best effort, readable option names from [tesla-order-status-tracker.de](https://www.tesla-order-status-tracker.de) (option codes only, nothing about you).
+* **Your phone talks to Tesla, and nobody else but Crashlytics.** No account, no analytics, no ads, no Tostrr server. The only other requests are to fetch Tesla's car pictures and, best effort, readable option names from [tesla-order-status-tracker.de](https://www.tesla-order-status-tracker.de) (option codes only, nothing about you).
+* **Crash reports are the only tracking.** Released builds use [Firebase Crashlytics](https://firebase.google.com/products/crashlytics): when the app crashes it sends the stack trace, the phone model, the Android and app versions; on each launch it also sends a session ping with a random Firebase installation ID, so the crash-free rate can be computed. Never your Tesla account, tokens or order data. Builds from source send nothing unless you add your own `app/google-services.json`.
 * **No password stored.** You sign in on Tesla's own page; Tostrr only keeps the tokens Tesla gives it, **encrypted with a key held in the Android Keystore**.
 * **No cloud backup.** The app's data is excluded from Android backups. Signing out removes your tokens, your account details, your cached orders and their history from the phone.
 

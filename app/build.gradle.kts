@@ -8,6 +8,14 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Crash reports go to the Firebase project whose git-ignored google-services.json is in app/ (on CI, from the
+// TOSTRR_GOOGLE_SERVICES_JSON secret). Without it the app builds and runs the same, with Crashlytics turned off.
+val hasFirebaseConfig = file("google-services.json").exists()
+if (hasFirebaseConfig) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
+    apply(plugin = libs.plugins.firebase.crashlytics.get().pluginId)
+}
+
 /**
  * The release signing key, from Gradle properties (on CI, `ORG_GRADLE_PROJECT_tostrr…` environment variables) or else
  * from a git-ignored `signing.properties` at the project root. Without it the release build is left unsigned.
@@ -30,6 +38,8 @@ android {
         // The release workflow sets the code from its run number; bump the name to publish a new release from main.
         versionCode = providers.gradleProperty("tostrrVersionCode").orNull?.toInt() ?: 1
         versionName = "0.1.0"
+        // Crashlytics only collects from release builds that have the Firebase config.
+        manifestPlaceholders["crashlyticsEnabled"] = false
     }
 
     signingConfigs {
@@ -49,6 +59,7 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release")
+            manifestPlaceholders["crashlyticsEnabled"] = hasFirebaseConfig
         }
     }
     compileOptions {
@@ -105,6 +116,8 @@ dependencies {
     implementation(platform(libs.koin.annotations.bom))
     implementation(libs.koin.annotations)
     ksp(libs.koin.ksp.compiler)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
     debugImplementation(libs.androidx.compose.ui.tooling)
     // The empty activity the Compose test rule hosts screens in.
     debugImplementation(libs.androidx.compose.ui.test.manifest)

@@ -1,7 +1,8 @@
 # Every push to main publishes the version set in app/build.gradle.kts (versionName) as a GitHub release, with
 # the signed APK, once: when its tag vX.Y.Z already exists the version wasn't bumped and nothing is published.
 # A versionName with a suffix (1.2.0-beta.1) is published as a pre-release. The signing key comes from the
-# repository secrets TOSTRR_KEYSTORE_BASE64, TOSTRR_KEYSTORE_PASSWORD, TOSTRR_KEY_ALIAS and TOSTRR_KEY_PASSWORD.
+# repository secrets TOSTRR_KEYSTORE_BASE64, TOSTRR_KEYSTORE_PASSWORD, TOSTRR_KEY_ALIAS and TOSTRR_KEY_PASSWORD; the
+# Firebase config that turns Crashlytics on (and uploads the R8 mapping) from TOSTRR_GOOGLE_SERVICES_JSON, if set.
 name: Release
 
 on:
@@ -59,12 +60,18 @@ jobs:
         if: steps.version.outputs.publish == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.TOSTRR_KEYSTORE_BASE64 }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.TOSTRR_GOOGLE_SERVICES_JSON }}
           ORG_GRADLE_PROJECT_tostrrStorePassword: ${{ secrets.TOSTRR_KEYSTORE_PASSWORD }}
           ORG_GRADLE_PROJECT_tostrrKeyAlias: ${{ secrets.TOSTRR_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_tostrrKeyPassword: ${{ secrets.TOSTRR_KEY_PASSWORD }}
         run: |
           keystore="$RUNNER_TEMP/release.jks"
           echo "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          if [[ -n "$GOOGLE_SERVICES_JSON" ]]; then
+            echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          else
+            echo "::warning::No TOSTRR_GOOGLE_SERVICES_JSON secret: this release has Crashlytics turned off."
+          fi
           # The run number only grows, as Android requires for an update to install.
           ./gradlew :app:assembleRelease \
             -PtostrrStoreFile="$keystore" \
