@@ -12,6 +12,7 @@ import app.tostrr.data.testing.FakeHttp
 import app.tostrr.domain.error.ApiException
 import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
+import app.tostrr.domain.order.OrderMapper
 import app.tostrr.domain.order.StepKind
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -27,6 +28,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.zip.GZIPInputStream
 
 @RunWith(RobolectricTestRunner::class)
@@ -111,6 +114,46 @@ class OrderRepositoryImplTest {
         assertNull(change.oldValue)
         assertTrue(change.structured)
         assertTrue(repository.orders.value.single().steps.first { it.kind == StepKind.REGISTERED }.done)
+    }
+
+    @Test fun `the vin step is dated by the sync that first saw it, also after a restart`() = runTest {
+        val repository = repository()
+        repository.refresh()
+        assertNull(repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
+
+        orders("""{"referenceNumber":"RN1","modelCode":"my","orderStatus":"BOOKED","vin":"VIN1"}""")
+        repository.refresh()
+
+        val today = OrderMapper.formatDate(LocalDate.now().toString())
+        assertEquals(today, repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
+        assertEquals(today, repository().orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
+    }
+
+    @Test fun `a vin already there on the first sync is dated by that sync, once`() = runTest {
+        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"VIN1"}""")
+        val repository = repository()
+        repository.refresh()
+        val step = repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }
+        assertTrue(step.done)
+        assertEquals(OrderMapper.formatDate(LocalDate.now().toString()), step.date)
+
+        val recorded = repository.history.value.getValue("RN1").single()
+        assertEquals("order.vin", recorded.key)
+        repository.refresh()
+        assertEquals(listOf(recorded), repository.history.value.getValue("RN1"))
+    }
+
+    @Test fun `a vin cached without a date is dated by the sync of that cache`() = runTest {
+        val fetchedAt = LocalDate.of(2026, 11, 2).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        File(context.filesDir, "orders.json").writeText(
+            """[{"fetchedAt":$fetchedAt,"raw":{"order":{"referenceNumber":"RN1","modelCode":"my","vin":"VIN1"},"details":{"tasks":{}}}}]""",
+        )
+        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"VIN1"}""")
+        tasks("{}")
+        val repository = repository()
+        assertNull(repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
+        repository.refresh()
+        assertEquals(OrderMapper.formatDate("2026-11-02"), repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
     }
 
     @Test fun `entries of paths ignored since are dropped from the saved history`() {

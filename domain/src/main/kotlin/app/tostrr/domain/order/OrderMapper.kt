@@ -149,6 +149,9 @@ object OrderMapper {
         "finalPayment.data.vin",
     )
 
+    /** Where the VIN is read, in the same order, as paths of [Order.raw] and of the history. */
+    internal val VIN_KEYS = listOf("order.vin") + VIN_PATHS.map { "details.tasks.$it" }
+
     /** Where the ETA is read first, before any other `etaToDeliveryCenter` in the tree. */
     private val ETA_PATHS = listOf("scheduling.etaToDeliveryCenter", "finalPayment.data.etaToDeliveryCenter")
 
