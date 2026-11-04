@@ -79,17 +79,11 @@ internal fun Hero(order: Order) {
                     color = TostrrColors.Muted,
                     modifier = Modifier.padding(top = 2.dp),
                 )
-                Text(
-                    stringResource(R.string.order_vin, order.vin ?: stringResource(R.string.order_vin_unknown)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TostrrColors.Muted,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
+                VinRow(order.vin, Modifier.padding(top = 4.dp))
                 Text(
                     stringResource(R.string.order_updated_at, formatDateTime(order.fetchedAtEpochMs)),
                     style = MaterialTheme.typography.labelSmall,
                     color = TostrrColors.Muted,
-                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
         }

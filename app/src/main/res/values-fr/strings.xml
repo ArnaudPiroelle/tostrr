@@ -67,6 +67,9 @@
     <string name="orders_empty">Aucune commande en cours.</string>
 
     <!-- Order detail -->
+    <string name="detail_vin_clip_label">VIN</string>
+    <string name="detail_vin_copy">Copier le VIN</string>
+    <string name="detail_vin_copied">VIN copié</string>
     <string name="detail_arrange">Organiser la page</string>
     <string name="detail_arrange_reset">Réinitialiser</string>
     <string name="detail_arrange_shown">Affichées</string>
