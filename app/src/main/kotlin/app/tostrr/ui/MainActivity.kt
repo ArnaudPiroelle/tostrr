@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -33,6 +34,7 @@ import app.tostrr.ui.settings.SettingsScreen
 import app.tostrr.ui.theme.TostrrTheme
 import app.tostrr.ui.theme.applySystemBars
 import app.tostrr.ui.theme.isDark
+import app.tostrr.ui.update.UpdateScreen
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -90,6 +92,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Offered once per version from the orders list, so it never comes between a deep link and its screen.
+                var offeredUpdate by rememberSaveable { mutableStateOf<String?>(null) }
+                LaunchedEffect(state.availableUpdate, backStack.lastOrNull(), pendingOrderRef, pendingOrdersList) {
+                    val version = state.availableUpdate ?: return@LaunchedEffect
+                    if (version != offeredUpdate && backStack.lastOrNull() == Screen.Orders &&
+                        pendingOrderRef == null && !pendingOrdersList
+                    ) {
+                        offeredUpdate = version
+                        backStack.add(Screen.Update)
+                    }
+                }
+
                 NavDisplay(
                     backStack = backStack,
                     onBack = { backStack.removeLastOrNull() },
@@ -122,7 +136,13 @@ class MainActivity : ComponentActivity() {
                             ChecklistScreen(orderReference = key.reference, onClose = { backStack.removeLastOrNull() })
                         }
                         entry<Screen.Settings> {
-                            SettingsScreen(onBack = { backStack.removeLastOrNull() })
+                            SettingsScreen(
+                                onBack = { backStack.removeLastOrNull() },
+                                onOpenUpdate = { backStack.add(Screen.Update) },
+                            )
+                        }
+                        entry<Screen.Update> {
+                            UpdateScreen(onClose = { backStack.remove(Screen.Update) })
                         }
                     },
                 )

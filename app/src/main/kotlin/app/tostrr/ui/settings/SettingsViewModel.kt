@@ -17,6 +17,8 @@ import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.domain.sync.usecase.ObserveSyncSettingsUseCase
 import app.tostrr.domain.sync.usecase.SetAutoSyncUseCase
 import app.tostrr.domain.sync.usecase.SetSyncIntervalUseCase
+import app.tostrr.domain.update.AppUpdate
+import app.tostrr.domain.update.usecase.ObserveAvailableUpdateUseCase
 import app.tostrr.ui.architecture.BaseAction
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel
@@ -38,6 +40,7 @@ class SettingsViewModel(
     observeSyncSettingsUseCase: ObserveSyncSettingsUseCase,
     observeNotificationSettingsUseCase: ObserveNotificationSettingsUseCase,
     observeTeslaAccountUseCase: ObserveTeslaAccountUseCase,
+    observeAvailableUpdateUseCase: ObserveAvailableUpdateUseCase,
     loadTeslaAccountUseCase: LoadTeslaAccountUseCase,
     private val setThemeModeUseCase: SetThemeModeUseCase,
     private val setAutoSyncUseCase: SetAutoSyncUseCase,
@@ -51,6 +54,7 @@ class SettingsViewModel(
         observeSyncSettingsUseCase(),
         observeNotificationSettingsUseCase(),
         observeTeslaAccountUseCase(),
+        observeAvailableUpdateUseCase(),
         ::State,
     )
         // The profile is fetched once the screen watches it; it lands through the account flow.
@@ -63,6 +67,7 @@ class SettingsViewModel(
                 observeSyncSettingsUseCase().value,
                 observeNotificationSettingsUseCase().value,
                 observeTeslaAccountUseCase().value,
+                observeAvailableUpdateUseCase().value,
             ),
         )
 
@@ -82,6 +87,8 @@ class SettingsViewModel(
         val notifications: NotificationSettings = NotificationSettings(),
         /** Null until the profile is loaded, or if Tesla didn't give it. */
         val account: TeslaAccount? = null,
+        /** The newer release, even one left for later. */
+        val update: AppUpdate? = null,
     ) : BaseState
 
     sealed class Action : BaseAction {

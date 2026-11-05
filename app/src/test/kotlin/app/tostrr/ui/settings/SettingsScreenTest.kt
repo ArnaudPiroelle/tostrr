@@ -18,6 +18,7 @@ import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.notification.NotificationKind
 import app.tostrr.domain.notification.NotificationSettings
 import app.tostrr.domain.sync.SyncInterval
+import app.tostrr.domain.update.AppUpdate
 import app.tostrr.testing.TestGraph
 import app.tostrr.ui.theme.TostrrTheme
 import org.junit.Assert.assertEquals
@@ -40,6 +41,24 @@ class SettingsScreenTest {
 
     /** The sync section comes after the account and the theme, below the fold of the test screen. */
     private fun scrollToSync() = compose.onNode(hasScrollAction()).performScrollToNode(hasText("Fréquence"))
+
+    @Test fun `an update left for later is one tap away`() {
+        graph.updates.update.value = AppUpdate("0.2.0", "", "https://example.com/a.apk", 1)
+        var opened = false
+        compose.setContent {
+            TostrrTheme { SettingsScreen(onBack = {}, onOpenUpdate = { opened = true }, viewModel = graph.settingsViewModel()) }
+        }
+
+        compose.onNodeWithText("Version 0.2.0 disponible").assertIsDisplayed().performClick()
+
+        assertTrue(opened)
+    }
+
+    @Test fun `up to date, no update section`() {
+        show()
+
+        compose.onNodeWithText("Mise à jour").assertDoesNotExist()
+    }
 
     @Test fun `shows who is logged in`() {
         graph.account.account.value = TeslaAccount("Ada Lovelace")

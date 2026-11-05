@@ -12,12 +12,14 @@ import androidx.compose.ui.test.performScrollToNode
 import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.checklist.Checklist
 import app.tostrr.domain.error.ApiException
+import app.tostrr.domain.update.AppUpdate
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
 import app.tostrr.ui.checklist.ChecklistScreen
 import app.tostrr.ui.orders.OrdersScreen
 import app.tostrr.ui.settings.SettingsScreen
 import app.tostrr.ui.theme.TostrrTheme
+import app.tostrr.ui.update.UpdateScreen
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,6 +47,15 @@ class EnglishScreensTest {
         compose.onNodeWithText("Automatic refresh").assertIsDisplayed()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Daily summary"))
         compose.onNodeWithText("Delivery reminders").assertIsDisplayed()
+    }
+
+    @Test fun `update`() {
+        graph.updates.update.value = AppUpdate("0.2.0", "Notes", "https://example.com/a.apk", 3_500_000)
+        compose.setContent { TostrrTheme { UpdateScreen(onClose = {}, viewModel = graph.updateViewModel()) } }
+
+        compose.onNodeWithText("New version available").assertIsDisplayed()
+        compose.onNodeWithText("Update").assertIsDisplayed()
+        compose.onNodeWithText("Later").assertIsDisplayed()
     }
 
     @Test fun `orders, their steps and a refresh error`() {

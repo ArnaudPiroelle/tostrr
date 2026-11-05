@@ -25,8 +25,12 @@ import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncScheduler
 import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.domain.sync.SyncSettingsRepository
+import app.tostrr.domain.update.AppUpdate
+import app.tostrr.domain.update.UpdateDownload
+import app.tostrr.domain.update.UpdateRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.io.File
 import java.io.InputStream
@@ -54,6 +58,31 @@ class FakeAuthRepository(loggedIn: Boolean = true) : AuthRepository {
 
     companion object {
         const val LOGIN_URL = "https://auth.tesla.com/oauth2/v3/authorize?test"
+    }
+}
+
+class FakeUpdateRepository : UpdateRepository {
+    override val update = MutableStateFlow<AppUpdate?>(null)
+    override val updateToOffer = MutableStateFlow<AppUpdate?>(null)
+    var checks = 0
+    val skipped = mutableListOf<String>()
+
+    /** What [download] goes through; fails or stays open as the test needs. */
+    var downloading: Flow<UpdateDownload> = flowOf(UpdateDownload.Ready(APK_PATH))
+
+    override suspend fun check() {
+        checks++
+    }
+
+    override fun skip(version: String) {
+        skipped += version
+        updateToOffer.value = null
+    }
+
+    override fun download(update: AppUpdate) = downloading
+
+    companion object {
+        const val APK_PATH = "/updates/tostrr.apk"
     }
 }
 

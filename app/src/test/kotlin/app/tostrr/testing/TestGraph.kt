@@ -38,12 +38,18 @@ import app.tostrr.domain.sync.usecase.ObserveSyncSettingsUseCase
 import app.tostrr.domain.sync.usecase.SetAutoSyncUseCase
 import app.tostrr.domain.sync.usecase.SetSyncIntervalUseCase
 import app.tostrr.domain.sync.usecase.StartBackgroundSyncUseCase
+import app.tostrr.domain.update.usecase.CheckForUpdateUseCase
+import app.tostrr.domain.update.usecase.DownloadUpdateUseCase
+import app.tostrr.domain.update.usecase.ObserveAvailableUpdateUseCase
+import app.tostrr.domain.update.usecase.ObserveUpdateToOfferUseCase
+import app.tostrr.domain.update.usecase.SkipUpdateUseCase
 import app.tostrr.ui.MainViewModel
 import app.tostrr.ui.checklist.ChecklistViewModel
 import app.tostrr.ui.detail.DetailViewModel
 import app.tostrr.ui.login.LoginViewModel
 import app.tostrr.ui.orders.OrdersViewModel
 import app.tostrr.ui.settings.SettingsViewModel
+import app.tostrr.ui.update.UpdateViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -63,6 +69,7 @@ class TestGraph(
     val appearance = FakeAppearanceRepository()
     val notificationSettings = FakeNotificationSettingsRepository()
     val account = FakeAccountRepository()
+    val updates = FakeUpdateRepository()
     val orders = FakeOrderRepository()
     val options = FakeOptionRepository()
     val deliveryCenters = mutableListOf<DeliveryCenter>()
@@ -72,7 +79,19 @@ class TestGraph(
     private val startBackgroundSync get() = StartBackgroundSyncUseCase(auth, scheduler, syncSettings)
     private val logout get() = LogoutUseCase(auth, scheduler, orders, account)
 
-    fun mainViewModel() = MainViewModel(ObserveLoggedInUseCase(auth), ObserveOrdersUseCase(orders), ObserveThemeModeUseCase(appearance))
+    fun mainViewModel() = MainViewModel(
+        ObserveLoggedInUseCase(auth),
+        ObserveOrdersUseCase(orders),
+        ObserveThemeModeUseCase(appearance),
+        ObserveUpdateToOfferUseCase(updates),
+        CheckForUpdateUseCase(updates),
+    )
+
+    fun updateViewModel() = UpdateViewModel(
+        ObserveAvailableUpdateUseCase(updates),
+        DownloadUpdateUseCase(updates),
+        SkipUpdateUseCase(updates),
+    )
 
     fun loginViewModel() = LoginViewModel(
         ObserveLoggedInUseCase(auth),
@@ -125,6 +144,7 @@ class TestGraph(
         ObserveSyncSettingsUseCase(syncSettings),
         ObserveNotificationSettingsUseCase(notificationSettings),
         ObserveTeslaAccountUseCase(account),
+        ObserveAvailableUpdateUseCase(updates),
         LoadTeslaAccountUseCase(auth, account),
         SetThemeModeUseCase(appearance),
         SetAutoSyncUseCase(syncSettings, startBackgroundSync),

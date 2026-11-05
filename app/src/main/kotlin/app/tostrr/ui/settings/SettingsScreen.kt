@@ -28,12 +28,13 @@ import app.tostrr.ui.settings.components.AccountSection
 import app.tostrr.ui.settings.components.AppearanceSection
 import app.tostrr.ui.settings.components.NotificationsSection
 import app.tostrr.ui.settings.components.SyncSection
+import app.tostrr.ui.settings.components.UpdateSection
 import org.koin.androidx.compose.koinViewModel
 
 /** The app settings, grouped in sections; add a section as one more item of the list. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, onOpenUpdate: () -> Unit = {}, viewModel: SettingsViewModel = koinViewModel()) {
     val state by viewModel.watchAsState()
 
     Scaffold(
@@ -55,6 +56,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewMo
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            state.update?.let { update -> item { UpdateSection(update, onOpen = onOpenUpdate) } }
             item { AccountSection(state.account, onLogout = { viewModel.handle(Action.OnLogout) }) }
             item { AppearanceSection(state.themeMode, onThemeChange = { viewModel.handle(Action.OnThemeSelected(it)) }) }
             item {
