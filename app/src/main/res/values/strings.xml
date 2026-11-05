@@ -69,6 +69,9 @@
     <string name="orders_empty">No order in progress.</string>
 
     <!-- Order detail -->
+    <string name="detail_vin_clip_label">VIN</string>
+    <string name="detail_vin_copy">Copy the VIN</string>
+    <string name="detail_vin_copied">VIN copied</string>
     <string name="detail_arrange">Arrange the page</string>
     <string name="detail_arrange_reset">Reset</string>
     <string name="detail_arrange_shown">Shown</string>
@@ -236,6 +239,20 @@
     <string name="settings_logout">Sign out</string>
     <string name="settings_logout_title">Sign out?</string>
     <string name="settings_logout_text">Your cached orders and the change history will be removed from this device.</string>
+
+    <string name="settings_update_section">Update</string>
+    <string name="settings_update_available">Version %1$s available</string>
+    <string name="settings_update_summary">See what’s new and install it.</string>
+
+    <!-- Update -->
+    <string name="update_title">New version available</string>
+    <string name="update_version">Version %1$s · %2$s</string>
+    <string name="update_download">Update</string>
+    <string name="update_downloading">Downloading… %1$d %%</string>
+    <string name="update_install">Install</string>
+    <string name="update_retry">Try again</string>
+    <string name="update_later">Later</string>
+    <string name="update_failed">The download failed. Check your connection and try again.</string>
 
     <!-- Widgets -->
     <string name="widget_open_app">Open Tostrr</string>

@@ -20,4 +20,7 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Settings : Screen
+
+    @Serializable
+    data object Update : Screen
 }

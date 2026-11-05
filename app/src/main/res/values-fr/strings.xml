@@ -67,6 +67,9 @@
     <string name="orders_empty">Aucune commande en cours.</string>
 
     <!-- Order detail -->
+    <string name="detail_vin_clip_label">VIN</string>
+    <string name="detail_vin_copy">Copier le VIN</string>
+    <string name="detail_vin_copied">VIN copié</string>
     <string name="detail_arrange">Organiser la page</string>
     <string name="detail_arrange_reset">Réinitialiser</string>
     <string name="detail_arrange_shown">Affichées</string>
@@ -236,6 +239,20 @@
     <string name="settings_logout">Se déconnecter</string>
     <string name="settings_logout_title">Se déconnecter ?</string>
     <string name="settings_logout_text">Vos commandes en cache et l\'historique des modifications seront supprimés de cet appareil.</string>
+
+    <string name="settings_update_section">Mise à jour</string>
+    <string name="settings_update_available">Version %1$s disponible</string>
+    <string name="settings_update_summary">Voir les nouveautés et l’installer.</string>
+
+    <!-- Update -->
+    <string name="update_title">Nouvelle version disponible</string>
+    <string name="update_version">Version %1$s · %2$s</string>
+    <string name="update_download">Mettre à jour</string>
+    <string name="update_downloading">Téléchargement… %1$d %%</string>
+    <string name="update_install">Installer</string>
+    <string name="update_retry">Réessayer</string>
+    <string name="update_later">Plus tard</string>
+    <string name="update_failed">Le téléchargement a échoué. Vérifiez votre connexion et réessayez.</string>
 
     <!-- Widgets -->
     <string name="widget_open_app">Ouvrez Tostrr</string>

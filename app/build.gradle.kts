@@ -37,7 +37,7 @@ android {
         targetSdk = 36
         // The release workflow sets the code from its run number; bump the name to publish a new release from main.
         versionCode = providers.gradleProperty("tostrrVersionCode").orNull?.toInt() ?: 1
-        versionName = "0.1.0"
+        versionName = "0.2.0"
         // Crashlytics only collects from release builds that have the Firebase config.
         manifestPlaceholders["crashlyticsEnabled"] = false
     }

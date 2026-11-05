@@ -62,22 +62,26 @@ internal fun StepTracker(order: Order, modifier: Modifier = Modifier) {
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             order.steps.forEachIndexed { i, step ->
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        stringResource(step.kind.labelRes),
-                        style = StepLabelStyle,
-                        fontWeight = if (step.done || i == current) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (step.done || i == current) TostrrColors.OnSurface else TostrrColors.Muted,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        step.date.orEmpty(),
-                        modifier = Modifier.padding(top = 4.dp),
-                        style = StepLabelStyle,
-                        color = TostrrColors.Muted,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                Text(
+                    stringResource(step.kind.labelRes),
+                    modifier = Modifier.weight(1f),
+                    style = StepLabelStyle,
+                    fontWeight = if (step.done || i == current) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (step.done || i == current) TostrrColors.OnSurface else TostrrColors.Muted,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        // A row of its own: the dates line up whether the labels above take one line or two.
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            order.steps.forEach { step ->
+                Text(
+                    step.date.orEmpty(),
+                    modifier = Modifier.weight(1f),
+                    style = StepLabelStyle,
+                    color = TostrrColors.Muted,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }

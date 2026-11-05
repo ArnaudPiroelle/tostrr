@@ -9,6 +9,8 @@ import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.history.HistoryIgnore
 import app.tostrr.domain.history.JsonDiff
+import app.tostrr.domain.history.undatedVinChange
+import app.tostrr.domain.history.withVinAssignmentDate
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.OrderMapper
@@ -65,11 +67,11 @@ class OrderRepositoryImpl(
      */
     private val archiveDir = context.getExternalFilesDir("snapshots") ?: File(dir, "snapshots")
 
-    private val _orders = MutableStateFlow(loadCache())
-    override val orders: StateFlow<List<Order>> = _orders.asStateFlow()
-
     private val _history = MutableStateFlow(loadHistory().let(::dropIgnored))
     override val history: StateFlow<Map<String, List<Change>>> = _history.asStateFlow()
+
+    private val _orders = MutableStateFlow(loadCache().withVinDates())
+    override val orders: StateFlow<List<Order>> = _orders.asStateFlow()
 
     override fun lastSyncAgeMs(now: Long): Long? =
         _orders.value.maxOfOrNull { it.fetchedAtEpochMs }?.takeIf { it > 0 }?.let { now - it }
@@ -99,7 +101,7 @@ class OrderRepositoryImpl(
             // The cache written by an older version has no archive yet: keep it as the first snapshot.
             archive(_orders.value)
             recordChanges(_orders.value, fresh, now)
-            _orders.value = fresh
+            _orders.value = fresh.withVinDates()
             persist(fresh)
             saveHistory(_history.value)
             archive(fresh)
@@ -118,6 +120,8 @@ class OrderRepositoryImpl(
         _history.value = emptyMap()
     }
 
+    private fun List<Order>.withVinDates() = map { it.withVinAssignmentDate(_history.value[it.reference].orEmpty()) }
+
     /** Entries recorded before a path became ignored are purged, and the file is rewritten if any went. */
     private fun dropIgnored(history: Map<String, List<Change>>): Map<String, List<Change>> {
         val kept = history.mapValues { (_, changes) -> changes.filterNot { HistoryIgnore.isIgnored(it.key) } }
@@ -133,11 +137,17 @@ class OrderRepositoryImpl(
             val before = oldByRef[order.reference]
             // First time we see this order: every step already done counts as new.
             val notified = notifier.notifyStepChanges(before, order)
-            if (before == null) continue
-            val changes = JsonDiff.diff(HistoryIgnore.prune(before.raw), HistoryIgnore.prune(order.raw)).map { it.toChange(now) }
-            if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
-            // The JSON moved but nothing above was worth a notification of its own.
-            if (!notified) notifier.notifyMinorUpdate(order, changes)
+            if (before != null) {
+                val changes = JsonDiff.diff(HistoryIgnore.prune(before.raw), HistoryIgnore.prune(order.raw)).map { it.toChange(now) }
+                if (changes.isNotEmpty()) merged[order.reference] = changes + merged[order.reference].orEmpty()
+                // The JSON moved but nothing above was worth a notification of its own.
+                if (!notified) notifier.notifyMinorUpdate(order, changes)
+            }
+            val known = merged[order.reference].orEmpty()
+            // The cached order is the earliest sync known to have this VIN.
+            order.undatedVinChange(known, before?.fetchedAtEpochMs?.takeIf { it > 0 } ?: now)?.let { vin ->
+                merged[order.reference] = (known + vin).sortedByDescending { it.timestampEpochMs }
+            }
         }
         _history.value = merged
     }
