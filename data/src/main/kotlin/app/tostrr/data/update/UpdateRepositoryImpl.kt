@@ -1,7 +1,6 @@
 package app.tostrr.data.update
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import app.tostrr.domain.update.AppUpdate
 import app.tostrr.domain.update.AppVersions
 import app.tostrr.domain.update.UpdateDownload
@@ -33,15 +32,13 @@ import java.util.concurrent.TimeUnit
 /**
  * Reads the latest release from GitHub's public API, which leaves out drafts and pre-releases. It is kept in shared
  * preferences so it can be offered again without asking, and the APK goes to the cache, so it survives the app being
- * restarted while the user allows installs. A debug build is never offered anything: Android would refuse to install
- * a release, signed with another key, over it.
+ * restarted while the user allows installs.
  */
 @Single
 class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) : UpdateRepository {
     private val prefs = context.getSharedPreferences("tostrr_settings", Context.MODE_PRIVATE)
     private val updatesDir = File(context.cacheDir, "updates")
     private val installedVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
-    private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
 
     private val _update = MutableStateFlow(newerRelease())
     override val update: StateFlow<AppUpdate?> = _update.asStateFlow()
@@ -50,7 +47,6 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
     override val updateToOffer: StateFlow<AppUpdate?> = _updateToOffer.asStateFlow()
 
     override suspend fun check() {
-        if (debuggable) return
         withContext(Dispatchers.IO) {
             try {
                 if (System.currentTimeMillis() - prefs.getLong(KEY_CHECKED_AT, 0) >= CHECK_INTERVAL_MS) fetchLatest()?.let(::save)
@@ -118,7 +114,6 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
     private fun AppUpdate?.unlessSkipped() = takeIf { this?.version != prefs.getString(KEY_SKIPPED, null) }
 
     private fun newerRelease(): AppUpdate? {
-        if (debuggable) return null
         val version = prefs.getString(KEY_VERSION, null) ?: return null
         if (!AppVersions.isNewer(version, installedVersion)) return null
         return AppUpdate(
