@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,7 @@ import java.io.File
 internal fun RecapRow(text: String, answer: ChecklistAnswer?, onClick: (() -> Unit)?, onPhoto: (String) -> Unit) {
     val (icon, tint, label) = when (answer?.status) {
         AnswerStatus.VERIFIED -> Triple(Icons.Filled.CheckCircle, TostrrColors.Positive, R.string.checklist_answer_verified)
+        AnswerStatus.PROBLEM -> Triple(Icons.Filled.ReportProblem, TostrrColors.Negative, R.string.checklist_answer_problem)
         AnswerStatus.SKIPPED -> Triple(Icons.Filled.SkipNext, TostrrColors.Muted, R.string.checklist_answer_skipped)
         null -> Triple(Icons.Filled.RadioButtonUnchecked, TostrrColors.Muted, R.string.checklist_answer_none)
     }

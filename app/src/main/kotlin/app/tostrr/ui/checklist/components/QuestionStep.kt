@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowRight
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -131,6 +132,11 @@ internal fun ColumnScope.QuestionStep(
         Spacer(Modifier.height(20.dp))
         PrimaryButton(stringResource(R.string.checklist_verified_button)) { onAnswer(AnswerStatus.VERIFIED, comment, photos, savedPhotos) }
         Spacer(Modifier.height(12.dp))
+        // A problem is said in the comment and shown in the photos above, before tapping this.
+        SecondaryButton(stringResource(R.string.checklist_problem_button), leading = Icons.Filled.ReportProblem) {
+            onAnswer(AnswerStatus.PROBLEM, comment, photos, savedPhotos)
+        }
+        Spacer(Modifier.height(12.dp))
         SecondaryButton(stringResource(R.string.checklist_skip), trailing = Icons.Filled.KeyboardDoubleArrowRight) {
             onAnswer(AnswerStatus.SKIPPED, comment, photos, savedPhotos)
         }
@@ -143,7 +149,13 @@ internal fun ColumnScope.QuestionStep(
     }
     if (saved != null) {
         Text(
-            stringResource(if (saved.status == AnswerStatus.VERIFIED) R.string.checklist_already_verified else R.string.checklist_already_skipped),
+            stringResource(
+                when (saved.status) {
+                    AnswerStatus.VERIFIED -> R.string.checklist_already_verified
+                    AnswerStatus.PROBLEM -> R.string.checklist_already_problem
+                    AnswerStatus.SKIPPED -> R.string.checklist_already_skipped
+                },
+            ),
             Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.bodyMedium,
             color = TostrrColors.Muted,

@@ -101,6 +101,10 @@
     <string name="detail_checklist_not_started">Contrôlez votre Tesla point par point avant de signer.</string>
     <string name="detail_checklist_start">Commencer la checklist</string>
     <string name="detail_checklist_completed">Terminée : %1$d %% des points vérifiés.</string>
+    <plurals name="detail_checklist_problems">
+        <item quantity="one">%d problème signalé.</item>
+        <item quantity="other">%d problèmes signalés.</item>
+    </plurals>
     <string name="detail_checklist_recap">Voir le récapitulatif</string>
     <string name="detail_checklist_in_progress">En cours : %1$d / %2$d points traités.</string>
     <string name="detail_checklist_resume">Reprendre la checklist</string>
@@ -200,6 +204,14 @@
     <string name="checklist_answer_verified">Vérifié</string>
     <string name="checklist_answer_skipped">Passé</string>
     <string name="checklist_answer_none">Non traité</string>
+    <string name="checklist_answer_problem">Problème</string>
+    <string name="checklist_problem_button">Signaler un problème</string>
+    <string name="checklist_already_problem">Déjà signalé comme problème</string>
+    <string name="checklist_report_problems">Problèmes signalés</string>
+    <plurals name="checklist_recap_problems">
+        <item quantity="one">%d problème signalé</item>
+        <item quantity="other">%d problèmes signalés</item>
+    </plurals>
     <string name="checklist_lock_button">Verrouiller et créer le rapport</string>
     <string name="checklist_lock_title">Verrouiller la checklist ?</string>
     <string name="checklist_lock_text">Une fois verrouillée, ses réponses et ses photos ne pourront plus être modifiées : le rapport dira toujours ce qui a été vérifié. Elle pourra encore être supprimée.</string>
@@ -210,7 +222,7 @@
     <string name="checklist_report_chooser">Rapport de la checklist de livraison</string>
     <string name="checklist_report_order">Commande %1$s</string>
     <string name="checklist_report_completed">Terminée le %1$s</string>
-    <string name="checklist_report_counts">%1$d vérifiés · %2$d passés · %3$d non traités, sur %4$d</string>
+    <string name="checklist_report_counts">Vérifiés : %1$d · Problèmes : %2$d · Passés : %3$d · Non traités : %4$d (sur %5$d)</string>
     <string name="checklist_report_page">Tostrr · page %1$d</string>
     <string name="checklist_delete_title">Supprimer la checklist ?</string>
     <string name="checklist_delete_text">Toutes les réponses, commentaires et photos de cette checklist seront effacés.</string>

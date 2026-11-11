@@ -70,11 +70,39 @@ class ChecklistReportPdf(private val context: Context) : ChecklistReportWriter {
             checklist.completedAtEpochMs?.let { text(string(R.string.checklist_report_completed, formatDateTime(it)), mutedPaint) }
             checklist.lockedAtEpochMs?.let { text(string(R.string.checklist_locked_on, formatDateTime(it)), mutedPaint) }
             y += 8
-            val verified = checklist.answers.values.count { it.status == AnswerStatus.VERIFIED }
             val skipped = checklist.answers.values.count { it.status == AnswerStatus.SKIPPED }
             val total = DeliveryChecklist.questionCount
-            text(string(R.string.checklist_report_counts, verified, skipped, total - verified - skipped, total), strongPaint)
+            val handled = checklist.verifiedCount + checklist.problemCount + skipped
+            text(string(R.string.checklist_report_counts, checklist.verifiedCount, checklist.problemCount, skipped, total - handled, total), strongPaint)
             y += 12
+            problems(checklist)
+        }
+
+        /** The problems first, each with its section and comment, so the delivery centre sees them at once. */
+        private fun problems(checklist: Checklist) {
+            val problems = DeliveryChecklist.sections.flatMap { section ->
+                section.questions.mapNotNull { q -> checklist.answers[q.id]?.takeIf { it.status == AnswerStatus.PROBLEM }?.let { section to (q to it) } }
+            }
+            if (problems.isEmpty()) return
+            ensure(sectionPaint.textSize + bodyPaint.textSize * 3 + 24)
+            text(string(R.string.checklist_report_problems), TextPaint(sectionPaint).apply { color = NEGATIVE })
+            canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, rulePaint)
+            y += 8
+            problems.forEach { (section, entry) ->
+                val (question, answer) = entry
+                val line = layout("${string(section.titleRes)} — ${string(question.textRes)}", bodyPaint, CONTENT_WIDTH)
+                val comment = answer.comment?.let { layout(it, commentPaint, CONTENT_WIDTH) }
+                ensure(line.height + (comment?.height ?: 0) + 6f)
+                draw(line, MARGIN)
+                y += line.height
+                comment?.let {
+                    y += 2
+                    draw(it, MARGIN)
+                    y += it.height
+                }
+                y += 6
+            }
+            y += 6
         }
 
         fun body(checklist: Checklist) {
@@ -93,6 +121,7 @@ class ChecklistReportPdf(private val context: Context) : ChecklistReportWriter {
         private fun question(text: String, answer: app.tostrr.domain.checklist.ChecklistAnswer?) {
             val (label, color) = when (answer?.status) {
                 AnswerStatus.VERIFIED -> string(R.string.checklist_answer_verified) to POSITIVE
+                AnswerStatus.PROBLEM -> string(R.string.checklist_answer_problem) to NEGATIVE
                 AnswerStatus.SKIPPED -> string(R.string.checklist_answer_skipped) to MUTED
                 null -> string(R.string.checklist_answer_none) to MUTED
             }
@@ -230,6 +259,7 @@ class ChecklistReportPdf(private val context: Context) : ChecklistReportWriter {
         val INK = Color.rgb(0x17, 0x1A, 0x20)
         val MUTED = Color.rgb(0x6B, 0x72, 0x80)
         val POSITIVE = Color.rgb(0x1F, 0x8A, 0x4C)
+        val NEGATIVE = Color.rgb(0xC8, 0x10, 0x2E)
         val RULE = Color.rgb(0xD9, 0xDC, 0xE1)
     }
 }

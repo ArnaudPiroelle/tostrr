@@ -7,7 +7,8 @@ data class ChecklistQuestion(
 
 data class ChecklistSection(val id: String, val questions: List<ChecklistQuestion>)
 
-enum class AnswerStatus { VERIFIED, SKIPPED }
+/** [PROBLEM]: checked and found wrong, to be raised with the delivery centre; its comment and photos say what. */
+enum class AnswerStatus { VERIFIED, PROBLEM, SKIPPED }
 
 data class ChecklistAnswer(
     val questionId: String,
@@ -50,7 +51,9 @@ data class Checklist(
 
     val verifiedCount: Int get() = answers.values.count { it.status == AnswerStatus.VERIFIED }
 
-    /** Share of all the questions that were verified, 0–100. Skipped and unanswered ones count against it. */
+    val problemCount: Int get() = answers.values.count { it.status == AnswerStatus.PROBLEM }
+
+    /** Share of all the questions that were verified, 0–100. Problems, skipped and unanswered ones count against it. */
     val verifiedPercent: Int get() = verifiedCount * 100 / DeliveryChecklist.questionCount
 }
 

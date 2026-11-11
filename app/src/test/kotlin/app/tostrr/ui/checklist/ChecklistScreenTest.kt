@@ -2,12 +2,15 @@ package app.tostrr.ui.checklist
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import app.tostrr.domain.checklist.AnswerStatus
 import app.tostrr.domain.checklist.Checklist
 import app.tostrr.domain.checklist.ChecklistStep
@@ -63,6 +66,30 @@ class ChecklistScreenTest {
         val checklist = graph.checklists.checklists.value.getValue("RN1")
         assertEquals(AnswerStatus.VERIFIED, checklist.answers[firstQuestion.question.id]?.status)
         assertEquals(cursor + 1, checklist.cursor)
+    }
+
+    @Test fun `a problem is reported with its comment and the checklist moves on`() {
+        val cursor = DeliveryChecklist.stepIndexOf(firstQuestion.question.id)
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, null, cursor, emptyMap()))
+        show()
+
+        compose.onNode(hasSetTextAction()).performTextInput("Rayure sur le pare-brise")
+        compose.onNodeWithText("Signaler un problème").performScrollTo().performClick()
+
+        val checklist = graph.checklists.checklists.value.getValue("RN1")
+        val answer = checklist.answers.getValue(firstQuestion.question.id)
+        assertEquals(AnswerStatus.PROBLEM, answer.status)
+        assertEquals("Rayure sur le pare-brise", answer.comment)
+        assertEquals(cursor + 1, checklist.cursor)
+    }
+
+    @Test fun `the recap counts the problems reported`() {
+        val problem = app.tostrr.domain.checklist.ChecklistAnswer(firstQuestion.question.id, AnswerStatus.PROBLEM, answeredAtEpochMs = 1L)
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, 1L, 0, mapOf(problem.questionId to problem)))
+        show()
+
+        compose.onNodeWithText("1 problème signalé").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Problème").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun `locking a finished checklist asks first, then offers the report instead of changes`() {

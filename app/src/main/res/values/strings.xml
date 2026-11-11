@@ -103,6 +103,10 @@
     <string name="detail_checklist_not_started">Check your Tesla point by point before signing.</string>
     <string name="detail_checklist_start">Start the checklist</string>
     <string name="detail_checklist_completed">Done: %1$d%% of the points checked.</string>
+    <plurals name="detail_checklist_problems">
+        <item quantity="one">%d problem reported.</item>
+        <item quantity="other">%d problems reported.</item>
+    </plurals>
     <string name="detail_checklist_recap">See the summary</string>
     <string name="detail_checklist_in_progress">In progress: %1$d / %2$d points handled.</string>
     <string name="detail_checklist_resume">Resume the checklist</string>
@@ -200,6 +204,14 @@
     <string name="checklist_answer_verified">Checked</string>
     <string name="checklist_answer_skipped">Skipped</string>
     <string name="checklist_answer_none">Not handled</string>
+    <string name="checklist_answer_problem">Problem</string>
+    <string name="checklist_problem_button">Report a problem</string>
+    <string name="checklist_already_problem">Already reported as a problem</string>
+    <string name="checklist_report_problems">Problems reported</string>
+    <plurals name="checklist_recap_problems">
+        <item quantity="one">%d problem reported</item>
+        <item quantity="other">%d problems reported</item>
+    </plurals>
     <string name="checklist_lock_button">Lock and create the report</string>
     <string name="checklist_lock_title">Lock the checklist?</string>
     <string name="checklist_lock_text">Once locked, its answers and photos can no longer be changed, so the report always says what was checked. It can still be deleted.</string>
@@ -210,7 +222,7 @@
     <string name="checklist_report_chooser">Delivery checklist report</string>
     <string name="checklist_report_order">Order %1$s</string>
     <string name="checklist_report_completed">Completed on %1$s</string>
-    <string name="checklist_report_counts">%1$d checked · %2$d skipped · %3$d not handled, out of %4$d</string>
+    <string name="checklist_report_counts">Checked: %1$d · Problems: %2$d · Skipped: %3$d · Not handled: %4$d (out of %5$d)</string>
     <string name="checklist_report_page">Tostrr · page %1$d</string>
     <string name="checklist_delete_title">Delete the checklist?</string>
     <string name="checklist_delete_text">All the answers, comments and photos of this checklist will be erased.</string>

@@ -46,4 +46,15 @@ class DeliveryChecklistTest {
         assertEquals(22, checklist.verifiedCount)
         assertEquals(27, checklist.verifiedPercent)
     }
+
+    @Test
+    fun `problems are counted apart and against the score`() {
+        val answers = DeliveryChecklist.sections.flatMap { it.questions }.take(10).mapIndexed { i, q ->
+            q.id to ChecklistAnswer(q.id, if (i < 3) AnswerStatus.PROBLEM else AnswerStatus.VERIFIED, answeredAtEpochMs = 0)
+        }.toMap()
+        val checklist = Checklist("RN1", 0, 1, DeliveryChecklist.steps.size, answers)
+        assertEquals(3, checklist.problemCount)
+        assertEquals(7, checklist.verifiedCount)
+        assertEquals(8, checklist.verifiedPercent)
+    }
 }

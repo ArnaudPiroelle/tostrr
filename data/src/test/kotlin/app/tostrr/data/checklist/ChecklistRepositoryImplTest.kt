@@ -112,6 +112,15 @@ class ChecklistRepositoryImplTest {
         assertEquals(50L, updated.completedAtEpochMs)
     }
 
+    @Test fun `a problem is kept as such, with its comment`() = runTest {
+        repository.start(REF)
+        repository.answer(REF, answer("exterior-04", AnswerStatus.PROBLEM), nextCursor = 5)
+        val saved = checklist()!!.answers.getValue("exterior-04")
+        assertEquals(AnswerStatus.PROBLEM, saved.status)
+        assertEquals("ok", saved.comment)
+        assertEquals(1, checklist()!!.problemCount)
+    }
+
     @Test fun `an answer keeps its photos in their order`() = runTest {
         repository.start(REF)
         repository.answer(REF, answer("exterior-01", photos = listOf("/p/b.jpg", "/p/a.jpg", "/p/c.jpg")), nextCursor = 2)

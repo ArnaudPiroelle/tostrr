@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -102,6 +104,18 @@ internal fun ColumnScope.Recap(
             style = MaterialTheme.typography.bodyMedium,
             color = TostrrColors.Muted,
         )
+        if (checklist.problemCount > 0) {
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.ReportProblem, contentDescription = null, tint = TostrrColors.Negative, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    pluralStringResource(R.plurals.checklist_recap_problems, checklist.problemCount, checklist.problemCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TostrrColors.Negative,
+                )
+            }
+        }
     }
     DeliveryChecklist.sections.forEach { section ->
         val verified = section.questions.count { checklist.answers[it.id]?.status == AnswerStatus.VERIFIED }
