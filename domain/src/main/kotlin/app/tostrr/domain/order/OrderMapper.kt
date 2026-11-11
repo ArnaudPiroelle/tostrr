@@ -59,7 +59,12 @@ object OrderMapper {
             OrderStep(StepKind.DOCUMENTS_SENT, null, detectors.documentsSent.isDone(order, tasks)),
             OrderStep(StepKind.REGISTERED, formatDate(expectedReg), detectors.vehicleRegistered.isDone(order, tasks)),
             // Only a confirmed appointment is shown under the step; the delivery window lives in Order.deliverySlot.
-            OrderStep(StepKind.DELIVERY, appointment, appointment != null),
+            // Done once delivered too, dated by the day the car reached the account when there was no appointment.
+            OrderStep(
+                StepKind.DELIVERY,
+                appointment ?: local.inAccountSince?.format(LocalDateFormats.date()),
+                appointment != null || isDelivered(order.str("orderStatus").orEmpty(), local.inAccountSince),
+            ),
         )
 
         return Order(
@@ -88,6 +93,7 @@ object OrderMapper {
             vehicleInfo = OrderInfoMapper.vehicle(tasks, booked, licensePlate),
             paymentInfo = OrderInfoMapper.payment(tasks),
             partsCatalogReference = local.partsCatalogReference,
+            inAccountSince = local.inAccountSince,
         )
     }
 

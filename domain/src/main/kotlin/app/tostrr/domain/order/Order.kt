@@ -49,6 +49,8 @@ data class Order(
     val paymentInfo: PaymentInfo = PaymentInfo(),
     /** See [LocalSignals.partsCatalogReference]. */
     val partsCatalogReference: String? = null,
+    /** See [LocalSignals.inAccountSince]. */
+    val inAccountSince: LocalDate? = null,
 ) {
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int
@@ -58,9 +60,13 @@ data class Order(
     val visibleOptionCodes: List<String>
         get() = optionCodes.map { it.removePrefix("$").uppercase() }.filter { it !in HIDDEN_OPTION_CODES }.distinct().sorted()
 
+    /** Tesla says so, or the car is already among the account's vehicles. */
+    val delivered: Boolean
+        get() = isDelivered(status, inAccountSince)
+
     /** Neither delivered nor cancelled: the order is still on its way. */
     val awaitingDelivery: Boolean
-        get() = status != STATUS_DELIVERED && status != STATUS_CANCELLED
+        get() = !delivered && status != STATUS_CANCELLED
 
     /** Tesla has confirmed a delivery appointment (a mere delivery window doesn't count). */
     val hasAppointment: Boolean
@@ -84,7 +90,9 @@ data class Order(
 fun List<Order>.latestAwaitingDelivery(limit: Int): List<Order> =
     filter { it.awaitingDelivery }.sortedWith(compareByDescending(nullsFirst()) { it.bookedOn }).take(limit)
 
-private const val STATUS_DELIVERED = "DELIVERED"
+internal fun isDelivered(status: String, inAccountSince: LocalDate?) = status == STATUS_DELIVERED || inAccountSince != null
+
+const val STATUS_DELIVERED = "DELIVERED"
 private const val STATUS_CANCELLED = "CANCELLED"
 
 /** A day-first `dd/MM/yyyy` appointment text, as the mapper writes it in French, when no instant came with it. */

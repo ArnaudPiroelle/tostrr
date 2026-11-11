@@ -6,6 +6,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -23,6 +25,12 @@ class TeslaApi(private val client: OkHttpClient) {
         val root = get(ORDERS_URL.toHttpUrl(), accessToken)
         return root.jsonObject["response"]?.jsonArray ?: JsonArray(emptyList())
     }
+
+    /** VINs of the vehicles in the Tesla account, upper case; energy products have none. */
+    suspend fun productVins(accessToken: String): Set<String> =
+        (get(PRODUCTS_URL.toHttpUrl(), accessToken).jsonObject["response"] as? JsonArray).orEmpty()
+            .mapNotNull { ((it as? JsonObject)?.get("vin") as? JsonPrimitive)?.contentOrNull?.trim()?.uppercase()?.takeIf(String::isNotEmpty) }
+            .toSet()
 
     /** The account profile (`full_name`, `email`, ...), unwrapped from `response`. */
     suspend fun me(accessToken: String): JsonObject? =
@@ -55,6 +63,7 @@ class TeslaApi(private val client: OkHttpClient) {
     private companion object {
         const val ORDERS_URL = "https://owner-api.teslamotors.com/api/1/users/orders"
         const val ME_URL = "https://owner-api.teslamotors.com/api/1/users/me"
+        const val PRODUCTS_URL = "https://owner-api.teslamotors.com/api/1/products"
         const val TASKS_URL = "https://akamai-apigateway-vfx.tesla.com/tasks"
         const val APP_VERSION = "9.99.9-9999"
         const val USER_AGENT = "Tesla/4.55.5 (com.teslamotors.tesla; build:4193; Android 14)"

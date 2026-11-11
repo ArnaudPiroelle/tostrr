@@ -43,6 +43,7 @@ import kotlinx.serialization.json.put
 import org.koin.core.annotation.Single
 import java.io.File
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.atomic.AtomicInteger
@@ -100,7 +101,10 @@ class OrderRepositoryImpl(
             val now = System.currentTimeMillis()
             val cached = _orders.value.associateBy { it.reference }
             // VINs as of the last sync: a VIN that just appeared is looked up on the next one.
-            partsCatalog.checkOne(_orders.value.filter { it.awaitingDelivery }.mapNotNull { it.vin })
+            val awaitedVins = _orders.value.filter { it.awaitingDelivery }.mapNotNull { it.vin }
+            partsCatalog.checkOne(awaitedVins)
+            val accountVins = if (awaitedVins.isEmpty()) emptySet() else accountVins(token)
+            val today = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate()
             val failures = mutableListOf<Exception>()
             val fresh = api.listOrders(token).map { it.jsonObject }.map { order ->
                 val ref = order["referenceNumber"]?.jsonPrimitive?.content ?: error("Order without a reference")
@@ -114,9 +118,9 @@ class OrderRepositoryImpl(
                     val previous = cached[ref] ?: throw e
                     val known = previous.raw["details"] as? JsonObject ?: throw e
                     failures += e
-                    return@map map(order, known, previous.fetchedAtEpochMs)
+                    return@map map(order, known, previous.fetchedAtEpochMs, previous, accountVins, today)
                 }
-                map(order, details, now)
+                map(order, details, now, cached[ref], accountVins, today)
             }
             // Every order failing is an outage, not one bad order: report it rather than pass old details off as new.
             if (fresh.isNotEmpty() && failures.size == fresh.size) throw failures.first()
@@ -135,11 +139,26 @@ class OrderRepositoryImpl(
         catalog.refreshIfStale()
     }
 
-    /** The order with what the parts catalogue knows of its VIN. */
-    private fun map(order: JsonObject, details: JsonObject, fetchedAt: Long): Order {
+    /**
+     * The order with what the parts catalogue knows of its VIN, and the day its car reached the account: kept from
+     * [previous] for the same VIN, else [today] when [accountVins] has it.
+     */
+    private fun map(order: JsonObject, details: JsonObject, fetchedAt: Long, previous: Order?, accountVins: Set<String>, today: LocalDate): Order {
         val mapped = OrderMapper.map(order, details, fetchedAt)
-        val listing = mapped.vin?.let(partsCatalog::listing) ?: return mapped
-        return OrderMapper.map(order, details, fetchedAt, local = LocalSignals(listing.since, listing.reference))
+        val vin = mapped.vin
+        val listing = vin?.let(partsCatalog::listing)
+        val inAccount = previous?.inAccountSince?.takeIf { previous.vin == vin } ?: today.takeIf { vin != null && vin in accountVins }
+        if (listing == null && inAccount == null) return mapped
+        return OrderMapper.map(order, details, fetchedAt, local = LocalSignals(listing?.since, listing?.reference, inAccount))
+    }
+
+    /** Best effort: without the account's vehicles, a delivery is only known from Tesla's status. */
+    private suspend fun accountVins(token: String): Set<String> = try {
+        api.productVins(token)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        emptySet()
     }
 
     override fun clear() {

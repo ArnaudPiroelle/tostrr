@@ -95,6 +95,23 @@ class OrderMapperTest {
         assertEquals(OrderMapper.formatDate("2026-11-30"), o.deliverySlot)
     }
 
+    @Test fun `a car in the account delivers the order, dated that day without an appointment`() {
+        val day = LocalDate.of(2026, 12, 20)
+        val o = OrderMapper.map(obj("""{"referenceNumber":"RN1","orderStatus":"BOOKED"}"""), obj("""{"tasks":{}}"""), 0L, local = LocalSignals(inAccountSince = day))
+        assertEquals(true, o.delivered)
+        assertEquals(false, o.awaitingDelivery)
+        assertEquals(OrderMapper.formatDate("2026-12-20"), o.steps.last().date)
+        assertEquals(true, o.steps.last().done)
+        assertEquals(day, LocalSignals.fromJson(o.raw[LocalSignals.KEY] as kotlinx.serialization.json.JsonObject).inAccountSince)
+    }
+
+    @Test fun `tesla's delivered status also closes the delivery step`() {
+        val o = map("""{"referenceNumber":"RN1","orderStatus":"DELIVERED"}""", "{}")
+        assertEquals(true, o.delivered)
+        assertEquals(true, o.steps.last().done)
+        assertNull(o.steps.last().date)
+    }
+
     @Test fun `no appointment anywhere leaves the step open`() {
         val o = map("""{"referenceNumber":"RN1"}""", """{"scheduling":{"deliveryAppointmentDate":""}}""")
         assertNull(o.appointment)

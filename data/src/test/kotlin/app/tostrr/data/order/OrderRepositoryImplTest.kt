@@ -221,6 +221,37 @@ class OrderRepositoryImplTest {
         assertEquals("ref-1", repository().orders.value.single().partsCatalogReference)
     }
 
+    @Test fun `a car in the account delivers its order, and stays delivered`() = runTest {
+        orders("""{"referenceNumber":"RN1","modelCode":"my","orderStatus":"BOOKED","vin":"LRWYGCEK1TC000001"}""")
+        val repository = repository()
+        repository.refresh()
+        // Without a VIN known before this sync, the account isn't asked.
+        assertTrue(http.callsTo("/api/1/products").isEmpty())
+        http.on("/api/1/products", """{"response":[{"id":1,"vin":"LRWYGCEK1TC000001"}]}""")
+        repository.refresh()
+
+        val order = repository.orders.value.single()
+        assertTrue(order.delivered)
+        assertEquals(LocalDate.now(), order.inAccountSince)
+        assertTrue(repository.history.value.getValue("RN1").any { it.key == "local" && it.newValue!!.contains("inAccountSince") })
+
+        // Delivered: the account is no longer asked, and the day stays, also after a restart.
+        http.on("/api/1/products", "", code = 500)
+        repository.refresh()
+        assertEquals(1, http.callsTo("/api/1/products").size)
+        assertEquals(LocalDate.now(), repository().orders.value.single().inAccountSince)
+    }
+
+    @Test fun `the account failing doesn't fail the sync`() = runTest {
+        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"LRWYGCEK1TC000001"}""")
+        val repository = repository()
+        repository.refresh()
+        http.on("/api/1/products", "", code = 500)
+        repository.refresh()
+        assertEquals(1, http.callsTo("/api/1/products").size)
+        assertFalse(repository.orders.value.single().delivered)
+    }
+
     @Test fun `an order whose tasks fail keeps its last details while the others sync`() = runTest {
         orders("""{"referenceNumber":"RN1","modelCode":"my"}""", """{"referenceNumber":"RN2","modelCode":"m3"}""")
         val repository = repository()

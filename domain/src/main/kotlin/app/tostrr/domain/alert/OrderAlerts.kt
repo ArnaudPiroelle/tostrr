@@ -40,6 +40,11 @@ sealed interface Alert {
         override val key get() = "final_payment"
     }
 
+    /** Tesla marked the order delivered, or its car reached the account. */
+    data object Delivered : Alert {
+        override val key get() = "delivered"
+    }
+
     /** A date Tesla announces: set when [from] is null, else moved. */
     data class DateChanged(val date: TrackedDate, val from: String?, val to: String) : Alert {
         override val key get() = date.key
@@ -74,6 +79,7 @@ object OrderAlerts {
         vin(before, after)?.let(::add)
         plate(before, after)?.let(::add)
         payment(before, after).forEach(::add)
+        if (!before.delivered && after.delivered) add(Alert.Delivered)
         date(TrackedDate.ETA_TO_DELIVERY_CENTER, before.etaToDeliveryCenter, after.etaToDeliveryCenter)?.let(::add)
         date(TrackedDate.REGISTRATION, before.expectedRegistration, after.expectedRegistration)?.let(::add)
     }
