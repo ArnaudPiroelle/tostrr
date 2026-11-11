@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
@@ -36,7 +37,10 @@ internal fun ChecklistCard(deliveryDay: Boolean, checklist: Checklist?, onOpen: 
     val answered = checklist?.answers?.size ?: 0
     val (subtitle, action) = when {
         checklist == null -> stringResource(R.string.detail_checklist_not_started) to stringResource(R.string.detail_checklist_start)
-        checklist.completed -> stringResource(R.string.detail_checklist_completed, checklist.verifiedPercent) to stringResource(R.string.detail_checklist_recap)
+        checklist.completed -> listOfNotNull(
+            stringResource(R.string.detail_checklist_completed, checklist.verifiedPercent),
+            checklist.problemCount.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.detail_checklist_problems, it, it) },
+        ).joinToString(" ") to stringResource(R.string.detail_checklist_recap)
         else -> stringResource(R.string.detail_checklist_in_progress, answered, DeliveryChecklist.questionCount) to stringResource(R.string.detail_checklist_resume)
     }
     Surface(

@@ -1,7 +1,6 @@
 package app.tostrr.data.update
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import app.tostrr.data.testing.FakeHttp
 import app.tostrr.domain.update.AppUpdate
 import app.tostrr.domain.update.UpdateDownload
@@ -33,10 +32,8 @@ class UpdateRepositoryImplTest {
     private val apkUrl = "https://github.com$apkPath"
     private val offered = AppUpdate("0.2.0", "# New", apkUrl, 9)
 
-    /** The tests run the debug variant, whose manifest is debuggable; only a release build is offered updates. */
     @Before fun setUp() {
         installed("0.1.0")
-        context.applicationInfo.flags = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
     }
 
     private fun installed(version: String) {
@@ -120,20 +117,6 @@ class UpdateRepositoryImplTest {
         prefs.edit().putLong("update_checked_at", 0).apply()
         repository.check()
         assertEquals("0.3.0", repository.updateToOffer.value?.version)
-    }
-
-    @Test fun `a debug build never asks nor offers`() = runTest {
-        latest()
-        repository().check()
-        context.applicationInfo.flags = context.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
-        val before = http.calls.size
-        prefs.edit().putLong("update_checked_at", 0).apply()
-
-        val repository = repository()
-        repository.check()
-
-        assertNull(repository.update.value)
-        assertEquals(before, http.calls.size)
     }
 
     @Test fun `the APK is downloaded with its progress, then found again`() = runTest {

@@ -1,8 +1,11 @@
 package app.tostrr.domain.history
 
+import app.tostrr.domain.order.Change
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 /**
  * Paths whose changes never reach the history (a guess, not documented by Tesla). Paths look like `details.tasks.x.0.y`.
@@ -60,17 +63,36 @@ object HistoryIgnore {
             Contains.any { dotted.contains(it) }
     }
 
-    /** Copy of [element] without the ignored paths, so that a diff of two pruned trees never reports them. */
+    /**
+     * The Tesla staff member handling the trade-in: a field named after the employee, or a `@tesla.com` e-mail.
+     * Who handles it is not news about the order. A guess: no trade-in of ours had one.
+     */
+    fun isStaffDetail(path: String, value: String?): Boolean =
+        path.startsWith(TRADE_IN) &&
+            (STAFF_KEY.containsMatchIn(path.substringAfterLast('.')) || value?.let(STAFF_EMAIL::containsMatchIn) == true)
+
+    /** A recorded change that would not be recorded today. */
+    fun ignores(change: Change): Boolean =
+        isIgnored(change.key) || isStaffDetail(change.key, change.oldValue) || isStaffDetail(change.key, change.newValue)
+
+    private const val TRADE_IN = "details.tasks.tradeIn."
+    private val STAFF_KEY = Regex("employee", RegexOption.IGNORE_CASE)
+    private val STAFF_EMAIL = Regex("""@tesla\.com\b""", RegexOption.IGNORE_CASE)
+
+    /** Copy of [element] without the ignored paths and staff details, so that a diff of two pruned trees never reports them. */
     fun prune(element: JsonElement, path: String = ""): JsonElement = when (element) {
         is JsonObject -> JsonObject(
             element.entries
-                .map { (key, value) -> key to (if (path.isEmpty()) key else "$path.$key") }
-                .filterNot { (_, child) -> isIgnored(child) }
-                .associate { (key, child) -> key to prune(element.getValue(key), child) },
+                .map { (key, value) -> Triple(key, if (path.isEmpty()) key else "$path.$key", value) }
+                .filterNot { (_, child, value) -> isDropped(child, value) }
+                .associate { (key, child, value) -> key to prune(value, child) },
         )
         is JsonArray -> JsonArray(
-            element.mapIndexedNotNull { i, value -> "$path.$i".let { if (isIgnored(it)) null else prune(value, it) } },
+            element.mapIndexedNotNull { i, value -> "$path.$i".let { if (isDropped(it, value)) null else prune(value, it) } },
         )
         else -> element
     }
+
+    private fun isDropped(path: String, value: JsonElement): Boolean =
+        isIgnored(path) || isStaffDetail(path, (value as? JsonPrimitive)?.contentOrNull)
 }

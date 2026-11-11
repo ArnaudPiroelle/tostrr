@@ -53,7 +53,7 @@ class OrderMapperDetailsTest {
     }
 
     @Test fun `a vin marks its step done`() {
-        assertTrue(map("""{"vin":"LRW0000"}""").steps.first { it.kind == StepKind.VIN_ASSIGNED }.done)
+        assertTrue(map("""{"vin":"LRWYGCEK1TC000104"}""").steps.first { it.kind == StepKind.VIN_ASSIGNED }.done)
     }
 
     @Test fun `the placed date stands in for the booked one`() {
@@ -95,7 +95,7 @@ class OrderMapperDetailsTest {
     }
 
     @Test fun `paths are matched whatever the key case`() {
-        assertEquals("REGVIN", map("{}", """{"Registration":{"OrderDetails":{"VIN":"REGVIN"}}}""").vin)
+        assertEquals("LRWYGCEK1TC000102", map("{}", """{"Registration":{"OrderDetails":{"VIN":"LRWYGCEK1TC000102"}}}""").vin)
     }
 
     @Test fun `the plate is read and marks the car registered`() {

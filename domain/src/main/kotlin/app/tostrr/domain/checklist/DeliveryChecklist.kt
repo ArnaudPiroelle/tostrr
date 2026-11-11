@@ -7,14 +7,15 @@ data class ChecklistQuestion(
 
 data class ChecklistSection(val id: String, val questions: List<ChecklistQuestion>)
 
-enum class AnswerStatus { VERIFIED, SKIPPED }
+/** [PROBLEM]: checked and found wrong, to be raised with the delivery centre; its comment and photos say what. */
+enum class AnswerStatus { VERIFIED, PROBLEM, SKIPPED }
 
 data class ChecklistAnswer(
     val questionId: String,
     val status: AnswerStatus,
     val comment: String? = null,
-    /** Absolute path of the photo in the app's private storage. */
-    val photoPath: String? = null,
+    /** Absolute paths of the photos in the app's private storage, in the order they were added. */
+    val photoPaths: List<String> = emptyList(),
     val answeredAtEpochMs: Long,
 )
 
@@ -32,19 +33,27 @@ sealed interface ChecklistStep {
     ) : ChecklistStep
 }
 
-/** The delivery checklist of one order. [cursor] indexes [DeliveryChecklist.steps]; past the end means done. */
+/**
+ * The delivery checklist of one order. [cursor] indexes [DeliveryChecklist.steps]; past the end means done. Once
+ * [locked][lockedAtEpochMs], a completed checklist can't change any more, so its report says what was checked then.
+ */
 data class Checklist(
     val orderReference: String,
     val startedAtEpochMs: Long,
     val completedAtEpochMs: Long?,
     val cursor: Int,
     val answers: Map<String, ChecklistAnswer>,
+    val lockedAtEpochMs: Long? = null,
 ) {
     val completed: Boolean get() = completedAtEpochMs != null
 
+    val locked: Boolean get() = lockedAtEpochMs != null
+
     val verifiedCount: Int get() = answers.values.count { it.status == AnswerStatus.VERIFIED }
 
-    /** Share of all the questions that were verified, 0–100. Skipped and unanswered ones count against it. */
+    val problemCount: Int get() = answers.values.count { it.status == AnswerStatus.PROBLEM }
+
+    /** Share of all the questions that were verified, 0–100. Problems, skipped and unanswered ones count against it. */
     val verifiedPercent: Int get() = verifiedCount * 100 / DeliveryChecklist.questionCount
 }
 

@@ -83,6 +83,13 @@ class OrderNotifierTest {
         assertEquals(listOf("Your Tesla has left the factory"), titles)
     }
 
+    @Test fun `a delivery without appointment says delivered, not appointment confirmed`() {
+        val before = order(StepKind.ORDERED)
+        val after = order(StepKind.ORDERED, StepKind.DELIVERY).copy(inAccountSince = LocalDate.of(2026, 12, 20))
+        assertTrue(notifier.notifyStepChanges(before, after))
+        assertEquals(listOf("Your Tesla is delivered"), titles)
+    }
+
     @Test fun `nothing changed means nothing posted`() {
         assertFalse(notifier.notifyStepChanges(order(StepKind.ORDERED), order(StepKind.ORDERED)))
         assertTrue(posted.isEmpty())

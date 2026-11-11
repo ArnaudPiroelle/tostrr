@@ -42,6 +42,8 @@
     <string name="notif_final_invoice_text">The final payment can be made</string>
     <string name="notif_final_payment">Final payment recorded</string>
     <string name="notif_final_payment_text">Tesla has received the payment</string>
+    <string name="notif_delivered">Your Tesla is delivered</string>
+    <string name="notif_delivered_text">Enjoy the drive!</string>
     <string name="notif_eta_set">Estimated arrival at the delivery centre</string>
     <string name="notif_eta_changed">Estimated arrival at the delivery centre changed</string>
     <string name="notif_registration_set">Expected registration date</string>

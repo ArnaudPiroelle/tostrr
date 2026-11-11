@@ -83,7 +83,15 @@ fun DetailScreen(
                             DetailBlock.VEHICLE -> section { VehicleContent(order) }
                             DetailBlock.PAYMENT -> section { PaymentContent(order) }
                             DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, state.options) }
-                            DetailBlock.HISTORY -> section { HistoryContent(state.history) }
+                            DetailBlock.HISTORY -> section {
+                                HistoryContent(
+                                    history = state.history,
+                                    filter = state.historyFilter,
+                                    shown = state.shownHistory,
+                                    onToggleImportantOnly = { viewModel.handle(Action.OnToggleImportantOnly) },
+                                    onSelectCategory = { viewModel.handle(Action.OnSelectHistoryCategory(it)) },
+                                )
+                            }
                         }
                     }
                 }

@@ -45,6 +45,8 @@ class OrderNotifier(
         var notified = false
         val beforeDone = before?.steps.orEmpty().filter { it.done }.map { it.kind }.toSet()
         after.steps.filter { it.done && it.kind !in beforeDone }
+            // Done by the delivery itself rather than an appointment: the delivered alert tells it.
+            .filterNot { it.kind == StepKind.DELIVERY && after.appointment == null && after.delivered }
             .forEach { post(after, it.kind.name, string(it.kind.doneMessage)); notified = true }
 
         // A step that was done and no longer is: Tesla moved the order backwards. One notification per sync.
@@ -158,6 +160,7 @@ class OrderNotifier(
         }
         Alert.FinalInvoiceReady -> string(R.string.notif_final_invoice) to string(R.string.notif_final_invoice_text)
         Alert.FinalPaymentDone -> string(R.string.notif_final_payment) to string(R.string.notif_final_payment_text)
+        Alert.Delivered -> string(R.string.notif_delivered) to string(R.string.notif_delivered_text)
         is Alert.DateChanged -> {
             val (set, changed) = when (alert.date) {
                 TrackedDate.ETA_TO_DELIVERY_CENTER -> R.string.notif_eta_set to R.string.notif_eta_changed

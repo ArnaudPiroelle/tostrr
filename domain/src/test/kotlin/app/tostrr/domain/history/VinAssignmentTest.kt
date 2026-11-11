@@ -24,38 +24,38 @@ class VinAssignmentTest {
     private fun Order.vinDate(vararg changes: Change) =
         withVinAssignmentDate(changes.toList(), ZoneOffset.UTC).steps.first { it.kind == StepKind.VIN_ASSIGNED }.date
 
-    private val withVin = map("""{"referenceNumber":"RN1","vin":"VIN1"}""")
+    private val withVin = map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC000001"}""")
 
     @Test fun `the step shows the day the vin appeared in the history`() {
-        assertEquals("03/11/26", withVin.vinDate(change(3, "order.vin", "VIN1")))
+        assertEquals("03/11/26", withVin.vinDate(change(3, "order.vin", "LRWYGCEK1TC000001")))
     }
 
     @Test fun `the day is the one of the device's time zone`() {
-        val date = withVin.withVinAssignmentDate(listOf(change(3, "order.vin", "VIN1", hour = 23)), ZoneOffset.ofHours(1))
+        val date = withVin.withVinAssignmentDate(listOf(change(3, "order.vin", "LRWYGCEK1TC000001", hour = 23)), ZoneOffset.ofHours(1))
             .steps.first { it.kind == StepKind.VIN_ASSIGNED }.date
         assertEquals("04/11/26", date)
     }
 
     @Test fun `a vin that came inside a new object is found`() {
-        val order = map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"VIN1"}}}""")
-        assertEquals("02/11/26", order.vinDate(change(2, "details.tasks.registration", """{"orderDetails":{"vin":"VIN1"}}""")))
+        val order = map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"LRWYGCEK1TC000001"}}}""")
+        assertEquals("02/11/26", order.vinDate(change(2, "details.tasks.registration", """{"orderDetails":{"vin":"LRWYGCEK1TC000001"}}""")))
     }
 
     @Test fun `the vin of a swapped car is dated from its own appearance`() {
-        val swapped = map("""{"referenceNumber":"RN1","vin":"VIN2"}""")
-        assertEquals("05/11/26", swapped.vinDate(change(5, "order.vin", "VIN2"), change(2, "order.vin", "VIN1")))
+        val swapped = map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC000002"}""")
+        assertEquals("05/11/26", swapped.vinDate(change(5, "order.vin", "LRWYGCEK1TC000002"), change(2, "order.vin", "LRWYGCEK1TC000001")))
     }
 
     @Test fun `a vin that left and came back keeps its first day`() {
-        assertEquals("02/11/26", withVin.vinDate(change(5, "order.vin", "VIN1"), change(4, "order.vin", null), change(2, "order.vin", "VIN1")))
+        assertEquals("02/11/26", withVin.vinDate(change(5, "order.vin", "LRWYGCEK1TC000001"), change(4, "order.vin", null), change(2, "order.vin", "LRWYGCEK1TC000001")))
     }
 
     @Test fun `the vin showing up elsewhere later keeps its first day`() {
-        assertEquals("02/11/26", withVin.vinDate(change(5, "details.tasks.finalPayment.data", """{"vin":"VIN1"}"""), change(2, "order.vin", "VIN1")))
+        assertEquals("02/11/26", withVin.vinDate(change(5, "details.tasks.finalPayment.data", """{"vin":"LRWYGCEK1TC000001"}"""), change(2, "order.vin", "LRWYGCEK1TC000001")))
     }
 
     @Test fun `the same text on a path the vin isn't read from doesn't date it`() {
-        assertNull(withVin.vinDate(change(5, "details.tasks.insurance.vin", "VIN1")))
+        assertNull(withVin.vinDate(change(5, "details.tasks.insurance.vin", "LRWYGCEK1TC000001")))
     }
 
     @Test fun `a vin the history doesn't date has no date`() {
@@ -63,31 +63,31 @@ class VinAssignmentTest {
     }
 
     @Test fun `a vin the history doesn't date gets an entry at the sync date`() {
-        assertEquals(Change(42L, "order.vin", null, "VIN1"), withVin.undatedVinChange(emptyList(), 42L))
+        assertEquals(Change(42L, "order.vin", null, "LRWYGCEK1TC000001"), withVin.undatedVinChange(emptyList(), 42L))
     }
 
     @Test fun `the entry is on the path the vin is read from`() {
-        val order = map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"VIN1"}}}""")
+        val order = map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"LRWYGCEK1TC000001"}}}""")
         assertEquals("details.tasks.registration.orderDetails.vin", order.undatedVinChange(emptyList(), 42L)?.key)
     }
 
     @Test fun `a dated vin or no vin needs no entry`() {
-        assertNull(withVin.undatedVinChange(listOf(change(3, "order.vin", "VIN1")), 42L))
+        assertNull(withVin.undatedVinChange(listOf(change(3, "order.vin", "LRWYGCEK1TC000001")), 42L))
         assertNull(map("""{"referenceNumber":"RN1"}""").undatedVinChange(emptyList(), 42L))
     }
 
     @Test fun `the vin of a swapped car needs its own entry`() {
-        val swapped = map("""{"referenceNumber":"RN1","vin":"VIN2"}""")
-        assertEquals("VIN2", swapped.undatedVinChange(listOf(change(3, "order.vin", "VIN1")), 42L)?.newValue)
+        val swapped = map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC000002"}""")
+        assertEquals("LRWYGCEK1TC000002", swapped.undatedVinChange(listOf(change(3, "order.vin", "LRWYGCEK1TC000001")), 42L)?.newValue)
     }
 
     @Test fun `no vin, no date`() {
-        assertNull(map("""{"referenceNumber":"RN1"}""").vinDate(change(3, "order.vin", "VIN1")))
+        assertNull(map("""{"referenceNumber":"RN1"}""").vinDate(change(3, "order.vin", "LRWYGCEK1TC000001")))
     }
 
     @Test fun `the other steps are left alone`() {
-        val order = map("""{"referenceNumber":"RN1","vin":"VIN1"}""", """{"registration":{"orderDetails":{"orderBookedDate":"2026-07-14"}}}""")
-        val dated = order.withVinAssignmentDate(listOf(change(3, "order.vin", "VIN1")), ZoneOffset.UTC)
+        val order = map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC000001"}""", """{"registration":{"orderDetails":{"orderBookedDate":"2026-07-14"}}}""")
+        val dated = order.withVinAssignmentDate(listOf(change(3, "order.vin", "LRWYGCEK1TC000001")), ZoneOffset.UTC)
         assertEquals(order.steps.filter { it.kind != StepKind.VIN_ASSIGNED }, dated.steps.filter { it.kind != StepKind.VIN_ASSIGNED })
     }
 }

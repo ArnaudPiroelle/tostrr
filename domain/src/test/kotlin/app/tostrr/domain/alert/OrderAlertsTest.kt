@@ -56,6 +56,13 @@ class OrderAlertsTest {
         assertEquals(emptyList<String>(), keys(order(invoice = true), order(invoice = true)))
     }
 
+    @Test fun `a delivery is reported once, whether tesla says it or the car reached the account`() {
+        val inAccount = order().copy(inAccountSince = java.time.LocalDate.of(2026, 12, 20))
+        assertEquals(listOf("delivered"), keys(order(), inAccount))
+        assertEquals(listOf("delivered"), keys(order(), order().copy(status = "DELIVERED")))
+        assertEquals(emptyList<String>(), keys(inAccount, inAccount.copy(status = "DELIVERED")))
+    }
+
     @Test fun `eta change names both dates`() {
         assertEquals(
             Alert.DateChanged(TrackedDate.ETA_TO_DELIVERY_CENTER, "01/11/26", "05/11/26"),

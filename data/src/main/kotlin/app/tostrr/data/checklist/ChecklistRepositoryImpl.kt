@@ -28,6 +28,7 @@ class ChecklistRepositoryImpl(private val dao: ChecklistDao, context: Context) :
                     completedAtEpochMs = it.completedAtEpochMs,
                     cursor = it.cursor,
                     answers = answers.associate { a -> a.questionId to a.toDomain() },
+                    lockedAtEpochMs = it.lockedAtEpochMs,
                 )
             }
         }
@@ -44,16 +45,25 @@ class ChecklistRepositoryImpl(private val dao: ChecklistDao, context: Context) :
         dao.upsert(current.movedTo(cursor, now))
     }
 
-    /** Reopens a completed checklist at [cursor], its answers kept, so they can be changed. */
-    override suspend fun reopen(ref: String, cursor: Int) {
+    /** Locks a completed checklist; a locked one keeps its first lock date. */
+    override suspend fun lock(ref: String, now: Long) {
         val current = dao.checklist(ref) ?: return
+        if (current.completedAtEpochMs == null || current.lockedAtEpochMs != null) return
+        dao.upsert(current.copy(lockedAtEpochMs = now))
+    }
+
+    /** Reopens a completed checklist at [cursor], its answers kept, so they can be changed. Ignored once locked. */
+    override suspend fun reopen(ref: String, cursor: Int) {
+        val current = dao.checklist(ref)?.takeIf { it.lockedAtEpochMs == null } ?: return
         dao.upsert(current.copy(cursor = cursor.coerceIn(0, DeliveryChecklist.steps.lastIndex), completedAtEpochMs = null))
     }
 
-    /** Replaces one answer of a finished checklist, which stays finished. */
-    override suspend fun updateAnswer(ref: String, answer: ChecklistAnswer) {
-        if (dao.checklist(ref)?.completedAtEpochMs == null) return
+    /** Replaces one answer of a finished checklist, which stays finished. Ignored when not finished, or locked. */
+    override suspend fun updateAnswer(ref: String, answer: ChecklistAnswer): Boolean {
+        val current = dao.checklist(ref) ?: return false
+        if (current.completedAtEpochMs == null || current.lockedAtEpochMs != null) return false
         dao.upsert(answer.toEntity(ref))
+        return true
     }
 
     /** Deletes the checklist, its answers and its photos. */
@@ -63,10 +73,11 @@ class ChecklistRepositoryImpl(private val dao: ChecklistDao, context: Context) :
     }
 
     /** Records [answer] and moves to [nextCursor] in one go. Ignored once the checklist is completed. */
-    override suspend fun answer(ref: String, answer: ChecklistAnswer, nextCursor: Int) {
-        val current = dao.checklist(ref) ?: return
-        if (current.completedAtEpochMs != null) return
+    override suspend fun answer(ref: String, answer: ChecklistAnswer, nextCursor: Int): Boolean {
+        val current = dao.checklist(ref) ?: return false
+        if (current.completedAtEpochMs != null) return false
         dao.saveAnswer(answer.toEntity(ref), current.movedTo(nextCursor, answer.answeredAtEpochMs))
+        return true
     }
 
     /** Copies a picked image into the checklist's photo folder and returns its path. */
@@ -80,7 +91,7 @@ class ChecklistRepositoryImpl(private val dao: ChecklistDao, context: Context) :
     override fun newPhotoFile(ref: String, questionId: String): File =
         File(File(photoRoot, ref).apply { mkdirs() }, "$questionId-${System.currentTimeMillis()}.jpg")
 
-    /** Removes a photo that was taken but not kept (replaced, or the answer was never recorded with it). */
+    /** Removes a photo that was taken but not kept (removed, or the answer was never recorded with it). */
     override suspend fun deletePhoto(path: String) {
         withContext(Dispatchers.IO) { File(path).takeIf { it.canonicalPath.startsWith(photoRoot.canonicalPath) }?.delete() }
     }
@@ -96,7 +107,7 @@ private fun ChecklistAnswerEntity.toDomain() = ChecklistAnswer(
     questionId = questionId,
     status = AnswerStatus.valueOf(status),
     comment = comment,
-    photoPath = photoPath,
+    photoPaths = photoPaths.split('\n').filter { it.isNotEmpty() },
     answeredAtEpochMs = answeredAtEpochMs,
 )
 
@@ -105,6 +116,6 @@ private fun ChecklistAnswer.toEntity(ref: String) = ChecklistAnswerEntity(
     questionId = questionId,
     status = status.name,
     comment = comment,
-    photoPath = photoPath,
+    photoPaths = photoPaths.joinToString("\n"),
     answeredAtEpochMs = answeredAtEpochMs,
 )

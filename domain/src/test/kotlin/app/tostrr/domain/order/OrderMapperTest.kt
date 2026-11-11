@@ -24,9 +24,30 @@ class OrderMapperTest {
     }
 
     @Test fun `vin from the order wins, then the registration paths`() {
-        assertEquals("ORDERVIN", map("""{"referenceNumber":"RN1","vin":"ORDERVIN"}""", "{}").vin)
-        assertEquals("REGVIN", map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"REGVIN"}}}""").vin)
-        assertEquals("PAYVIN", map("""{"referenceNumber":"RN1"}""", """{"finalPayment":{"data":{"vin":"PAYVIN"}}}""").vin)
+        assertEquals("LRWYGCEK1TC000101", map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC000101"}""", "{}").vin)
+        assertEquals("LRWYGCEK1TC000102", map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"LRWYGCEK1TC000102"}}}""").vin)
+        assertEquals("LRWYGCEK1TC000103", map("""{"referenceNumber":"RN1"}""", """{"finalPayment":{"data":{"vin":"LRWYGCEK1TC000103"}}}""").vin)
+    }
+
+    @Test fun `placeholders are no vin, and the next path is tried`() {
+        for (placeholder in listOf("VIN ##vin##", "##VIN##", "pending", "N/A", "null", "LRW000")) {
+            val o = map("""{"referenceNumber":"RN1","vin":"$placeholder"}""", "{}")
+            assertNull(placeholder, o.vin)
+            assertEquals(placeholder, false, o.steps.first { it.kind == StepKind.VIN_ASSIGNED }.done)
+        }
+        assertEquals(
+            "LRWYGCEK1TC000102",
+            map("""{"referenceNumber":"RN1","vin":"VIN ##vin##"}""", """{"registration":{"orderDetails":{"vin":"LRWYGCEK1TC000102"}}}""").vin,
+        )
+    }
+
+    @Test fun `a vin is read out of a label, in upper case`() {
+        assertEquals("LRWYGCEK1TC000101", map("""{"referenceNumber":"RN1","vin":"VIN: lrwygcek1tc000101"}""", "{}").vin)
+    }
+
+    @Test fun `seventeen characters with I, O or Q, or more than seventeen, are no vin`() {
+        assertNull(map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC00000O"}""", "{}").vin)
+        assertNull(map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC0000011"}""", "{}").vin)
     }
 
     @Test fun `scheduling appointment is kept as the display string`() {
@@ -38,6 +59,57 @@ class OrderMapperTest {
         val o = map("""{"referenceNumber":"RN1"}""", """{"scheduling":{"deliveryAppointmentDate":""},"deliveryAcceptance":{"appointmentDate":"2026-11-30T10:30:00"}}""")
         assertEquals("30/11/2026 10:30", o.appointment)
         assertEquals(true, o.steps.last().done)
+    }
+
+    @Test fun `an appointment needs a time to count`() {
+        for (shown in listOf("29 novembre à 10:00", "29 novembre à 10h30", "Nov 29, 10 AM", "29.11.2026, 10 Uhr")) {
+            val o = map("""{"referenceNumber":"RN1"}""", """{"scheduling":{"deliveryAppointmentDate":"$shown"}}""")
+            assertEquals(shown, o.appointment)
+            assertEquals(shown, true, o.steps.last().done)
+        }
+    }
+
+    @Test fun `a day without a time is no appointment but shows as the slot`() {
+        val o = map(
+            """{"referenceNumber":"RN1"}""",
+            """{"scheduling":{"deliveryAppointmentDate":"29 novembre 2026","deliveryWindowDisplay":"29 Novembre - 29 Décembre"}}""",
+        )
+        assertNull(o.appointment)
+        assertEquals(false, o.hasAppointment)
+        assertEquals(false, o.steps.last().done)
+        assertEquals("29 novembre 2026", o.deliverySlot)
+    }
+
+    @Test fun `a time-less day leaves room for a dated appointment from another source`() {
+        val o = map(
+            """{"referenceNumber":"RN1"}""",
+            """{"scheduling":{"deliveryAppointmentDate":"29 novembre"},"deliveryAcceptance":{"appointmentDate":"2026-11-30T10:30:00"}}""",
+        )
+        assertEquals("30/11/2026 10:30", o.appointment)
+    }
+
+    @Test fun `an iso day without a time is shown as a date, not as an appointment`() {
+        val o = map("""{"referenceNumber":"RN1"}""", """{"deliveryAcceptance":{"appointmentDate":"2026-11-30"}}""")
+        assertNull(o.appointment)
+        assertNull(o.appointmentAtEpochMs)
+        assertEquals(OrderMapper.formatDate("2026-11-30"), o.deliverySlot)
+    }
+
+    @Test fun `a car in the account delivers the order, dated that day without an appointment`() {
+        val day = LocalDate.of(2026, 12, 20)
+        val o = OrderMapper.map(obj("""{"referenceNumber":"RN1","orderStatus":"BOOKED"}"""), obj("""{"tasks":{}}"""), 0L, local = LocalSignals(inAccountSince = day))
+        assertEquals(true, o.delivered)
+        assertEquals(false, o.awaitingDelivery)
+        assertEquals(OrderMapper.formatDate("2026-12-20"), o.steps.last().date)
+        assertEquals(true, o.steps.last().done)
+        assertEquals(day, LocalSignals.fromJson(o.raw[LocalSignals.KEY] as kotlinx.serialization.json.JsonObject).inAccountSince)
+    }
+
+    @Test fun `tesla's delivered status also closes the delivery step`() {
+        val o = map("""{"referenceNumber":"RN1","orderStatus":"DELIVERED"}""", "{}")
+        assertEquals(true, o.delivered)
+        assertEquals(true, o.steps.last().done)
+        assertNull(o.steps.last().date)
     }
 
     @Test fun `no appointment anywhere leaves the step open`() {

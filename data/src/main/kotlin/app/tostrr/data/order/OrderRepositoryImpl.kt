@@ -4,6 +4,7 @@ import android.content.Context
 import app.tostrr.data.api.TeslaApi
 import app.tostrr.data.auth.TeslaAuth
 import app.tostrr.data.catalog.OptionCatalog
+import app.tostrr.data.catalog.PartsCatalog
 import app.tostrr.data.notification.OrderNotifier
 import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
@@ -12,12 +13,14 @@ import app.tostrr.domain.history.JsonDiff
 import app.tostrr.domain.history.undatedVinChange
 import app.tostrr.domain.history.withVinAssignmentDate
 import app.tostrr.domain.order.Change
+import app.tostrr.domain.order.LocalSignals
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.OrderMapper
 import app.tostrr.domain.order.OrderRepository
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +43,7 @@ import kotlinx.serialization.json.put
 import org.koin.core.annotation.Single
 import java.io.File
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.atomic.AtomicInteger
@@ -52,6 +56,7 @@ class OrderRepositoryImpl(
     private val api: TeslaApi,
     private val auth: TeslaAuth,
     private val catalog: OptionCatalog,
+    private val partsCatalog: PartsCatalog,
     private val notifier: OrderNotifier,
 ) : OrderRepository {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
@@ -94,10 +99,31 @@ class OrderRepositoryImpl(
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException(AuthError.NOT_LOGGED_IN)
             val now = System.currentTimeMillis()
+            val cached = _orders.value.associateBy { it.reference }
+            // VINs as of the last sync: a VIN that just appeared is looked up on the next one.
+            val awaitedVins = _orders.value.filter { it.awaitingDelivery }.mapNotNull { it.vin }
+            partsCatalog.checkOne(awaitedVins)
+            val accountVins = if (awaitedVins.isEmpty()) emptySet() else accountVins(token)
+            val today = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate()
+            val failures = mutableListOf<Exception>()
             val fresh = api.listOrders(token).map { it.jsonObject }.map { order ->
                 val ref = order["referenceNumber"]?.jsonPrimitive?.content ?: error("Order without a reference")
-                OrderMapper.map(order, api.orderTasks(token, ref), now)
+                val details = try {
+                    api.orderTasks(token, ref)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // One order's tasks failing must not hold back the others: it keeps the details, and the date, of
+                    // the last sync that had them. Without any, the sync fails as a whole.
+                    val previous = cached[ref] ?: throw e
+                    val known = previous.raw["details"] as? JsonObject ?: throw e
+                    failures += e
+                    return@map map(order, known, previous.fetchedAtEpochMs, previous, accountVins, today)
+                }
+                map(order, details, now, cached[ref], accountVins, today)
             }
+            // Every order failing is an outage, not one bad order: report it rather than pass old details off as new.
+            if (fresh.isNotEmpty() && failures.size == fresh.size) throw failures.first()
             // The cache written by an older version has no archive yet: keep it as the first snapshot.
             archive(_orders.value)
             recordChanges(_orders.value, fresh, now)
@@ -113,7 +139,30 @@ class OrderRepositoryImpl(
         catalog.refreshIfStale()
     }
 
+    /**
+     * The order with what the parts catalogue knows of its VIN, and the day its car reached the account: kept from
+     * [previous] for the same VIN, else [today] when [accountVins] has it.
+     */
+    private fun map(order: JsonObject, details: JsonObject, fetchedAt: Long, previous: Order?, accountVins: Set<String>, today: LocalDate): Order {
+        val mapped = OrderMapper.map(order, details, fetchedAt)
+        val vin = mapped.vin
+        val listing = vin?.let(partsCatalog::listing)
+        val inAccount = previous?.inAccountSince?.takeIf { previous.vin == vin } ?: today.takeIf { vin != null && vin in accountVins }
+        if (listing == null && inAccount == null) return mapped
+        return OrderMapper.map(order, details, fetchedAt, local = LocalSignals(listing?.since, listing?.reference, inAccount))
+    }
+
+    /** Best effort: without the account's vehicles, a delivery is only known from Tesla's status. */
+    private suspend fun accountVins(token: String): Set<String> = try {
+        api.productVins(token)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        emptySet()
+    }
+
     override fun clear() {
+        partsCatalog.clear()
         ordersFile.delete()
         historyFile.delete()
         _orders.value = emptyList()
@@ -124,7 +173,7 @@ class OrderRepositoryImpl(
 
     /** Entries recorded before a path became ignored are purged, and the file is rewritten if any went. */
     private fun dropIgnored(history: Map<String, List<Change>>): Map<String, List<Change>> {
-        val kept = history.mapValues { (_, changes) -> changes.filterNot { HistoryIgnore.isIgnored(it.key) } }
+        val kept = history.mapValues { (_, changes) -> changes.filterNot(HistoryIgnore::ignores) }
             .filterValues { it.isNotEmpty() }
         if (kept != history) runCatching { historyFile.writeText(encodeHistory(kept)) }
         return kept
@@ -207,7 +256,12 @@ class OrderRepositoryImpl(
         Json.parseToJsonElement(ordersFile.readText()).jsonArray.map {
             val o = it.jsonObject
             val raw = o["raw"]!!.jsonObject
-            OrderMapper.map(raw["order"]!!.jsonObject, raw["details"]!!.jsonObject, o["fetchedAt"]!!.jsonPrimitive.longOrNull ?: 0L)
+            OrderMapper.map(
+                raw["order"]!!.jsonObject,
+                raw["details"]!!.jsonObject,
+                o["fetchedAt"]!!.jsonPrimitive.longOrNull ?: 0L,
+                local = LocalSignals.fromJson(raw[LocalSignals.KEY] as? JsonObject),
+            )
         }
     }.getOrDefault(emptyList())
 

@@ -12,9 +12,11 @@ import app.tostrr.domain.auth.usecase.ObserveTeslaAccountUseCase
 import app.tostrr.domain.auth.usecase.StartLoginUseCase
 import app.tostrr.domain.checklist.usecase.AnswerChecklistQuestionUseCase
 import app.tostrr.domain.checklist.usecase.CreateChecklistPhotoFileUseCase
+import app.tostrr.domain.checklist.usecase.CreateChecklistReportUseCase
 import app.tostrr.domain.checklist.usecase.DeleteChecklistPhotoUseCase
 import app.tostrr.domain.checklist.usecase.DeleteChecklistUseCase
 import app.tostrr.domain.checklist.usecase.ImportChecklistPhotoUseCase
+import app.tostrr.domain.checklist.usecase.LockChecklistUseCase
 import app.tostrr.domain.checklist.usecase.MoveChecklistUseCase
 import app.tostrr.domain.checklist.usecase.ObserveChecklistUseCase
 import app.tostrr.domain.checklist.usecase.ReopenChecklistUseCase
@@ -75,6 +77,7 @@ class TestGraph(
     val deliveryCenters = mutableListOf<DeliveryCenter>()
     val layout = FakeDetailLayoutRepository()
     val checklists = FakeChecklistRepository(Files.createTempDirectory("photos").toFile())
+    val reports = FakeChecklistReportWriter(Files.createTempDirectory("reports").toFile())
 
     private val startBackgroundSync get() = StartBackgroundSyncUseCase(auth, scheduler, syncSettings)
     private val logout get() = LogoutUseCase(auth, scheduler, orders, account)
@@ -137,6 +140,8 @@ class TestGraph(
             CreateChecklistPhotoFileUseCase(checklists),
             ImportChecklistPhotoUseCase(checklists),
             DeleteChecklistPhotoUseCase(checklists),
+            LockChecklistUseCase(checklists),
+            CreateChecklistReportUseCase(checklists, orders, reports),
         )
 
     fun settingsViewModel() = SettingsViewModel(

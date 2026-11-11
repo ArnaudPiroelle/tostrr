@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
 import app.tostrr.domain.order.Order
+import app.tostrr.domain.order.STATUS_DELIVERED
 import app.tostrr.ui.common.formatDateTime
 import app.tostrr.ui.theme.TostrrColors
 import coil3.compose.AsyncImage
@@ -65,7 +66,7 @@ internal fun Hero(order: Order) {
                     if (order.status.isNotBlank()) {
                         Surface(shape = RoundedCornerShape(50), color = TostrrColors.Accent.copy(alpha = 0.2f)) {
                             Text(
-                                statusLabelRes(order.status)?.let { stringResource(it) } ?: order.status,
+                                statusLabelRes(if (order.delivered) STATUS_DELIVERED else order.status)?.let { stringResource(it) } ?: order.status,
                                 Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = TostrrColors.OnSurface,
@@ -94,7 +95,7 @@ internal fun Hero(order: Order) {
 @StringRes
 private fun statusLabelRes(status: String): Int? = when (status) {
     "BOOKED" -> R.string.order_status_booked
-    "DELIVERED" -> R.string.order_status_delivered
+    STATUS_DELIVERED -> R.string.order_status_delivered
     "CANCELLED" -> R.string.order_status_cancelled
     else -> null
 }

@@ -2,12 +2,15 @@ package app.tostrr.ui.checklist
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import app.tostrr.domain.checklist.AnswerStatus
 import app.tostrr.domain.checklist.Checklist
 import app.tostrr.domain.checklist.ChecklistStep
@@ -63,6 +66,66 @@ class ChecklistScreenTest {
         val checklist = graph.checklists.checklists.value.getValue("RN1")
         assertEquals(AnswerStatus.VERIFIED, checklist.answers[firstQuestion.question.id]?.status)
         assertEquals(cursor + 1, checklist.cursor)
+    }
+
+    @Test fun `a problem is reported with its comment and the checklist moves on`() {
+        val cursor = DeliveryChecklist.stepIndexOf(firstQuestion.question.id)
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, null, cursor, emptyMap()))
+        show()
+
+        compose.onNode(hasSetTextAction()).performTextInput("Rayure sur le pare-brise")
+        compose.onNodeWithText("Signaler un problème").performScrollTo().performClick()
+
+        val checklist = graph.checklists.checklists.value.getValue("RN1")
+        val answer = checklist.answers.getValue(firstQuestion.question.id)
+        assertEquals(AnswerStatus.PROBLEM, answer.status)
+        assertEquals("Rayure sur le pare-brise", answer.comment)
+        assertEquals(cursor + 1, checklist.cursor)
+    }
+
+    @Test fun `the recap counts the problems reported`() {
+        val problem = app.tostrr.domain.checklist.ChecklistAnswer(firstQuestion.question.id, AnswerStatus.PROBLEM, answeredAtEpochMs = 1L)
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, 1L, 0, mapOf(problem.questionId to problem)))
+        show()
+
+        compose.onNodeWithText("1 problème signalé").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Problème").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `locking a finished checklist asks first, then offers the report instead of changes`() {
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, 1L, 0, emptyMap()))
+        show()
+
+        compose.onNodeWithText("Verrouiller et créer le rapport").performScrollTo().performClick()
+        compose.onNode(hasText("Verrouiller") and hasAnyAncestor(isDialog())).performClick()
+
+        compose.waitForIdle()
+        assertTrue(graph.checklists.checklists.value.getValue("RN1").locked)
+        compose.onNodeWithText("Voir le rapport").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Partager le rapport").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Modifier la checklist").assertDoesNotExist()
+    }
+
+    @Test fun `a locked checklist's answers can't be opened to change them`() {
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, 1L, 0, emptyMap(), lockedAtEpochMs = 2L))
+        show()
+
+        compose.onNodeWithText("Le numéro VIN sur le pare-brise correspond-il au certificat d'immatriculation ?").performScrollTo().performClick()
+
+        compose.onNodeWithText("J'ai vérifié 👍").assertDoesNotExist()
+    }
+
+    @Test fun `a question keeps every photo of its answer`() {
+        val cursor = DeliveryChecklist.stepIndexOf(firstQuestion.question.id)
+        val photos = listOf("/p/a.jpg", "/p/b.jpg")
+        val answer = app.tostrr.domain.checklist.ChecklistAnswer(firstQuestion.question.id, AnswerStatus.VERIFIED, photoPaths = photos, answeredAtEpochMs = 1L)
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, null, cursor, mapOf(answer.questionId to answer)))
+        show()
+
+        compose.onNodeWithText("J'ai vérifié 👍").performScrollTo().performClick()
+
+        assertEquals(photos, graph.checklists.checklists.value.getValue("RN1").answers.getValue(firstQuestion.question.id).photoPaths)
+        assertTrue(graph.checklists.deletedPhotos.isEmpty())
     }
 
     @Test fun `deleting a finished checklist asks first, then closes the screen`() {

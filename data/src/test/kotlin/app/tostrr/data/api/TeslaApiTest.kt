@@ -26,6 +26,12 @@ class TeslaApiTest {
         assertTrue(request.header("X-Request-Id")!!.isNotBlank())
     }
 
+    @Test fun `the account's vehicles give their vins, energy products none`() = runTest {
+        http.on("/api/1/products", """{"response":[{"id":1,"vin":"lrwygcek1tc000001 "},{"energy_site_id":2},{"id":3,"vin":""}],"count":3}""")
+        assertEquals(setOf("LRWYGCEK1TC000001"), api.productVins("token-1"))
+        assertEquals("Bearer token-1", http.calls.single().request.header("Authorization"))
+    }
+
     @Test fun `no response field means no orders`() = runTest {
         http.on("/api/1/users/orders", """{"count":0}""")
         assertTrue(api.listOrders("t").isEmpty())

@@ -15,10 +15,11 @@ class UpdateChecklistAnswerUseCase(private val repository: ChecklistRepository) 
         questionId: String,
         status: AnswerStatus,
         comment: String,
-        photoPath: String?,
-        replacedPhoto: String?,
+        photoPaths: List<String>,
+        previousPhotos: List<String>,
     ) {
-        repository.updateAnswer(ref, newAnswer(questionId, status, comment, photoPath))
-        if (replacedPhoto != null && replacedPhoto != photoPath) repository.deletePhoto(replacedPhoto)
+        if (repository.updateAnswer(ref, newAnswer(questionId, status, comment, photoPaths))) {
+            deleteDropped(repository, previousPhotos, photoPaths)
+        }
     }
 }

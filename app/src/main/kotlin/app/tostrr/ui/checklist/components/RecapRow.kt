@@ -3,6 +3,8 @@ package app.tostrr.ui.checklist.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,16 +35,19 @@ import app.tostrr.ui.theme.TostrrColors
 import coil3.compose.AsyncImage
 import java.io.File
 
-/** One question of the recap; a tap opens it alone to change its answer. */
+/** One question of the recap; a tap opens it alone to change its answer, unless [onClick] is null. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun RecapRow(text: String, answer: ChecklistAnswer?, onClick: () -> Unit, onPhoto: (String) -> Unit) {
+internal fun RecapRow(text: String, answer: ChecklistAnswer?, onClick: (() -> Unit)?, onPhoto: (String) -> Unit) {
     val (icon, tint, label) = when (answer?.status) {
         AnswerStatus.VERIFIED -> Triple(Icons.Filled.CheckCircle, TostrrColors.Positive, R.string.checklist_answer_verified)
+        AnswerStatus.PROBLEM -> Triple(Icons.Filled.ReportProblem, TostrrColors.Negative, R.string.checklist_answer_problem)
         AnswerStatus.SKIPPED -> Triple(Icons.Filled.SkipNext, TostrrColors.Muted, R.string.checklist_answer_skipped)
         null -> Triple(Icons.Filled.RadioButtonUnchecked, TostrrColors.Muted, R.string.checklist_answer_none)
     }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(icon, contentDescription = stringResource(label), tint = tint, modifier = Modifier.size(20.dp))
@@ -51,15 +57,18 @@ internal fun RecapRow(text: String, answer: ChecklistAnswer?, onClick: () -> Uni
             answer?.comment?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted, fontStyle = FontStyle.Italic)
             }
-        }
-        answer?.photoPath?.let { path ->
-            Spacer(Modifier.width(10.dp))
-            AsyncImage(
-                model = File(path),
-                contentDescription = stringResource(R.string.common_photo),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).clickable { onPhoto(path) },
-            )
+            answer?.photoPaths?.takeIf { it.isNotEmpty() }?.let { photos ->
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    photos.forEach { path ->
+                        AsyncImage(
+                            model = File(path),
+                            contentDescription = stringResource(R.string.common_photo),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).clickable { onPhoto(path) },
+                        )
+                    }
+                }
+            }
         }
     }
 }
