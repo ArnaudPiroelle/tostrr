@@ -20,6 +20,9 @@ import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.usecase.ObserveOptionCodesUseCase
 import app.tostrr.domain.order.usecase.ObserveOrderHistoryUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
+import app.tostrr.domain.shipping.ShipVoyage
+import app.tostrr.domain.shipping.ShipVoyages
+import app.tostrr.domain.shipping.usecase.ObserveShipSnapshotUseCase
 import app.tostrr.ui.architecture.BaseAction
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel
@@ -49,6 +52,7 @@ class DetailViewModel(
     observeOptionCodesUseCase: ObserveOptionCodesUseCase,
     observeChecklistUseCase: ObserveChecklistUseCase,
     observeDetailLayoutUseCase: ObserveDetailLayoutUseCase,
+    observeShipSnapshotUseCase: ObserveShipSnapshotUseCase,
     private val findDeliveryCenterUseCase: FindDeliveryCenterUseCase,
     private val moveDetailBlockUseCase: MoveDetailBlockUseCase,
     private val toggleDetailBlockUseCase: ToggleDetailBlockUseCase,
@@ -75,8 +79,17 @@ class DetailViewModel(
     private val historyFilter = MutableStateFlow(HistoryFilter(importantOnly = true))
 
     // Starts from the current order and layout, so the screen opens already filled.
-    override val state: StateFlow<State> = combine(content, deliveryCenter.onStart { emit(null) }, historyFilter) { content, center, filter ->
-        content.copy(deliveryCenter = center, historyFilter = filter)
+    override val state: StateFlow<State> = combine(
+        content,
+        deliveryCenter.onStart { emit(null) },
+        historyFilter,
+        observeShipSnapshotUseCase(),
+    ) { content, center, filter, ships ->
+        content.copy(
+            deliveryCenter = center,
+            historyFilter = filter,
+            voyage = content.order?.let { ShipVoyages.of(it, ships) },
+        )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
@@ -111,6 +124,8 @@ class DetailViewModel(
         val deliveryCenter: DeliveryCenter? = null,
         val layout: BlockLayout = BlockLayout(),
         val historyFilter: HistoryFilter = HistoryFilter(),
+        /** The ship believed to carry the car, while it sails. */
+        val voyage: ShipVoyage? = null,
     ) : BaseState {
         /** The history as the filter leaves it, newest first like [history]. */
         val shownHistory: List<Change> get() = historyFilter.apply(history)

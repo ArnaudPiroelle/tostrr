@@ -97,6 +97,16 @@
     <string name="detail_block_payment_blurb">Montants, mode de paiement et détails du financement.</string>
     <string name="detail_block_configuration_blurb">Les options de la voiture.</string>
     <string name="detail_block_history_blurb">Ce qui a changé d\'une synchronisation à l\'autre.</string>
+    <string name="detail_block_shipping">Transport maritime</string>
+    <string name="detail_block_shipping_blurb">Affiché tant que le bateau qui transporte la voiture est connu.</string>
+    <string name="detail_shipping_hint">Glissez pour tourner le globe, pincez pour zoomer, touchez deux fois pour recentrer.</string>
+    <string name="detail_shipping_route">Trajet</string>
+    <string name="detail_shipping_route_value">%1$s → %2$s</string>
+    <string name="detail_shipping_next_port">Prochaine escale</string>
+    <string name="detail_shipping_eta">Arrivée prévue</string>
+    <string name="detail_shipping_candidates">Pour le moment, %1$d bateaux sont candidats pour le VIN de cette commande : le site n\'a pas encore tranché.</string>
+    <string name="detail_shipping_open_source">Ouvrir TFF ship tracking</string>
+    <string name="detail_shipping_source">Estimation du site communautaire TFF ship tracking, d\'après le lot de VIN. Position du %1$s.</string>
     <string name="detail_checklist_delivery_day">C\'est le jour de la livraison</string>
     <string name="detail_checklist_not_started">Contrôlez votre Tesla point par point avant de signer.</string>
     <string name="detail_checklist_start">Commencer la checklist</string>

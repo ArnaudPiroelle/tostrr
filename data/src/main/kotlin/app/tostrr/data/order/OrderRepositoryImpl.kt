@@ -6,6 +6,7 @@ import app.tostrr.data.auth.TeslaAuth
 import app.tostrr.data.catalog.OptionCatalog
 import app.tostrr.data.catalog.PartsCatalog
 import app.tostrr.data.notification.OrderNotifier
+import app.tostrr.data.shipping.ShipTracker
 import app.tostrr.domain.error.AuthError
 import app.tostrr.domain.error.AuthException
 import app.tostrr.domain.history.HistoryIgnore
@@ -17,6 +18,7 @@ import app.tostrr.domain.order.LocalSignals
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.OrderMapper
 import app.tostrr.domain.order.OrderRepository
+import app.tostrr.domain.shipping.ShipVoyages
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.booleanOrNull
@@ -57,6 +59,7 @@ class OrderRepositoryImpl(
     private val auth: TeslaAuth,
     private val catalog: OptionCatalog,
     private val partsCatalog: PartsCatalog,
+    private val shipTracker: ShipTracker,
     private val notifier: OrderNotifier,
 ) : OrderRepository {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
@@ -137,6 +140,7 @@ class OrderRepositoryImpl(
         }
         // Best effort and outside the lock: a slow or unreachable catalogue must not delay or fail a sync.
         catalog.refreshIfStale()
+        if (_orders.value.any { it.awaitingDelivery && ShipVoyages.tracks(it.vin) }) shipTracker.refreshIfStale()
     }
 
     /**
@@ -163,6 +167,7 @@ class OrderRepositoryImpl(
 
     override fun clear() {
         partsCatalog.clear()
+        shipTracker.clear()
         ordersFile.delete()
         historyFile.delete()
         _orders.value = emptyList()

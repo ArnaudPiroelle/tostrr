@@ -10,6 +10,7 @@ internal val DetailBlock.titleRes: Int
     get() = when (this) {
         DetailBlock.CHECKLIST -> R.string.detail_block_checklist
         DetailBlock.DELIVERY -> R.string.detail_block_delivery
+        DetailBlock.SHIPPING -> R.string.detail_block_shipping
         DetailBlock.PROGRESS_TRACKER, DetailBlock.PROGRESS -> R.string.detail_block_progress
         DetailBlock.VEHICLE -> R.string.detail_block_vehicle
         DetailBlock.PAYMENT -> R.string.detail_block_payment

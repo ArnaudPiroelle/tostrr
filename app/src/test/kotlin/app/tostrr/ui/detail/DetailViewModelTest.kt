@@ -4,6 +4,9 @@ import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.history.ChangeCategory
 import app.tostrr.domain.layout.DetailBlock
 import app.tostrr.domain.order.Change
+import app.tostrr.domain.shipping.GeoPosition
+import app.tostrr.domain.shipping.Ship
+import app.tostrr.domain.shipping.ShipSnapshot
 import app.tostrr.testing.MainDispatcherRule
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
@@ -65,6 +68,22 @@ class DetailViewModelTest {
         viewModel.handle(Action.OnToggleImportantOnly)
         assertNull(viewModel.state.value.historyFilter.category)
         assertEquals(listOf(vin, contract, insurance), viewModel.state.value.shownHistory)
+    }
+
+    @Test fun `follows the ship carrying the car, by its VIN block`() = runTest {
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EU8VC052692"))
+        val viewModel = graph.detailViewModel("RN1")
+        watch(viewModel)
+        assertNull(viewModel.state.value.voyage)
+
+        graph.ships.snapshot.value = ShipSnapshot(
+            1L,
+            listOf(
+                Ship("GLOVIS LIGHTHOUSE", listOf("NANGANG", "ZEEBRUGGE"), "ZEEBRUGGE", null, GeoPosition(-30.0, 37.0), 240.0, listOf("052"), done = false),
+            ),
+        )
+
+        assertEquals(listOf("GLOVIS LIGHTHOUSE"), viewModel.state.value.voyage?.candidates?.map { it.ship.name })
     }
 
     @Test fun `collapsing a section is saved for every order`() = runTest {
