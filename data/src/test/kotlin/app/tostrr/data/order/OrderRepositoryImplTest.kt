@@ -5,6 +5,7 @@ import app.tostrr.data.auth.TeslaAuth
 import app.tostrr.data.auth.TokenStore
 import app.tostrr.data.auth.Tokens
 import app.tostrr.data.catalog.OptionCatalog
+import app.tostrr.data.catalog.PartsCatalog
 import app.tostrr.data.notification.NotificationSettingsRepositoryImpl
 import app.tostrr.data.notification.OrderNotifier
 import app.tostrr.data.testing.FakeAndroidKeyStore
@@ -49,7 +50,7 @@ class OrderRepositoryImplTest {
     /** A new repository over the same files, as after a restart of the app. */
     private fun repository(): OrderRepositoryImpl {
         val catalog = OptionCatalog(http.client, context)
-        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), catalog, OrderNotifier(context, catalog, NotificationSettingsRepositoryImpl(context)))
+        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), catalog, PartsCatalog(http.client, context), OrderNotifier(context, catalog, NotificationSettingsRepositoryImpl(context)))
     }
 
     private fun orders(vararg orders: String) = http.on("/api/1/users/orders", """{"response":[${orders.joinToString(",")}]}""")
@@ -198,6 +199,24 @@ class OrderRepositoryImplTest {
         assertEquals(before, repository.orders.value)
         assertTrue(repository.history.value.isEmpty())
         assertFalse(repository.syncing.value)
+    }
+
+    @Test fun `a vin the parts catalogue lists makes the car built from that day, also after a restart`() = runTest {
+        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"LRWYGCEK1TC000001"}""")
+        http.on("/api/catalogs", """{"success":true,"responseObject":[{"id":2}]}""")
+        val repository = repository()
+        repository.refresh()
+        assertTrue(http.callsTo("/api/catalogs").isEmpty())
+        assertFalse(repository.orders.value.single().steps.first { it.kind == StepKind.BUILT }.done)
+
+        repository.refresh()
+        assertEquals(listOf("LRWYGCEK1TC000001"), http.callsTo("/api/catalogs").map { it.request.url.queryParameter("vin") })
+        val today = OrderMapper.formatDate(LocalDate.now().toString())
+        val built = repository.orders.value.single().steps.first { it.kind == StepKind.BUILT }
+        assertTrue(built.done)
+        assertEquals(today, built.date)
+        assertTrue(repository.history.value.getValue("RN1").any { it.key == "local" && it.newValue!!.contains("partsCatalogSince") })
+        assertEquals(built, repository().orders.value.single().steps.first { it.kind == StepKind.BUILT })
     }
 
     @Test fun `an order whose tasks fail keeps its last details while the others sync`() = runTest {

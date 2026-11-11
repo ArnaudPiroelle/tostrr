@@ -27,6 +27,7 @@ object OrderMapper {
         details: JsonObject,
         fetchedAtEpochMs: Long,
         detectors: StepDetectors = StepDetectors.Default,
+        local: LocalSignals = LocalSignals(),
     ): Order {
         val tasks = details.obj("tasks")
         val scheduling = tasks.obj("scheduling")
@@ -49,7 +50,12 @@ object OrderMapper {
         val steps = listOf(
             OrderStep(StepKind.ORDERED, formatDate(booked), booked != null),
             OrderStep(StepKind.VIN_ASSIGNED, null, vin != null),
-            OrderStep(StepKind.BUILT, null, detectors.carBuilt.isDone(order, tasks)),
+            // The parts catalogue is the surer sign, and the only one that gives a day.
+            OrderStep(
+                StepKind.BUILT,
+                local.partsCatalogSince?.format(LocalDateFormats.date()),
+                local.partsCatalogSince != null || detectors.carBuilt.isDone(order, tasks),
+            ),
             OrderStep(StepKind.DOCUMENTS_SENT, null, detectors.documentsSent.isDone(order, tasks)),
             OrderStep(StepKind.REGISTERED, formatDate(expectedReg), detectors.vehicleRegistered.isDone(order, tasks)),
             // Only a confirmed appointment is shown under the step; the delivery window lives in Order.deliverySlot.
@@ -71,7 +77,7 @@ object OrderMapper {
             etaToDeliveryCenter = formatDate(eta),
             expectedRegistration = formatDate(expectedReg),
             fetchedAtEpochMs = fetchedAtEpochMs,
-            raw = JsonObject(mapOf("order" to order, "details" to details)),
+            raw = JsonObject(mapOf("order" to order, "details" to details) + listOfNotNull(local.toJson()?.let { LocalSignals.KEY to it })),
             licensePlate = licensePlate,
             appointmentAtEpochMs = APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }?.let(::appointmentInstant),
             finalInvoiceReady = tasks.flag("finalPayment.data.hasFinalInvoice") || tasks.flag("finalPayment.data.hasActiveInvoice"),

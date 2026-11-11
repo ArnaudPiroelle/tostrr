@@ -1,10 +1,14 @@
 package app.tostrr.domain.order
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
 class PayloadStepDetectorsTest {
     private fun tasks(json: String) = Json.parseToJsonElement(json).jsonObject
@@ -66,6 +70,25 @@ class PayloadStepDetectorsTest {
         val order = OrderMapper.map(tasks("""{"referenceNumber":"RN1"}"""), tasks("{}"), 0L, StepDetectors(always, always, always))
         assertTrue(order.steps.first { it.kind == StepKind.DOCUMENTS_SENT }.done)
         assertTrue(order.steps.first { it.kind == StepKind.REGISTERED }.done)
+    }
+
+    @Test fun `a parts catalogue found makes the car built from that day, whatever the payload says`() {
+        val never = StepDetector { _, _ -> false }
+        val since = LocalDate.of(2026, 11, 12)
+        val order = OrderMapper.map(
+            tasks("""{"referenceNumber":"RN1"}"""), tasks("{}"), 0L, StepDetectors(never, never, never),
+            local = LocalSignals(partsCatalogSince = since),
+        )
+        val built = order.steps.first { it.kind == StepKind.BUILT }
+        assertTrue(built.done)
+        assertEquals(since.format(LocalDateFormats.date()), built.date)
+        assertEquals(LocalSignals(since), LocalSignals.fromJson(order.raw[LocalSignals.KEY] as JsonObject))
+    }
+
+    @Test fun `without local signals the raw payload has no local node`() {
+        val order = OrderMapper.map(tasks("""{"referenceNumber":"RN1"}"""), tasks("{}"), 0L)
+        assertEquals(setOf("order", "details"), order.raw.keys)
+        assertNull(order.steps.first { it.kind == StepKind.BUILT }.date)
     }
 
     @Test fun `no gate and placeholder odometer means not built`() {
