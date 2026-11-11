@@ -14,6 +14,7 @@ enum class DetailBlock(override val id: String, override val hiddenByDefault: Bo
     PROGRESS_TRACKER("progressTracker"),
     CHECKLIST("checklist"),
     DELIVERY("delivery"),
+    SHIPPING("shipping"),
     /** The step-by-step view; the one-line tracker above is enough by default. */
     PROGRESS("progress", hiddenByDefault = true),
     VEHICLE("vehicle"),

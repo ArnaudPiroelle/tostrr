@@ -36,6 +36,7 @@ import app.tostrr.domain.order.usecase.ObserveOrderHistoryUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersSyncingUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.domain.order.usecase.RefreshOrdersUseCase
+import app.tostrr.domain.shipping.usecase.ObserveShipSnapshotUseCase
 import app.tostrr.domain.sync.usecase.ObserveSyncSettingsUseCase
 import app.tostrr.domain.sync.usecase.SetAutoSyncUseCase
 import app.tostrr.domain.sync.usecase.SetSyncIntervalUseCase
@@ -52,10 +53,10 @@ import app.tostrr.ui.login.LoginViewModel
 import app.tostrr.ui.orders.OrdersViewModel
 import app.tostrr.ui.settings.SettingsViewModel
 import app.tostrr.ui.update.UpdateViewModel
+import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import java.nio.file.Files
 
 /**
  * The app's real ViewModels and use cases, wired by hand on top of the fakes as Koin would: what a test changes in a
@@ -76,6 +77,7 @@ class TestGraph(
     val options = FakeOptionRepository()
     val deliveryCenters = mutableListOf<DeliveryCenter>()
     val layout = FakeDetailLayoutRepository()
+    val ships = FakeShipTrackingRepository()
     val checklists = FakeChecklistRepository(Files.createTempDirectory("photos").toFile())
     val reports = FakeChecklistReportWriter(Files.createTempDirectory("reports").toFile())
 
@@ -118,6 +120,7 @@ class TestGraph(
         ObserveOptionCodesUseCase(options),
         ObserveChecklistUseCase(checklists),
         ObserveDetailLayoutUseCase(layout),
+        ObserveShipSnapshotUseCase(ships),
         FindDeliveryCenterUseCase(FakeDeliveryCenterRepository(deliveryCenters)),
         MoveDetailBlockUseCase(layout),
         ToggleDetailBlockUseCase(layout),

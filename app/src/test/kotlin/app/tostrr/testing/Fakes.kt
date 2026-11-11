@@ -22,6 +22,8 @@ import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.OptionRepository
 import app.tostrr.domain.order.Order
 import app.tostrr.domain.order.OrderRepository
+import app.tostrr.domain.shipping.ShipSnapshot
+import app.tostrr.domain.shipping.ShipTrackingRepository
 import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncScheduler
 import app.tostrr.domain.sync.SyncSettings
@@ -29,12 +31,12 @@ import app.tostrr.domain.sync.SyncSettingsRepository
 import app.tostrr.domain.update.AppUpdate
 import app.tostrr.domain.update.UpdateDownload
 import app.tostrr.domain.update.UpdateRepository
+import java.io.File
+import java.io.InputStream
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import java.io.File
-import java.io.InputStream
 
 /** In-memory stand-ins for the repositories of `:data`; tests set their state and read what was called. */
 
@@ -170,6 +172,10 @@ class FakeOrderRepository(orders: List<Order> = emptyList()) : OrderRepository {
 
 class FakeOptionRepository(codes: Map<String, OptionInfo> = emptyMap()) : OptionRepository {
     override val codes = MutableStateFlow(codes)
+}
+
+class FakeShipTrackingRepository(snapshot: ShipSnapshot? = null) : ShipTrackingRepository {
+    override val snapshot = MutableStateFlow(snapshot)
 }
 
 class FakeDeliveryCenterRepository(private val centers: List<DeliveryCenter> = emptyList()) : DeliveryCenterRepository {

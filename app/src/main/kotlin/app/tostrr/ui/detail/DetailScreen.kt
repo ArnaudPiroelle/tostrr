@@ -34,6 +34,7 @@ import app.tostrr.ui.detail.components.HistoryContent
 import app.tostrr.ui.detail.components.PaymentContent
 import app.tostrr.ui.detail.components.ProgressContent
 import app.tostrr.ui.detail.components.Section
+import app.tostrr.ui.detail.components.ShippingContent
 import app.tostrr.ui.detail.components.StickyTopBar
 import app.tostrr.ui.detail.components.VehicleContent
 import app.tostrr.ui.detail.components.titleRes
@@ -56,7 +57,14 @@ fun DetailScreen(
     // Once there is an appointment to prepare for; a checklist already started stays reachable even if the
     // appointment later disappears from Tesla's data.
     val showChecklist = order.hasAppointment || checklist != null
-    val blocks = BlockLayouts.visible(DetailBlock.entries, layout).filter { it != DetailBlock.CHECKLIST || showChecklist }
+    val blocks = BlockLayouts.visible(DetailBlock.entries, layout).filter {
+        when (it) {
+            DetailBlock.CHECKLIST -> showChecklist
+            // Only while the ship carrying the car is known.
+            DetailBlock.SHIPPING -> state.voyage != null
+            else -> true
+        }
+    }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
             Hero(order)
@@ -78,6 +86,7 @@ fun DetailScreen(
                             DetailBlock.CHECKLIST ->
                                 ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
                             DetailBlock.DELIVERY -> section { DeliveryContent(order, state.deliveryCenter) }
+                            DetailBlock.SHIPPING -> state.voyage?.let { voyage -> section { ShippingContent(voyage) } }
                             DetailBlock.PROGRESS_TRACKER -> section { StepTracker(order) }
                             DetailBlock.PROGRESS -> section { ProgressContent(order) }
                             DetailBlock.VEHICLE -> section { VehicleContent(order) }

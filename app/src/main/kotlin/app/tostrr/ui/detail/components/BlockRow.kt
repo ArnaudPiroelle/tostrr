@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.DirectionsBoat
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.FactCheck
 import androidx.compose.material.icons.outlined.History
@@ -50,6 +51,7 @@ private val DetailBlock.blurbRes: Int
     get() = when (this) {
         DetailBlock.CHECKLIST -> R.string.detail_block_checklist_blurb
         DetailBlock.DELIVERY -> R.string.detail_block_delivery_blurb
+        DetailBlock.SHIPPING -> R.string.detail_block_shipping_blurb
         DetailBlock.PROGRESS_TRACKER -> R.string.detail_block_progress_tracker_blurb
         DetailBlock.PROGRESS -> R.string.detail_block_progress_blurb
         DetailBlock.VEHICLE -> R.string.detail_block_vehicle_blurb
@@ -62,6 +64,7 @@ private val DetailBlock.icon: ImageVector
     get() = when (this) {
         DetailBlock.CHECKLIST -> Icons.Outlined.FactCheck
         DetailBlock.DELIVERY -> Icons.Outlined.LocalShipping
+        DetailBlock.SHIPPING -> Icons.Outlined.DirectionsBoat
         DetailBlock.PROGRESS_TRACKER -> Icons.Outlined.LinearScale
         DetailBlock.PROGRESS -> Icons.Outlined.Timeline
         DetailBlock.VEHICLE -> Icons.Outlined.DirectionsCar

@@ -8,6 +8,7 @@ import app.tostrr.data.catalog.OptionCatalog
 import app.tostrr.data.catalog.PartsCatalog
 import app.tostrr.data.notification.NotificationSettingsRepositoryImpl
 import app.tostrr.data.notification.OrderNotifier
+import app.tostrr.data.shipping.ShipTracker
 import app.tostrr.data.testing.FakeAndroidKeyStore
 import app.tostrr.data.testing.FakeHttp
 import app.tostrr.domain.error.ApiException
@@ -50,7 +51,7 @@ class OrderRepositoryImplTest {
     /** A new repository over the same files, as after a restart of the app. */
     private fun repository(): OrderRepositoryImpl {
         val catalog = OptionCatalog(http.client, context)
-        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), catalog, PartsCatalog(http.client, context), OrderNotifier(context, catalog, NotificationSettingsRepositoryImpl(context)))
+        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), catalog, PartsCatalog(http.client, context), ShipTracker(http.client, context), OrderNotifier(context, catalog, NotificationSettingsRepositoryImpl(context)))
     }
 
     private fun orders(vararg orders: String) = http.on("/api/1/users/orders", """{"response":[${orders.joinToString(",")}]}""")
