@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
+import app.tostrr.domain.history.category
 import app.tostrr.domain.order.Change
 import app.tostrr.ui.common.formatShortDate
 import app.tostrr.ui.common.formatShortTime
@@ -77,6 +78,11 @@ internal fun ChangeRow(change: Change) {
         )
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(change.category.labelRes),
+                style = MaterialTheme.typography.labelSmall,
+                color = TostrrColors.Accent,
+            )
             Text(
                 breakablePath(change.key),
                 style = MaterialTheme.typography.labelMedium,

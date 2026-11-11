@@ -5,6 +5,8 @@ import app.tostrr.domain.checklist.Checklist
 import app.tostrr.domain.checklist.usecase.ObserveChecklistUseCase
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.deliverycenter.usecase.FindDeliveryCenterUseCase
+import app.tostrr.domain.history.ChangeCategory
+import app.tostrr.domain.history.HistoryFilter
 import app.tostrr.domain.layout.BlockLayout
 import app.tostrr.domain.layout.DetailBlock
 import app.tostrr.domain.layout.usecase.MoveDetailBlockUseCase
@@ -24,6 +26,7 @@ import app.tostrr.ui.architecture.BaseViewModel
 import app.tostrr.ui.architecture.NoSideEffect
 import app.tostrr.ui.detail.DetailViewModel.Action
 import app.tostrr.ui.detail.DetailViewModel.State
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -32,6 +35,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 
@@ -67,9 +71,12 @@ class DetailViewModel(
         observeDetailLayoutUseCase(),
     ) { order, history, options, checklist, layout -> State(order, history, options, checklist, layout = layout) }
 
+    /** Kept by the screen while it lives: the minor changes are hidden at first. */
+    private val historyFilter = MutableStateFlow(HistoryFilter(importantOnly = true))
+
     // Starts from the current order and layout, so the screen opens already filled.
-    override val state: StateFlow<State> = combine(content, deliveryCenter.onStart { emit(null) }) { content, center ->
-        content.copy(deliveryCenter = center)
+    override val state: StateFlow<State> = combine(content, deliveryCenter.onStart { emit(null) }, historyFilter) { content, center, filter ->
+        content.copy(deliveryCenter = center, historyFilter = filter)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
@@ -78,6 +85,7 @@ class DetailViewModel(
             history = observeOrderHistoryUseCase().value[reference].orEmpty(),
             options = observeOptionCodesUseCase().value,
             layout = observeDetailLayoutUseCase().value,
+            historyFilter = historyFilter.value,
         ),
     )
 
@@ -89,6 +97,8 @@ class DetailViewModel(
             is Action.OnToggleBlock -> toggleDetailBlockUseCase(action.block)
             is Action.OnToggleBlockExpanded -> toggleDetailBlockExpandedUseCase(action.block)
             Action.OnResetLayout -> resetDetailLayoutUseCase()
+            Action.OnToggleImportantOnly -> historyFilter.update { it.copy(importantOnly = !it.importantOnly, category = null) }
+            is Action.OnSelectHistoryCategory -> historyFilter.update { it.copy(category = action.category) }
         }
     }
 
@@ -100,7 +110,11 @@ class DetailViewModel(
         val checklist: Checklist? = null,
         val deliveryCenter: DeliveryCenter? = null,
         val layout: BlockLayout = BlockLayout(),
-    ) : BaseState
+        val historyFilter: HistoryFilter = HistoryFilter(),
+    ) : BaseState {
+        /** The history as the filter leaves it, newest first like [history]. */
+        val shownHistory: List<Change> get() = historyFilter.apply(history)
+    }
 
     sealed class Action : BaseAction {
         /** Moves a shown block up ([delta] < 0) or down among the shown ones. */
@@ -108,5 +122,11 @@ class DetailViewModel(
         data class OnToggleBlock(val block: DetailBlock) : Action()
         data class OnToggleBlockExpanded(val block: DetailBlock) : Action()
         data object OnResetLayout : Action()
+
+        /** Shows only the important changes, or all of them again; the category choice is reset. */
+        data object OnToggleImportantOnly : Action()
+
+        /** Shows only [category]'s changes; null shows every category. */
+        data class OnSelectHistoryCategory(val category: ChangeCategory?) : Action()
     }
 }
