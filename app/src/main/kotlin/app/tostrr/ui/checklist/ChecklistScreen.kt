@@ -1,6 +1,9 @@
 package app.tostrr.ui.checklist
 
+import android.content.Context
+import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
@@ -46,6 +50,7 @@ import app.tostrr.ui.checklist.components.Recap
 import app.tostrr.ui.checklist.components.SectionIntro
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import java.io.File
 
 @Composable
 fun ChecklistScreen(
@@ -64,9 +69,17 @@ fun ChecklistScreen(
     }
     LaunchedEffect(screenKey) { scrollState.scrollTo(0) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var confirmLock by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val reportTitle = stringResource(R.string.checklist_report_chooser)
 
     OnSideEffect(viewModel) { effect ->
-        if (effect == SideEffect.Deleted) onClose()
+        when (effect) {
+            SideEffect.Deleted -> onClose()
+            is SideEffect.OpenReport -> context.startActivity(reportIntent(context, effect.path, Intent.ACTION_VIEW, reportTitle))
+            is SideEffect.ShareReport -> context.startActivity(reportIntent(context, effect.path, Intent.ACTION_SEND, reportTitle))
+            else -> Unit
+        }
     }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -99,8 +112,8 @@ fun ChecklistScreen(
                             step = step,
                             saved = s.checklist.answers[step.question.id],
                             viewModel = viewModel,
-                            onAnswer = { status, comment, photo, replaced ->
-                                viewModel.handle(Action.OnAnswer(cursor, step.question.id, status, comment, photo, replaced))
+                            onAnswer = { status, comment, photos, previous ->
+                                viewModel.handle(Action.OnAnswer(cursor, step.question.id, status, comment, photos, previous))
                             },
                             onBack = { viewModel.handle(Action.OnMoveTo(cursor - 1)) },
                         )
@@ -116,8 +129,8 @@ fun ChecklistScreen(
                             step = editing,
                             saved = s.checklist.answers[editing.question.id],
                             viewModel = viewModel,
-                            onAnswer = { status, comment, photo, replaced ->
-                                viewModel.handle(Action.OnSaveEdit(editing.question.id, status, comment, photo, replaced))
+                            onAnswer = { status, comment, photos, previous ->
+                                viewModel.handle(Action.OnSaveEdit(editing.question.id, status, comment, photos, previous))
                             },
                             onBack = { viewModel.handle(Action.OnCancelEdit) },
                             editing = true,
@@ -128,6 +141,9 @@ fun ChecklistScreen(
                             s.checklist,
                             onEdit = { viewModel.handle(Action.OnReopen(0)) },
                             onEditQuestion = { viewModel.handle(Action.OnEditQuestion(it)) },
+                            onLock = { confirmLock = true },
+                            onOpenReport = { viewModel.handle(Action.OnOpenReport) },
+                            onShareReport = { viewModel.handle(Action.OnShareReport) },
                             onDelete = { confirmDelete = true },
                             onClose = onClose,
                         )
@@ -135,6 +151,19 @@ fun ChecklistScreen(
                 }
             }
         }
+    }
+
+    if (confirmLock) {
+        ConfirmDialog(
+            title = stringResource(R.string.checklist_lock_title),
+            text = stringResource(R.string.checklist_lock_text),
+            confirm = stringResource(R.string.checklist_lock_confirm),
+            onConfirm = {
+                confirmLock = false
+                viewModel.handle(Action.OnLock)
+            },
+            onDismiss = { confirmLock = false },
+        )
     }
 
     if (confirmDelete) {
@@ -150,3 +179,21 @@ fun ChecklistScreen(
         )
     }
 }
+
+/** Shows ([Intent.ACTION_VIEW]) or sends ([Intent.ACTION_SEND]) the PDF report through the app chooser. */
+private fun reportIntent(context: Context, path: String, action: String, title: String): Intent {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(path))
+    val intent = Intent(action).apply {
+        if (action == Intent.ACTION_SEND) {
+            type = PDF
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, title)
+        } else {
+            setDataAndType(uri, PDF)
+        }
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return Intent.createChooser(intent, title)
+}
+
+private const val PDF = "application/pdf"

@@ -181,7 +181,7 @@
     <string name="checklist_progress">%1$d / %2$d</string>
     <string name="checklist_percent">%1$d%%</string>
     <string name="checklist_comment">Commentaire (facultatif)</string>
-    <string name="checklist_photo">Photo (facultatif)</string>
+    <string name="checklist_photo">Photos (facultatif)</string>
     <string name="checklist_verified_button">J\'ai vérifié 👍</string>
     <string name="checklist_skip">Passer</string>
     <string name="checklist_already_verified">Déjà marqué comme vérifié</string>
@@ -200,6 +200,18 @@
     <string name="checklist_answer_verified">Vérifié</string>
     <string name="checklist_answer_skipped">Passé</string>
     <string name="checklist_answer_none">Non traité</string>
+    <string name="checklist_lock_button">Verrouiller et créer le rapport</string>
+    <string name="checklist_lock_title">Verrouiller la checklist ?</string>
+    <string name="checklist_lock_text">Une fois verrouillée, ses réponses et ses photos ne pourront plus être modifiées : le rapport dira toujours ce qui a été vérifié. Elle pourra encore être supprimée.</string>
+    <string name="checklist_lock_confirm">Verrouiller</string>
+    <string name="checklist_locked_on">Verrouillée le %1$s</string>
+    <string name="checklist_report_open">Voir le rapport</string>
+    <string name="checklist_report_share">Partager le rapport</string>
+    <string name="checklist_report_chooser">Rapport de la checklist de livraison</string>
+    <string name="checklist_report_order">Commande %1$s</string>
+    <string name="checklist_report_completed">Terminée le %1$s</string>
+    <string name="checklist_report_counts">%1$d vérifiés · %2$d passés · %3$d non traités, sur %4$d</string>
+    <string name="checklist_report_page">Tostrr · page %1$d</string>
     <string name="checklist_delete_title">Supprimer la checklist ?</string>
     <string name="checklist_delete_text">Toutes les réponses, commentaires et photos de cette checklist seront effacés.</string>
     <string name="checklist_delete_confirm">Supprimer</string>

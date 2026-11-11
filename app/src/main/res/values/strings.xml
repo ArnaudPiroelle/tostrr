@@ -181,7 +181,7 @@
     <string name="checklist_progress">%1$d / %2$d</string>
     <string name="checklist_percent">%1$d%%</string>
     <string name="checklist_comment">Comment (optional)</string>
-    <string name="checklist_photo">Photo (optional)</string>
+    <string name="checklist_photo">Photos (optional)</string>
     <string name="checklist_verified_button">Checked 👍</string>
     <string name="checklist_skip">Skip</string>
     <string name="checklist_already_verified">Already marked as checked</string>
@@ -200,6 +200,18 @@
     <string name="checklist_answer_verified">Checked</string>
     <string name="checklist_answer_skipped">Skipped</string>
     <string name="checklist_answer_none">Not handled</string>
+    <string name="checklist_lock_button">Lock and create the report</string>
+    <string name="checklist_lock_title">Lock the checklist?</string>
+    <string name="checklist_lock_text">Once locked, its answers and photos can no longer be changed, so the report always says what was checked. It can still be deleted.</string>
+    <string name="checklist_lock_confirm">Lock</string>
+    <string name="checklist_locked_on">Locked on %1$s</string>
+    <string name="checklist_report_open">Open the report</string>
+    <string name="checklist_report_share">Share the report</string>
+    <string name="checklist_report_chooser">Delivery checklist report</string>
+    <string name="checklist_report_order">Order %1$s</string>
+    <string name="checklist_report_completed">Completed on %1$s</string>
+    <string name="checklist_report_counts">%1$d checked · %2$d skipped · %3$d not handled, out of %4$d</string>
+    <string name="checklist_report_page">Tostrr · page %1$d</string>
     <string name="checklist_delete_title">Delete the checklist?</string>
     <string name="checklist_delete_text">All the answers, comments and photos of this checklist will be erased.</string>
     <string name="checklist_delete_confirm">Delete</string>

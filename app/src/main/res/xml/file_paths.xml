@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Shared with the camera app so it can write the checklist photos it takes, and with the system installer so it can read an update. -->
+<!-- Shared with the camera app so it can write the checklist photos it takes, with the system installer so it can read an update, and with any app the checklist report is sent to. -->
 <paths>
     <files-path name="checklist_photos" path="checklist_photos/" />
     <cache-path name="updates" path="updates/" />
+    <cache-path name="reports" path="reports/" />
 </paths>

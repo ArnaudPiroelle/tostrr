@@ -65,6 +65,42 @@ class ChecklistScreenTest {
         assertEquals(cursor + 1, checklist.cursor)
     }
 
+    @Test fun `locking a finished checklist asks first, then offers the report instead of changes`() {
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, 1L, 0, emptyMap()))
+        show()
+
+        compose.onNodeWithText("Verrouiller et créer le rapport").performScrollTo().performClick()
+        compose.onNode(hasText("Verrouiller") and hasAnyAncestor(isDialog())).performClick()
+
+        compose.waitForIdle()
+        assertTrue(graph.checklists.checklists.value.getValue("RN1").locked)
+        compose.onNodeWithText("Voir le rapport").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Partager le rapport").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Modifier la checklist").assertDoesNotExist()
+    }
+
+    @Test fun `a locked checklist's answers can't be opened to change them`() {
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, 1L, 0, emptyMap(), lockedAtEpochMs = 2L))
+        show()
+
+        compose.onNodeWithText("Le numéro VIN sur le pare-brise correspond-il au certificat d'immatriculation ?").performScrollTo().performClick()
+
+        compose.onNodeWithText("J'ai vérifié 👍").assertDoesNotExist()
+    }
+
+    @Test fun `a question keeps every photo of its answer`() {
+        val cursor = DeliveryChecklist.stepIndexOf(firstQuestion.question.id)
+        val photos = listOf("/p/a.jpg", "/p/b.jpg")
+        val answer = app.tostrr.domain.checklist.ChecklistAnswer(firstQuestion.question.id, AnswerStatus.VERIFIED, photoPaths = photos, answeredAtEpochMs = 1L)
+        graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, null, cursor, mapOf(answer.questionId to answer)))
+        show()
+
+        compose.onNodeWithText("J'ai vérifié 👍").performScrollTo().performClick()
+
+        assertEquals(photos, graph.checklists.checklists.value.getValue("RN1").answers.getValue(firstQuestion.question.id).photoPaths)
+        assertTrue(graph.checklists.deletedPhotos.isEmpty())
+    }
+
     @Test fun `deleting a finished checklist asks first, then closes the screen`() {
         graph.checklists.checklists.value = mapOf("RN1" to Checklist("RN1", 0L, 1L, 0, emptyMap()))
         show()

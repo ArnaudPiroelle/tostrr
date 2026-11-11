@@ -13,8 +13,8 @@ data class ChecklistAnswer(
     val questionId: String,
     val status: AnswerStatus,
     val comment: String? = null,
-    /** Absolute path of the photo in the app's private storage. */
-    val photoPath: String? = null,
+    /** Absolute paths of the photos in the app's private storage, in the order they were added. */
+    val photoPaths: List<String> = emptyList(),
     val answeredAtEpochMs: Long,
 )
 
@@ -32,15 +32,21 @@ sealed interface ChecklistStep {
     ) : ChecklistStep
 }
 
-/** The delivery checklist of one order. [cursor] indexes [DeliveryChecklist.steps]; past the end means done. */
+/**
+ * The delivery checklist of one order. [cursor] indexes [DeliveryChecklist.steps]; past the end means done. Once
+ * [locked][lockedAtEpochMs], a completed checklist can't change any more, so its report says what was checked then.
+ */
 data class Checklist(
     val orderReference: String,
     val startedAtEpochMs: Long,
     val completedAtEpochMs: Long?,
     val cursor: Int,
     val answers: Map<String, ChecklistAnswer>,
+    val lockedAtEpochMs: Long? = null,
 ) {
     val completed: Boolean get() = completedAtEpochMs != null
+
+    val locked: Boolean get() = lockedAtEpochMs != null
 
     val verifiedCount: Int get() = answers.values.count { it.status == AnswerStatus.VERIFIED }
 

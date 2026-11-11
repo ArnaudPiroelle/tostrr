@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -42,12 +43,15 @@ import app.tostrr.ui.checklist.ChecklistViewModel.SideEffect
 import app.tostrr.ui.theme.TostrrColors
 import java.io.File
 
+/** The draft's photo paths, kept across a configuration change or the camera activity recreating the screen. */
+private val PhotosSaver = listSaver<List<String>, String>(save = { it }, restore = { it })
+
 @Composable
 internal fun ColumnScope.QuestionStep(
     step: ChecklistStep.Question,
     saved: ChecklistAnswer?,
     viewModel: ChecklistViewModel,
-    onAnswer: (status: AnswerStatus, comment: String, photo: String?, replaced: String?) -> Unit,
+    onAnswer: (status: AnswerStatus, comment: String, photos: List<String>, previous: List<String>) -> Unit,
     onBack: () -> Unit,
     /** Changing one answer of a finished checklist: "Revenir" becomes "Annuler". */
     editing: Boolean = false,
@@ -55,12 +59,17 @@ internal fun ColumnScope.QuestionStep(
     val questionId = step.question.id
     // Draft for this question, seeded with the answer given earlier when coming back to it.
     var comment by rememberSaveable(questionId) { mutableStateOf(saved?.comment.orEmpty()) }
-    var photo by rememberSaveable(questionId) { mutableStateOf(saved?.photoPath) }
+    var photos by rememberSaveable(questionId, stateSaver = PhotosSaver) { mutableStateOf(saved?.photoPaths.orEmpty()) }
+    val savedPhotos = saved?.photoPaths.orEmpty()
 
-    /** Sets the draft photo; a previous draft photo nobody else points to is deleted. */
-    fun replacePhoto(path: String?) {
-        photo?.takeIf { it != saved?.photoPath && it != path }?.let { viewModel.handle(Action.OnDeletePhoto(it)) }
-        photo = path
+    fun addPhoto(path: String) {
+        photos = photos + path
+    }
+
+    /** Takes a photo out of the draft; one the saved answer doesn't have is deleted at once, as nothing else uses it. */
+    fun removePhoto(path: String) {
+        photos = photos - path
+        if (path !in savedPhotos) viewModel.handle(Action.OnDeletePhoto(path))
     }
 
     val context = LocalContext.current
@@ -69,10 +78,10 @@ internal fun ColumnScope.QuestionStep(
     val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
         val path = pendingShot ?: return@rememberLauncherForActivityResult
         pendingShot = null
-        if (taken) replacePhoto(path) else File(path).delete()
+        if (taken) addPhoto(path) else File(path).delete()
     }
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) viewModel.handle(Action.OnImportPhoto(questionId, uri))
+    val pickImages = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
+        uris.forEach { viewModel.handle(Action.OnImportPhoto(questionId, it)) }
     }
     OnSideEffect(viewModel) { effect ->
         when (effect) {
@@ -80,8 +89,8 @@ internal fun ColumnScope.QuestionStep(
                 pendingShot = effect.path
                 takePicture.launch(FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(effect.path)))
             }
-            is SideEffect.PhotoImported -> if (effect.questionId == questionId) replacePhoto(effect.path)
-            SideEffect.Deleted -> Unit
+            is SideEffect.PhotoImported -> if (effect.questionId == questionId) addPhoto(effect.path)
+            else -> Unit
         }
     }
 
@@ -113,17 +122,17 @@ internal fun ColumnScope.QuestionStep(
         )
         Spacer(Modifier.height(20.dp))
         FieldLabel(stringResource(R.string.checklist_photo))
-        PhotoField(
-            photo = photo,
+        PhotosField(
+            photos = photos,
             onTakePhoto = { viewModel.handle(Action.OnTakePhoto(questionId)) },
-            onPickImage = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-            onDelete = { replacePhoto(null) },
+            onPickImage = { pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onDelete = ::removePhoto,
         )
         Spacer(Modifier.height(20.dp))
-        PrimaryButton(stringResource(R.string.checklist_verified_button)) { onAnswer(AnswerStatus.VERIFIED, comment, photo, saved?.photoPath) }
+        PrimaryButton(stringResource(R.string.checklist_verified_button)) { onAnswer(AnswerStatus.VERIFIED, comment, photos, savedPhotos) }
         Spacer(Modifier.height(12.dp))
         SecondaryButton(stringResource(R.string.checklist_skip), trailing = Icons.Filled.KeyboardDoubleArrowRight) {
-            onAnswer(AnswerStatus.SKIPPED, comment, photo, saved?.photoPath)
+            onAnswer(AnswerStatus.SKIPPED, comment, photos, savedPhotos)
         }
         Spacer(Modifier.height(12.dp))
         if (editing) {

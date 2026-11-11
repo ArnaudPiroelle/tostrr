@@ -29,8 +29,8 @@ class ChecklistRepositoryImplTest {
 
     private suspend fun checklist(ref: String = REF) = repository.observe(ref).first()
 
-    private fun answer(id: String, status: AnswerStatus = AnswerStatus.VERIFIED, at: Long = 10L, photo: String? = null) =
-        ChecklistAnswer(id, status, comment = "ok", photoPath = photo, answeredAtEpochMs = at)
+    private fun answer(id: String, status: AnswerStatus = AnswerStatus.VERIFIED, at: Long = 10L, photos: List<String> = emptyList()) =
+        ChecklistAnswer(id, status, comment = "ok", photoPaths = photos, answeredAtEpochMs = at)
 
     @Test fun `there is no checklist until it is started`() = runTest {
         assertNull(checklist())
@@ -112,6 +112,40 @@ class ChecklistRepositoryImplTest {
         assertEquals(50L, updated.completedAtEpochMs)
     }
 
+    @Test fun `an answer keeps its photos in their order`() = runTest {
+        repository.start(REF)
+        repository.answer(REF, answer("exterior-01", photos = listOf("/p/b.jpg", "/p/a.jpg", "/p/c.jpg")), nextCursor = 2)
+        assertEquals(listOf("/p/b.jpg", "/p/a.jpg", "/p/c.jpg"), checklist()!!.answers.getValue("exterior-01").photoPaths)
+    }
+
+    @Test fun `only a completed checklist can be locked, once`() = runTest {
+        repository.start(REF)
+        repository.lock(REF, now = 20L)
+        assertFalse(checklist()!!.locked)
+        repository.moveTo(REF, lastStep, now = 30L)
+        repository.lock(REF, now = 40L)
+        repository.lock(REF, now = 50L)
+        assertEquals(40L, checklist()!!.lockedAtEpochMs)
+    }
+
+    @Test fun `a locked checklist can't be reopened nor its answers changed, only deleted`() = runTest {
+        repository.start(REF)
+        repository.answer(REF, answer("exterior-01"), nextCursor = 2)
+        repository.moveTo(REF, lastStep, now = 30L)
+        repository.lock(REF, now = 40L)
+
+        assertFalse(repository.updateAnswer(REF, answer("exterior-01", AnswerStatus.SKIPPED)))
+        assertFalse(repository.answer(REF, answer("exterior-02"), nextCursor = 3))
+        repository.reopen(REF, 0)
+        val locked = checklist()!!
+        assertTrue(locked.completed)
+        assertEquals(AnswerStatus.VERIFIED, locked.answers.getValue("exterior-01").status)
+        assertFalse("exterior-02" in locked.answers)
+
+        repository.delete(REF)
+        assertNull(checklist())
+    }
+
     @Test fun `checklists of different orders are kept apart`() = runTest {
         repository.start(REF)
         repository.start("RN2")
@@ -123,7 +157,7 @@ class ChecklistRepositoryImplTest {
     @Test fun `deleting removes the checklist, its answers and its photos`() = runTest {
         repository.start(REF)
         val photo = repository.importPhoto(REF, "exterior-01", "jpeg".byteInputStream())
-        repository.answer(REF, answer("exterior-01", photo = photo), nextCursor = 2)
+        repository.answer(REF, answer("exterior-01", photos = listOf(photo)), nextCursor = 2)
         repository.delete(REF)
         assertNull(checklist())
         assertFalse(File(photo).exists())

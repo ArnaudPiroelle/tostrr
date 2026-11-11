@@ -7,6 +7,7 @@ import app.tostrr.domain.auth.AuthRepository
 import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.checklist.Checklist
 import app.tostrr.domain.checklist.ChecklistAnswer
+import app.tostrr.domain.checklist.ChecklistReportWriter
 import app.tostrr.domain.checklist.ChecklistRepository
 import app.tostrr.domain.checklist.DeliveryChecklist
 import app.tostrr.domain.deliverycenter.DeliveryCenter
@@ -203,18 +204,25 @@ class FakeChecklistRepository(private val photoDir: File) : ChecklistRepository 
         )
     }
 
+    override suspend fun lock(ref: String, now: Long) {
+        checklists.value[ref]?.takeIf { it.completed && !it.locked }?.let { set(ref, it.copy(lockedAtEpochMs = now)) }
+    }
+
     override suspend fun reopen(ref: String, cursor: Int) {
-        checklists.value[ref]?.let { set(ref, it.copy(completedAtEpochMs = null, cursor = cursor)) }
+        checklists.value[ref]?.takeUnless { it.locked }?.let { set(ref, it.copy(completedAtEpochMs = null, cursor = cursor)) }
     }
 
-    override suspend fun updateAnswer(ref: String, answer: ChecklistAnswer) {
-        checklists.value[ref]?.let { set(ref, it.copy(answers = it.answers + (answer.questionId to answer))) }
+    override suspend fun updateAnswer(ref: String, answer: ChecklistAnswer): Boolean {
+        val checklist = checklists.value[ref]?.takeIf { it.completed && !it.locked } ?: return false
+        set(ref, checklist.copy(answers = checklist.answers + (answer.questionId to answer)))
+        return true
     }
 
-    override suspend fun answer(ref: String, answer: ChecklistAnswer, nextCursor: Int) {
-        val checklist = checklists.value[ref]?.takeUnless { it.completed } ?: return
+    override suspend fun answer(ref: String, answer: ChecklistAnswer, nextCursor: Int): Boolean {
+        val checklist = checklists.value[ref]?.takeUnless { it.completed } ?: return false
         set(ref, checklist.copy(answers = checklist.answers + (answer.questionId to answer)))
         moveTo(ref, nextCursor)
+        return true
     }
 
     override suspend fun delete(ref: String) {
@@ -236,5 +244,15 @@ class FakeChecklistRepository(private val photoDir: File) : ChecklistRepository 
 
     private fun set(ref: String, checklist: Checklist) {
         checklists.value += (ref to checklist)
+    }
+}
+
+/** Writes an empty file per report and remembers what it was asked for. */
+class FakeChecklistReportWriter(private val dir: File) : ChecklistReportWriter {
+    val written = mutableListOf<Pair<Checklist, Order?>>()
+
+    override suspend fun write(checklist: Checklist, order: Order?): File {
+        written += checklist to order
+        return File(dir, "checklist-${checklist.orderReference}.pdf").apply { writeText("%PDF") }
     }
 }

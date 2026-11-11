@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -47,6 +49,9 @@ internal fun ColumnScope.Recap(
     checklist: Checklist,
     onEdit: () -> Unit,
     onEditQuestion: (questionId: String) -> Unit,
+    onLock: () -> Unit,
+    onOpenReport: () -> Unit,
+    onShareReport: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -82,6 +87,13 @@ internal fun ColumnScope.Recap(
                 checklist.completedAtEpochMs?.let {
                     Text(formatDateTime(it), style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted)
                 }
+                checklist.lockedAtEpochMs?.let {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Lock, contentDescription = null, tint = TostrrColors.Muted, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.checklist_locked_on, formatDateTime(it)), style = MaterialTheme.typography.bodyMedium, color = TostrrColors.Muted)
+                    }
+                }
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -102,13 +114,20 @@ internal fun ColumnScope.Recap(
                 RecapRow(
                     stringResource(question.textRes),
                     checklist.answers[question.id],
-                    onClick = { onEditQuestion(question.id) },
+                    // A locked checklist can be read, not changed.
+                    onClick = if (checklist.locked) null else ({ onEditQuestion(question.id) }),
                     onPhoto = { zoomedPhoto = it },
                 )
             }
         }
     }
-    PrimaryButton(stringResource(R.string.checklist_recap_edit), onClick = onEdit)
+    if (checklist.locked) {
+        PrimaryButton(stringResource(R.string.checklist_report_open), onClick = onOpenReport)
+        SecondaryButton(stringResource(R.string.checklist_report_share), leading = Icons.Filled.Share, onClick = onShareReport)
+    } else {
+        PrimaryButton(stringResource(R.string.checklist_lock_button), onClick = onLock)
+        SecondaryButton(stringResource(R.string.checklist_recap_edit), onClick = onEdit)
+    }
     SecondaryButton(stringResource(R.string.checklist_recap_delete), leading = Icons.Filled.Delete, onClick = onDelete)
     SecondaryButton(stringResource(R.string.common_close), onClick = onClose)
 

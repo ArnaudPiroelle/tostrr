@@ -17,18 +17,24 @@ class AnswerChecklistQuestionUseCase(private val repository: ChecklistRepository
         questionId: String,
         status: AnswerStatus,
         comment: String,
-        photoPath: String?,
-        replacedPhoto: String?,
+        photoPaths: List<String>,
+        previousPhotos: List<String>,
     ) {
-        repository.answer(ref, newAnswer(questionId, status, comment, photoPath), cursor + 1)
-        if (replacedPhoto != null && replacedPhoto != photoPath) repository.deletePhoto(replacedPhoto)
+        if (repository.answer(ref, newAnswer(questionId, status, comment, photoPaths), cursor + 1)) {
+            deleteDropped(repository, previousPhotos, photoPaths)
+        }
     }
 }
 
-internal fun newAnswer(questionId: String, status: AnswerStatus, comment: String, photoPath: String?) = ChecklistAnswer(
+internal fun newAnswer(questionId: String, status: AnswerStatus, comment: String, photoPaths: List<String>) = ChecklistAnswer(
     questionId = questionId,
     status = status,
     comment = comment.trim().ifEmpty { null },
-    photoPath = photoPath,
+    photoPaths = photoPaths.distinct(),
     answeredAtEpochMs = System.currentTimeMillis(),
 )
+
+/** The photos of the answer being overwritten that the new one no longer has. */
+internal suspend fun deleteDropped(repository: ChecklistRepository, previous: List<String>, kept: List<String>) {
+    (previous - kept.toSet()).forEach { repository.deletePhoto(it) }
+}

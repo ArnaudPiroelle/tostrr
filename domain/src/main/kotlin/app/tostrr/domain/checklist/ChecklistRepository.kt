@@ -14,14 +14,17 @@ interface ChecklistRepository {
     /** Moves to [cursor]; moving past the last step completes the checklist, which can't move after that. */
     suspend fun moveTo(ref: String, cursor: Int, now: Long = System.currentTimeMillis())
 
-    /** Makes a finished checklist editable again, at [cursor]. */
+    /** Locks a completed checklist: nothing about it can change after that, except deleting it. */
+    suspend fun lock(ref: String, now: Long = System.currentTimeMillis())
+
+    /** Makes a finished checklist editable again, at [cursor]. Ignored once locked. */
     suspend fun reopen(ref: String, cursor: Int)
 
-    /** Replaces one answer of a finished checklist, which stays finished. */
-    suspend fun updateAnswer(ref: String, answer: ChecklistAnswer)
+    /** Replaces one answer of a finished checklist, which stays finished; false when ignored (not finished, or locked). */
+    suspend fun updateAnswer(ref: String, answer: ChecklistAnswer): Boolean
 
-    /** Records [answer] and moves to [nextCursor] in one go. Ignored once the checklist is completed. */
-    suspend fun answer(ref: String, answer: ChecklistAnswer, nextCursor: Int)
+    /** Records [answer] and moves to [nextCursor] in one go; false when ignored, once the checklist is completed. */
+    suspend fun answer(ref: String, answer: ChecklistAnswer, nextCursor: Int): Boolean
 
     /** Deletes the checklist, its answers and its photos. */
     suspend fun delete(ref: String)
@@ -32,6 +35,6 @@ interface ChecklistRepository {
     /** A fresh file for a photo of [questionId]: a new name each time, so an image cache never shows a replaced shot. */
     fun newPhotoFile(ref: String, questionId: String): File
 
-    /** Removes a photo that was taken but not kept (replaced, or the answer was never recorded with it). */
+    /** Removes a photo that was taken but not kept (removed, or the answer was never recorded with it). */
     suspend fun deletePhoto(path: String)
 }
