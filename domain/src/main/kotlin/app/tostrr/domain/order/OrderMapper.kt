@@ -38,7 +38,9 @@ object OrderMapper {
 
         // The payload layout moves around between Tesla app versions, so dates are looked up by key name.
         val booked = tasks.deepFind("orderBookedDate") ?: tasks.deepFind("orderPlacedDate")
-        val appointment = appointmentFrom(tasks)
+        val announced = announcedAppointments(tasks)
+        // Only an appointment with a time is confirmed; a bare day still beats the window on the cards.
+        val appointment = announced.firstOrNull { TIME_OF_DAY.containsMatchIn(it) }
         val window = deliveryWindowFrom(tasks)
         val eta = ETA_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) } ?: tasks.deepFind("etaToDeliveryCenter")
         val licensePlate = PayloadStepDetectors.PLATE_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }
@@ -64,7 +66,7 @@ object OrderMapper {
             steps = steps,
             deliveryCenter = scheduling.str("deliveryAddressTitle"),
             deliveryWindow = window,
-            deliverySlot = appointment ?: window?.let(::shortWindow)?.replace("\n", " – "),
+            deliverySlot = appointment ?: announced.firstOrNull() ?: window?.let(::shortWindow)?.replace("\n", " – "),
             appointment = appointment,
             etaToDeliveryCenter = formatDate(eta),
             expectedRegistration = formatDate(expectedReg),
@@ -202,16 +204,20 @@ object OrderMapper {
     private val WINDOW_SEPARATOR = Regex("""\s*[-–]\s*""")
     private val WHITESPACE = Regex("""\s+""")
 
-    private fun appointmentFrom(tasks: JsonObject): String? {
-        // Already a display string in the user's language, so it is kept as is.
-        tasks.obj("scheduling").str("deliveryAppointmentDate")?.trim()?.takeIf { it.isNotEmpty() }
-            ?.let { return it.replace(WHITESPACE, " ") }
-        return APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it)?.trim()?.takeIf(String::isNotEmpty) }
-            ?.let(::formatAppointment)
-    }
+    /** What Tesla gives about the appointment, as shown, `scheduling` first: its display string is kept as is. */
+    private fun announcedAppointments(tasks: JsonObject): List<String> =
+        listOfNotNull(tasks.obj("scheduling").str("deliveryAppointmentDate")?.trim()?.takeIf { it.isNotEmpty() }?.replace(WHITESPACE, " ")) +
+            APPOINTMENT_PATHS.mapNotNull { tasks.stringAt(it)?.trim()?.takeIf(String::isNotEmpty)?.let(::formatAppointment) }
 
-    /** ISO instants and local date-times become a date and time in the device's language and time zone; anything else is kept. */
-    internal fun formatAppointment(raw: String): String = parseAppointment(raw)?.format(LocalDateFormats.dateTime()) ?: raw
+    /**
+     * A time of day in a date in any language: `10:30`, `10h30`, `10 h`, `10 AM`, `10 Uhr`. Unverified: no real
+     * payload had an appointment yet, and Tesla may give the day before the hour.
+     */
+    private val TIME_OF_DAY = Regex("""(?<!\d)\d{1,2}\s?(:\d{2}|h\d{0,2}|[ap]\.?m\.?|uhr)(?![\p{L}\d])""", RegexOption.IGNORE_CASE)
+
+    /** ISO instants and local date-times become a date and time in the device's language and time zone, an ISO day a date; anything else is kept. */
+    internal fun formatAppointment(raw: String): String =
+        parseAppointment(raw)?.format(LocalDateFormats.dateTime()) ?: formatDate(raw) ?: raw
 }
 
 internal fun JsonObject?.obj(key: String): JsonObject =

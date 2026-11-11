@@ -61,6 +61,40 @@ class OrderMapperTest {
         assertEquals(true, o.steps.last().done)
     }
 
+    @Test fun `an appointment needs a time to count`() {
+        for (shown in listOf("29 novembre à 10:00", "29 novembre à 10h30", "Nov 29, 10 AM", "29.11.2026, 10 Uhr")) {
+            val o = map("""{"referenceNumber":"RN1"}""", """{"scheduling":{"deliveryAppointmentDate":"$shown"}}""")
+            assertEquals(shown, o.appointment)
+            assertEquals(shown, true, o.steps.last().done)
+        }
+    }
+
+    @Test fun `a day without a time is no appointment but shows as the slot`() {
+        val o = map(
+            """{"referenceNumber":"RN1"}""",
+            """{"scheduling":{"deliveryAppointmentDate":"29 novembre 2026","deliveryWindowDisplay":"29 Novembre - 29 Décembre"}}""",
+        )
+        assertNull(o.appointment)
+        assertEquals(false, o.hasAppointment)
+        assertEquals(false, o.steps.last().done)
+        assertEquals("29 novembre 2026", o.deliverySlot)
+    }
+
+    @Test fun `a time-less day leaves room for a dated appointment from another source`() {
+        val o = map(
+            """{"referenceNumber":"RN1"}""",
+            """{"scheduling":{"deliveryAppointmentDate":"29 novembre"},"deliveryAcceptance":{"appointmentDate":"2026-11-30T10:30:00"}}""",
+        )
+        assertEquals("30/11/2026 10:30", o.appointment)
+    }
+
+    @Test fun `an iso day without a time is shown as a date, not as an appointment`() {
+        val o = map("""{"referenceNumber":"RN1"}""", """{"deliveryAcceptance":{"appointmentDate":"2026-11-30"}}""")
+        assertNull(o.appointment)
+        assertNull(o.appointmentAtEpochMs)
+        assertEquals(OrderMapper.formatDate("2026-11-30"), o.deliverySlot)
+    }
+
     @Test fun `no appointment anywhere leaves the step open`() {
         val o = map("""{"referenceNumber":"RN1"}""", """{"scheduling":{"deliveryAppointmentDate":""}}""")
         assertNull(o.appointment)

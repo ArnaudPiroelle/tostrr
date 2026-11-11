@@ -141,7 +141,7 @@ class OrderRepositoryImpl(
 
     /** Entries recorded before a path became ignored are purged, and the file is rewritten if any went. */
     private fun dropIgnored(history: Map<String, List<Change>>): Map<String, List<Change>> {
-        val kept = history.mapValues { (_, changes) -> changes.filterNot { HistoryIgnore.isIgnored(it.key) } }
+        val kept = history.mapValues { (_, changes) -> changes.filterNot(HistoryIgnore::ignores) }
             .filterValues { it.isNotEmpty() }
         if (kept != history) runCatching { historyFile.writeText(encodeHistory(kept)) }
         return kept
