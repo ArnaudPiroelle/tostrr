@@ -121,7 +121,7 @@ class OrderRepositoryImplTest {
         repository.refresh()
         assertNull(repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
 
-        orders("""{"referenceNumber":"RN1","modelCode":"my","orderStatus":"BOOKED","vin":"VIN1"}""")
+        orders("""{"referenceNumber":"RN1","modelCode":"my","orderStatus":"BOOKED","vin":"LRWYGCEK1TC000001"}""")
         repository.refresh()
 
         val today = OrderMapper.formatDate(LocalDate.now().toString())
@@ -130,7 +130,7 @@ class OrderRepositoryImplTest {
     }
 
     @Test fun `a vin already there on the first sync is dated by that sync, once`() = runTest {
-        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"VIN1"}""")
+        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"LRWYGCEK1TC000001"}""")
         val repository = repository()
         repository.refresh()
         val step = repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }
@@ -146,9 +146,9 @@ class OrderRepositoryImplTest {
     @Test fun `a vin cached without a date is dated by the sync of that cache`() = runTest {
         val fetchedAt = LocalDate.of(2026, 11, 2).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         File(context.filesDir, "orders.json").writeText(
-            """[{"fetchedAt":$fetchedAt,"raw":{"order":{"referenceNumber":"RN1","modelCode":"my","vin":"VIN1"},"details":{"tasks":{}}}}]""",
+            """[{"fetchedAt":$fetchedAt,"raw":{"order":{"referenceNumber":"RN1","modelCode":"my","vin":"LRWYGCEK1TC000001"},"details":{"tasks":{}}}}]""",
         )
-        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"VIN1"}""")
+        orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"LRWYGCEK1TC000001"}""")
         tasks("{}")
         val repository = repository()
         assertNull(repository.orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
@@ -198,6 +198,44 @@ class OrderRepositoryImplTest {
         assertEquals(before, repository.orders.value)
         assertTrue(repository.history.value.isEmpty())
         assertFalse(repository.syncing.value)
+    }
+
+    @Test fun `an order whose tasks fail keeps its last details while the others sync`() = runTest {
+        orders("""{"referenceNumber":"RN1","modelCode":"my"}""", """{"referenceNumber":"RN2","modelCode":"m3"}""")
+        val repository = repository()
+        repository.refresh()
+        val stale = repository.orders.value.first { it.reference == "RN2" }
+
+        orders("""{"referenceNumber":"RN1","modelCode":"my"}""", """{"referenceNumber":"RN2","modelCode":"m3","orderStatus":"DELIVERED"}""")
+        tasks("""{"scheduling":{"deliveryWindowDisplay":"1 Décembre - 15 Décembre"}}""")
+        http.failOn("/tasks", "referenceNumber", "RN2")
+        repository.refresh()
+
+        val (rn1, rn2) = repository.orders.value
+        assertEquals("1 Décembre - 15 Décembre", rn1.deliveryWindow)
+        assertEquals("29 Novembre - 29 Décembre", rn2.deliveryWindow)
+        assertEquals("DELIVERED", rn2.status)
+        assertEquals(stale.fetchedAtEpochMs, rn2.fetchedAtEpochMs)
+        assertEquals(listOf("order.orderStatus"), repository.history.value.getValue("RN2").map { it.key })
+    }
+
+    @Test fun `an order whose tasks fail on its first sync fails the sync`() = runTest {
+        orders("""{"referenceNumber":"RN1","modelCode":"my"}""", """{"referenceNumber":"RN2","modelCode":"m3"}""")
+        http.failOn("/tasks", "referenceNumber", "RN2")
+        val repository = repository()
+        val e = runCatching { repository.refresh() }.exceptionOrNull()
+        assertEquals(500, (e as ApiException).code)
+        assertTrue(repository.orders.value.isEmpty())
+    }
+
+    @Test fun `tasks failing for every order fail the sync`() = runTest {
+        val repository = repository()
+        repository.refresh()
+        val before = repository.orders.value
+        http.on("/tasks", "", code = 503)
+        val e = runCatching { repository.refresh() }.exceptionOrNull()
+        assertEquals(503, (e as ApiException).code)
+        assertEquals(before, repository.orders.value)
     }
 
     @Test fun `the option labels are fetched after a sync, and their failure doesn't fail it`() = runTest {

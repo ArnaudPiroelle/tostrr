@@ -31,12 +31,21 @@ class FakeHttp {
         answers[path] = Answer(0, null, IOException("offline"))
     }
 
+    /** Requests to [path] whose query parameter [name] is [value] get [code] with an empty body, whatever [on] set. */
+    fun failOn(path: String, name: String, value: String, code: Int = 500) {
+        queryAnswers[Triple(path, name, value)] = Answer(code, "", null)
+    }
+
+    private val queryAnswers = mutableMapOf<Triple<String, String, String>, Answer>()
+
     fun callsTo(path: String) = calls.filter { it.request.url.encodedPath == path }
 
     val client: OkHttpClient = OkHttpClient.Builder().addInterceptor { chain ->
         val request = chain.request()
         calls += Call(request, request.body?.let { body -> Buffer().also(body::writeTo).readUtf8() })
-        val answer = answers[request.url.encodedPath] ?: Answer(404, "", null)
+        val path = request.url.encodedPath
+        val answer = queryAnswers.entries.firstOrNull { (key, _) -> key.first == path && request.url.queryParameter(key.second) == key.third }?.value
+            ?: answers[path] ?: Answer(404, "", null)
         answer.failure?.let { throw it }
         Response.Builder()
             .request(request)

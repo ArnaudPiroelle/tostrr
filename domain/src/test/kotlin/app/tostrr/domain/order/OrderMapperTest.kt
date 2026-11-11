@@ -24,9 +24,30 @@ class OrderMapperTest {
     }
 
     @Test fun `vin from the order wins, then the registration paths`() {
-        assertEquals("ORDERVIN", map("""{"referenceNumber":"RN1","vin":"ORDERVIN"}""", "{}").vin)
-        assertEquals("REGVIN", map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"REGVIN"}}}""").vin)
-        assertEquals("PAYVIN", map("""{"referenceNumber":"RN1"}""", """{"finalPayment":{"data":{"vin":"PAYVIN"}}}""").vin)
+        assertEquals("LRWYGCEK1TC000101", map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC000101"}""", "{}").vin)
+        assertEquals("LRWYGCEK1TC000102", map("""{"referenceNumber":"RN1"}""", """{"registration":{"orderDetails":{"vin":"LRWYGCEK1TC000102"}}}""").vin)
+        assertEquals("LRWYGCEK1TC000103", map("""{"referenceNumber":"RN1"}""", """{"finalPayment":{"data":{"vin":"LRWYGCEK1TC000103"}}}""").vin)
+    }
+
+    @Test fun `placeholders are no vin, and the next path is tried`() {
+        for (placeholder in listOf("VIN ##vin##", "##VIN##", "pending", "N/A", "null", "LRW000")) {
+            val o = map("""{"referenceNumber":"RN1","vin":"$placeholder"}""", "{}")
+            assertNull(placeholder, o.vin)
+            assertEquals(placeholder, false, o.steps.first { it.kind == StepKind.VIN_ASSIGNED }.done)
+        }
+        assertEquals(
+            "LRWYGCEK1TC000102",
+            map("""{"referenceNumber":"RN1","vin":"VIN ##vin##"}""", """{"registration":{"orderDetails":{"vin":"LRWYGCEK1TC000102"}}}""").vin,
+        )
+    }
+
+    @Test fun `a vin is read out of a label, in upper case`() {
+        assertEquals("LRWYGCEK1TC000101", map("""{"referenceNumber":"RN1","vin":"VIN: lrwygcek1tc000101"}""", "{}").vin)
+    }
+
+    @Test fun `seventeen characters with I, O or Q, or more than seventeen, are no vin`() {
+        assertNull(map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC00000O"}""", "{}").vin)
+        assertNull(map("""{"referenceNumber":"RN1","vin":"LRWYGCEK1TC0000011"}""", "{}").vin)
     }
 
     @Test fun `scheduling appointment is kept as the display string`() {

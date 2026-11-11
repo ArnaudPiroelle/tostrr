@@ -32,7 +32,7 @@ object OrderMapper {
         val scheduling = tasks.obj("scheduling")
 
         val reference = order.str("referenceNumber") ?: "?"
-        val vin = (order.str("vin") ?: VIN_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) })?.takeIf { it.isNotBlank() }
+        val vin = vinIn(order.str("vin")) ?: VIN_PATHS.firstNotNullOfOrNull { vinIn(tasks.stringAt(it)) }
         val optionCodes = order.str("mktOptions").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
         val modelCode = order.str("modelCode")?.lowercase() ?: modelFromOptions(optionCodes)
 
@@ -148,6 +148,14 @@ object OrderMapper {
         "registration.regData.orderDetails.vin",
         "finalPayment.data.vin",
     )
+
+    /**
+     * The VIN held by [raw], upper case, or null when it holds none: Tesla fills VIN fields with placeholders
+     * (`VIN ##vin##`, `pending`) or a `VIN:` label before the car is matched, and a VIN never has I, O or Q.
+     */
+    internal fun vinIn(raw: String?): String? = raw?.uppercase()?.let { VIN.find(it) }?.value
+
+    private val VIN = Regex("""(?<![A-Z0-9])[A-HJ-NPR-Z0-9]{17}(?![A-Z0-9])""")
 
     /** Where the VIN is read, in the same order, as paths of [Order.raw] and of the history. */
     internal val VIN_KEYS = listOf("order.vin") + VIN_PATHS.map { "details.tasks.$it" }

@@ -24,7 +24,7 @@ fun Order.withVinAssignmentDate(changes: List<Change>, zone: ZoneId = ZoneId.sys
 fun Order.undatedVinChange(changes: List<Change>, syncedAt: Long): Change? {
     val vin = vin ?: return null
     if (changes.any { it.addsVin(vin) }) return null
-    val key = OrderMapper.VIN_KEYS.firstOrNull { raw.stringAt(it) == vin } ?: return null
+    val key = OrderMapper.VIN_KEYS.firstOrNull { OrderMapper.vinIn(raw.stringAt(it)) == vin } ?: return null
     return Change(syncedAt, key, null, vin)
 }
 

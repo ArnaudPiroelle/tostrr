@@ -18,6 +18,7 @@ import app.tostrr.domain.order.OrderRepository
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -94,10 +95,26 @@ class OrderRepositoryImpl(
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException(AuthError.NOT_LOGGED_IN)
             val now = System.currentTimeMillis()
+            val cached = _orders.value.associateBy { it.reference }
+            val failures = mutableListOf<Exception>()
             val fresh = api.listOrders(token).map { it.jsonObject }.map { order ->
                 val ref = order["referenceNumber"]?.jsonPrimitive?.content ?: error("Order without a reference")
-                OrderMapper.map(order, api.orderTasks(token, ref), now)
+                val details = try {
+                    api.orderTasks(token, ref)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // One order's tasks failing must not hold back the others: it keeps the details, and the date, of
+                    // the last sync that had them. Without any, the sync fails as a whole.
+                    val previous = cached[ref] ?: throw e
+                    val known = previous.raw["details"] as? JsonObject ?: throw e
+                    failures += e
+                    return@map OrderMapper.map(order, known, previous.fetchedAtEpochMs)
+                }
+                OrderMapper.map(order, details, now)
             }
+            // Every order failing is an outage, not one bad order: report it rather than pass old details off as new.
+            if (fresh.isNotEmpty() && failures.size == fresh.size) throw failures.first()
             // The cache written by an older version has no archive yet: keep it as the first snapshot.
             archive(_orders.value)
             recordChanges(_orders.value, fresh, now)
