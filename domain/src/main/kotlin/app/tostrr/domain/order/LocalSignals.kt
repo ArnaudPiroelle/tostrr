@@ -17,20 +17,25 @@ data class LocalSignals(
      * built; a VIN merely assigned, or an unknown one, gets "not available".
      */
     val partsCatalogSince: LocalDate? = null,
+    /** The catalogue's id for this car, which a link to its parts on parts.tesla.com needs along with the VIN. */
+    val partsCatalogReference: String? = null,
 ) {
     /** Null when there is nothing to keep, so an order the app knows nothing more about has no `local` node. */
     fun toJson(): JsonObject? =
         if (this == LocalSignals()) null else buildJsonObject {
             partsCatalogSince?.let { put(PARTS_CATALOG_SINCE, it.toString()) }
+            partsCatalogReference?.let { put(PARTS_CATALOG_REFERENCE, it) }
         }
 
     companion object {
         const val KEY = "local"
         private const val PARTS_CATALOG_SINCE = "partsCatalogSince"
+        private const val PARTS_CATALOG_REFERENCE = "partsCatalogReference"
 
         fun fromJson(json: JsonObject?): LocalSignals = LocalSignals(
             partsCatalogSince = (json?.get(PARTS_CATALOG_SINCE) as? JsonPrimitive)?.contentOrNull
                 ?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+            partsCatalogReference = (json?.get(PARTS_CATALOG_REFERENCE) as? JsonPrimitive)?.contentOrNull,
         )
     }
 }

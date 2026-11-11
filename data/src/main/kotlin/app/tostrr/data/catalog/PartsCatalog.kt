@@ -34,30 +34,40 @@ class PartsCatalog(
     private val client: OkHttpClient,
     context: Context,
 ) {
-    private data class Entry(val since: LocalDate?, val checkedAtMs: Long)
+    /** [since] and [reference] are null while the catalogue doesn't list the VIN. */
+    private data class Entry(val since: LocalDate?, val reference: String?, val checkedAtMs: Long)
+
+    /** What the catalogue says of a VIN it lists: the day it was first found, and its id for the car, when it gives one. */
+    data class Listing(val since: LocalDate, val reference: String?)
 
     private val cacheFile = File(context.filesDir, "parts_catalog.json")
     private val entries: MutableMap<String, Entry> = load()
 
-    /** Day the catalogue was first found for [vin], or null while it isn't. */
-    fun since(vin: String): LocalDate? = entries[vin]?.since
+    /** The catalogue's listing of [vin], or null while it doesn't list it. */
+    fun listing(vin: String): Listing? = entries[vin]?.let { entry -> entry.since?.let { Listing(it, entry.reference) } }
 
     /**
      * Looks up the one VIN of [vins] that waited longest, if one is due: a single call per sync, so a list of orders
-     * never floods the catalogue. Never throws: a failed lookup is tried again next time.
+     * never floods the catalogue. A listed VIN is due again only while its reference is missing. Never throws: a failed
+     * lookup is tried again next time.
      */
     suspend fun checkOne(vins: Collection<String>, now: Long = System.currentTimeMillis()) {
         val vin = vins.distinct()
-            .filter { entries[it]?.since == null && now - (entries[it]?.checkedAtMs ?: 0L) >= RECHECK_MS }
+            .filter { entries[it].let { e -> e?.reference == null && now - (e?.checkedAtMs ?: 0L) >= RECHECK_MS } }
             .minByOrNull { entries[it]?.checkedAtMs ?: 0L } ?: return
-        val found = try {
+        val answer = try {
             withContext(Dispatchers.IO) { lookup(vin) }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
             null
         } ?: return
-        entries[vin] = Entry(if (found) Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate() else null, now)
+        val known = entries[vin]
+        entries[vin] = when (answer) {
+            // A VIN already found keeps its day: only the reference was missing.
+            is Answer.Listed -> Entry(known?.since ?: Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate(), answer.reference, now)
+            Answer.NotListed -> Entry(known?.since, null, now)
+        }
         withContext(Dispatchers.IO) { save() }
     }
 
@@ -66,17 +76,24 @@ class PartsCatalog(
         cacheFile.delete()
     }
 
-    /** True when the catalogue lists [vin], false when it says it doesn't, null for any other answer. */
-    private fun lookup(vin: String): Boolean? {
+    private sealed interface Answer {
+        data class Listed(val reference: String?) : Answer
+        data object NotListed : Answer
+    }
+
+    /** What the catalogue says of [vin]; null for any other answer. */
+    private fun lookup(vin: String): Answer? {
         val url = CATALOG_URL.toHttpUrl().newBuilder().addQueryParameter("vin", vin).build()
         client.newCall(Request.Builder().url(url).build()).execute().use { response ->
             // "Not available" comes with HTTP 400, so the body decides, not the status.
             val root = runCatching { Json.parseToJsonElement(response.body?.string().orEmpty()).jsonObject }.getOrNull() ?: return null
             if ((root["success"] as? JsonPrimitive)?.booleanOrNull == true) {
-                return (root["responseObject"] as? JsonArray)?.isNotEmpty()
+                val catalogues = (root["responseObject"] as? JsonArray)?.filterIsInstance<JsonObject>().orEmpty()
+                if (catalogues.isEmpty()) return Answer.NotListed
+                return Answer.Listed(catalogues.firstNotNullOfOrNull { (it["externalReference"] as? JsonPrimitive)?.contentOrNull })
             }
             val message = (root["message"] as? JsonPrimitive)?.contentOrNull.orEmpty()
-            return if (NOT_LISTED.any { message.contains(it, ignoreCase = true) }) false else null
+            return if (NOT_LISTED.any { message.contains(it, ignoreCase = true) }) Answer.NotListed else null
         }
     }
 
@@ -86,6 +103,7 @@ class PartsCatalog(
                 put(vin, buildJsonObject {
                     put("c", entry.checkedAtMs)
                     entry.since?.let { put("s", it.toString()) }
+                    entry.reference?.let { put("r", it) }
                 })
             }
         }
@@ -97,6 +115,7 @@ class PartsCatalog(
             val o = value.jsonObject
             Entry(
                 since = (o["s"] as? JsonPrimitive)?.contentOrNull?.let(LocalDate::parse),
+                reference = (o["r"] as? JsonPrimitive)?.contentOrNull,
                 checkedAtMs = o["c"]?.jsonPrimitive?.longOrNull ?: 0L,
             )
         }.toMutableMap()

@@ -119,6 +119,8 @@
     <string name="detail_vehicle_odometer">Kilométrage</string>
     <string name="detail_vehicle_routing">Acheminement</string>
     <string name="detail_vehicle_registration_status">Statut d\'immatriculation</string>
+    <string name="detail_vehicle_parts_catalog">Catalogue de pièces</string>
+    <string name="detail_vehicle_parts_catalog_open">Voir les pièces de la voiture</string>
     <string name="detail_payment_empty">Aucune information de paiement pour le moment.</string>
     <string name="detail_payment_status">Statut du paiement</string>
     <string name="detail_payment_amount_due">Reste à payer</string>

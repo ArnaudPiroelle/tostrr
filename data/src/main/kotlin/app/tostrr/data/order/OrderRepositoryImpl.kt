@@ -138,8 +138,8 @@ class OrderRepositoryImpl(
     /** The order with what the parts catalogue knows of its VIN. */
     private fun map(order: JsonObject, details: JsonObject, fetchedAt: Long): Order {
         val mapped = OrderMapper.map(order, details, fetchedAt)
-        val since = mapped.vin?.let(partsCatalog::since) ?: return mapped
-        return OrderMapper.map(order, details, fetchedAt, local = LocalSignals(partsCatalogSince = since))
+        val listing = mapped.vin?.let(partsCatalog::listing) ?: return mapped
+        return OrderMapper.map(order, details, fetchedAt, local = LocalSignals(listing.since, listing.reference))
     }
 
     override fun clear() {

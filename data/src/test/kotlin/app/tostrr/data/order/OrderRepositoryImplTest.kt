@@ -203,7 +203,7 @@ class OrderRepositoryImplTest {
 
     @Test fun `a vin the parts catalogue lists makes the car built from that day, also after a restart`() = runTest {
         orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"LRWYGCEK1TC000001"}""")
-        http.on("/api/catalogs", """{"success":true,"responseObject":[{"id":2}]}""")
+        http.on("/api/catalogs", """{"success":true,"responseObject":[{"id":2,"externalReference":"ref-1"}]}""")
         val repository = repository()
         repository.refresh()
         assertTrue(http.callsTo("/api/catalogs").isEmpty())
@@ -216,7 +216,9 @@ class OrderRepositoryImplTest {
         assertTrue(built.done)
         assertEquals(today, built.date)
         assertTrue(repository.history.value.getValue("RN1").any { it.key == "local" && it.newValue!!.contains("partsCatalogSince") })
+        assertEquals("ref-1", repository.orders.value.single().partsCatalogReference)
         assertEquals(built, repository().orders.value.single().steps.first { it.kind == StepKind.BUILT })
+        assertEquals("ref-1", repository().orders.value.single().partsCatalogReference)
     }
 
     @Test fun `an order whose tasks fail keeps its last details while the others sync`() = runTest {

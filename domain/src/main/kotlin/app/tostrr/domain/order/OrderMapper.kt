@@ -87,6 +87,7 @@ object OrderMapper {
             deliveryMethod = deliveryMethodFrom(tasks),
             vehicleInfo = OrderInfoMapper.vehicle(tasks, booked, licensePlate),
             paymentInfo = OrderInfoMapper.payment(tasks),
+            partsCatalogReference = local.partsCatalogReference,
         )
     }
 

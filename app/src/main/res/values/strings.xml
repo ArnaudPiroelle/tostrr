@@ -121,6 +121,8 @@
     <string name="detail_vehicle_odometer">Mileage</string>
     <string name="detail_vehicle_routing">Routing</string>
     <string name="detail_vehicle_registration_status">Registration status</string>
+    <string name="detail_vehicle_parts_catalog">Parts catalogue</string>
+    <string name="detail_vehicle_parts_catalog_open">See this car\'s parts</string>
     <string name="detail_payment_empty">No payment information yet.</string>
     <string name="detail_payment_status">Payment status</string>
     <string name="detail_payment_amount_due">Amount due</string>

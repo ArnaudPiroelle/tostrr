@@ -69,6 +69,20 @@ class DetailScreenTest {
         assertEquals("LRW3E7EK0PC000001", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
     }
 
+    @Test fun `a car the parts catalogue lists links to its parts`() {
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EK0PC000001", partsCatalogReference = "ref-1"))
+        show()
+
+        compose.onNodeWithText("Voir les pièces de la voiture").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `no parts link before the catalogue lists the car`() {
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EK0PC000001"))
+        show()
+
+        compose.onNodeWithText("Voir les pièces de la voiture").assertDoesNotExist()
+    }
+
     @Test fun `an unknown VIN has nothing to copy`() {
         show()
 

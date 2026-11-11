@@ -47,6 +47,8 @@ data class Order(
     val deliveryMethod: DeliveryMethod? = null,
     val vehicleInfo: VehicleInfo = VehicleInfo(),
     val paymentInfo: PaymentInfo = PaymentInfo(),
+    /** See [LocalSignals.partsCatalogReference]. */
+    val partsCatalogReference: String? = null,
 ) {
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int
