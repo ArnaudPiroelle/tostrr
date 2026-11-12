@@ -1,6 +1,7 @@
 package app.tostrr.domain.alert
 
 import app.tostrr.domain.order.Change
+import app.tostrr.domain.order.LocalSignals
 import app.tostrr.domain.order.Order
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
@@ -57,7 +58,7 @@ class OrderAlertsTest {
     }
 
     @Test fun `a delivery is reported once, whether tesla says it or the car reached the account`() {
-        val inAccount = order().copy(inAccountSince = java.time.LocalDate.of(2026, 12, 20))
+        val inAccount = order().copy(local = LocalSignals(inAccountSince = java.time.LocalDate.of(2026, 12, 20)))
         assertEquals(listOf("delivered"), keys(order(), inAccount))
         assertEquals(listOf("delivered"), keys(order(), order().copy(status = "DELIVERED")))
         assertEquals(emptyList<String>(), keys(inAccount, inAccount.copy(status = "DELIVERED")))

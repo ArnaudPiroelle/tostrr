@@ -102,7 +102,8 @@ class OrderMapperTest {
         assertEquals(false, o.awaitingDelivery)
         assertEquals(OrderMapper.formatDate("2026-12-20"), o.steps.last().date)
         assertEquals(true, o.steps.last().done)
-        assertEquals(day, LocalSignals.fromJson(o.raw[LocalSignals.KEY] as kotlinx.serialization.json.JsonObject).inAccountSince)
+        assertEquals(day, o.inAccountSince)
+        assertEquals(setOf("order", "details"), o.raw.keys)
     }
 
     @Test fun `tesla's delivered status also closes the delivery step`() {

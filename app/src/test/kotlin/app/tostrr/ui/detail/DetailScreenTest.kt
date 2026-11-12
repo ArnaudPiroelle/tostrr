@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.order.Change
+import app.tostrr.domain.order.LocalSignals
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
 import app.tostrr.ui.theme.TostrrTheme
@@ -73,7 +74,7 @@ class DetailScreenTest {
     }
 
     @Test fun `a car the parts catalogue lists links to its parts`() {
-        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EK0PC000001", partsCatalogReference = "ref-1"))
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EK0PC000001", local = LocalSignals(partsCatalogReference = "ref-1")))
         show()
 
         compose.onNodeWithText("Voir les pièces de la voiture").performScrollTo().assertIsDisplayed()

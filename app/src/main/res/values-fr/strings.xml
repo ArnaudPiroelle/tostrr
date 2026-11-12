@@ -172,7 +172,6 @@
     <string name="detail_history_category_count">%1$s · %2$d</string>
     <string name="detail_history_category_order">Commande</string>
     <string name="detail_history_category_vin">VIN</string>
-    <string name="detail_history_category_built">Construction</string>
     <string name="detail_history_category_window">Fenêtre de livraison</string>
     <string name="detail_history_category_appointment">Rendez-vous</string>
     <string name="detail_history_category_delivery">Livraison</string>

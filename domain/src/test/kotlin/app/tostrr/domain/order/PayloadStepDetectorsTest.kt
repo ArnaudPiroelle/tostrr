@@ -1,7 +1,6 @@
 package app.tostrr.domain.order
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -82,12 +81,12 @@ class PayloadStepDetectorsTest {
         val built = order.steps.first { it.kind == StepKind.BUILT }
         assertTrue(built.done)
         assertEquals(since.format(LocalDateFormats.date()), built.date)
-        assertEquals(LocalSignals(since), LocalSignals.fromJson(order.raw[LocalSignals.KEY] as JsonObject))
+        assertEquals(LocalSignals(since), order.local)
+        assertEquals(setOf("order", "details"), order.raw.keys)
     }
 
-    @Test fun `without local signals the raw payload has no local node`() {
+    @Test fun `without local signals the built step has no date`() {
         val order = OrderMapper.map(tasks("""{"referenceNumber":"RN1"}"""), tasks("{}"), 0L)
-        assertEquals(setOf("order", "details"), order.raw.keys)
         assertNull(order.steps.first { it.kind == StepKind.BUILT }.date)
     }
 

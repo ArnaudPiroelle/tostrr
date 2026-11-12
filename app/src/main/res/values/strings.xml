@@ -173,7 +173,6 @@
     <string name="detail_history_category_count">%1$s · %2$d</string>
     <string name="detail_history_category_order">Order</string>
     <string name="detail_history_category_vin">VIN</string>
-    <string name="detail_history_category_built">Build</string>
     <string name="detail_history_category_window">Delivery window</string>
     <string name="detail_history_category_appointment">Appointment</string>
     <string name="detail_history_category_delivery">Delivery</string>

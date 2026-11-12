@@ -32,10 +32,9 @@ class PartsCatalogLinkTest {
         assertNull(order(null, "r").partsCatalogUrl(Locale.FRANCE))
     }
 
-    @Test fun `the reference is kept in the raw payload and read back`() {
+    @Test fun `the reference is written out and read back`() {
         val order = order("LRWYGCEK1TC000001", "r")
-        val local = LocalSignals.fromJson(order.raw[LocalSignals.KEY]!!.jsonObject)
-        assertEquals("r", local.partsCatalogReference)
+        assertEquals("r", LocalSignals.fromJson(order.local.toJson()).partsCatalogReference)
         assertEquals("r", order.partsCatalogReference)
     }
 }
