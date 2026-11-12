@@ -45,6 +45,7 @@ import org.koin.core.parameter.parametersOf
 fun DetailScreen(
     reference: String,
     onOpenChecklist: () -> Unit,
+    onOpenShip: (String) -> Unit,
     onBack: () -> Unit,
     viewModel: DetailViewModel = koinViewModel { parametersOf(reference) },
 ) {
@@ -86,7 +87,7 @@ fun DetailScreen(
                             DetailBlock.CHECKLIST ->
                                 ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
                             DetailBlock.DELIVERY -> section { DeliveryContent(order, state.deliveryCenter) }
-                            DetailBlock.SHIPPING -> state.voyage?.let { voyage -> section { ShippingContent(voyage) } }
+                            DetailBlock.SHIPPING -> state.voyage?.let { voyage -> section { ShippingContent(voyage, onOpenShip) } }
                             DetailBlock.PROGRESS_TRACKER -> section { StepTracker(order) }
                             DetailBlock.PROGRESS -> section { ProgressContent(order) }
                             DetailBlock.VEHICLE -> section { VehicleContent(order) }

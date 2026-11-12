@@ -31,6 +31,7 @@ import app.tostrr.ui.navigation.Screen
 import app.tostrr.ui.navigation.Transitions
 import app.tostrr.ui.orders.OrdersScreen
 import app.tostrr.ui.settings.SettingsScreen
+import app.tostrr.ui.ship.ShipScreen
 import app.tostrr.ui.theme.TostrrTheme
 import app.tostrr.ui.theme.applySystemBars
 import app.tostrr.ui.theme.isDark
@@ -57,11 +58,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by viewModel.watchAsState()
             val dark = state.themeMode.isDark()
-            LaunchedEffect(dark) { applySystemBars(dark) }
 
             TostrrTheme(darkTheme = dark) {
                 val loggedIn = state.loggedIn
                 val backStack = rememberNavBackStack(if (loggedIn) Screen.Orders else Screen.Login)
+
+                // The ship screen's globe is dark in both themes: light status bar icons over it.
+                val darkStatusBar = dark || backStack.lastOrNull() is Screen.Ship
+                LaunchedEffect(dark, darkStatusBar) { applySystemBars(dark, darkStatusBar) }
 
                 LaunchedEffect(pendingOrderRef, loggedIn, state.orderReferences) {
                     val ref = pendingOrderRef ?: return@LaunchedEffect
@@ -129,11 +133,15 @@ class MainActivity : ComponentActivity() {
                             DetailScreen(
                                 reference = key.reference,
                                 onOpenChecklist = { backStack.add(Screen.Checklist(key.reference)) },
+                                onOpenShip = { backStack.add(Screen.Ship(key.reference, it)) },
                                 onBack = { backStack.removeLastOrNull() },
                             )
                         }
                         entry<Screen.Checklist> { key ->
                             ChecklistScreen(orderReference = key.reference, onClose = { backStack.removeLastOrNull() })
+                        }
+                        entry<Screen.Ship> { key ->
+                            ShipScreen(key, onClose = { backStack.removeLastOrNull() })
                         }
                         entry<Screen.Settings> {
                             SettingsScreen(

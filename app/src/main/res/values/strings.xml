@@ -101,7 +101,6 @@
     <string name="detail_block_history_blurb">What changed from one sync to the next.</string>
     <string name="detail_block_shipping">Sea transport</string>
     <string name="detail_block_shipping_blurb">Shown while the ship carrying the car is known.</string>
-    <string name="detail_shipping_hint">Drag to turn the globe, pinch to zoom, double tap to recentre.</string>
     <string name="detail_shipping_route">Route</string>
     <string name="detail_shipping_route_value">%1$s → %2$s</string>
     <string name="detail_shipping_next_port">Next port</string>
@@ -322,4 +321,34 @@
         <item quantity="one">day</item>
         <item quantity="other">days</item>
     </plurals>
+    <string name="detail_shipping_open_ship">Follow this ship</string>
+    <string name="ship_sailing">At sea</string>
+    <string name="ship_berthed">In port</string>
+    <string name="ship_candidate">One of %1$d candidate ships</string>
+    <string name="ship_route">%1$s → %2$s</string>
+    <string name="ship_route_via">%1$s → %2$s via %3$s</string>
+    <string name="ship_subtitle">%1$s · %2$s</string>
+    <string name="ship_arrival_expected">Expected arrival in %1$s</string>
+    <string name="ship_arrival_berthed">In port in %1$s</string>
+    <string name="ship_eta_date_time">%1$s, %2$s</string>
+    <string name="ship_eta_unknown">Date not given</string>
+    <string name="ship_eta_today">Today</string>
+    <string name="ship_eta_tomorrow">Tomorrow</string>
+    <plurals name="ship_eta_in_days">
+        <item quantity="one">In %d day</item>
+        <item quantity="other">In %d days</item>
+    </plurals>
+    <string name="ship_eta_passed">Expected date passed</string>
+    <string name="ship_then">Then %1$s</string>
+    <string name="ship_source">An estimate from the community site TFF ship tracking, by VIN block. Position as of %1$s.</string>
+    <string name="ship_departed">departed</string>
+    <string name="ship_called">called</string>
+    <string name="ship_at_sea">At sea now</string>
+    <string name="ship_route_share">%1$s of the route</string>
+    <string name="ship_in_port_now">in port now</string>
+    <string name="ship_expected">expected %1$s</string>
+    <string name="ship_progress">Progress</string>
+    <string name="ship_draught">Draught</string>
+    <string name="ship_draught_value">%1$s m</string>
+    <string name="ship_vin_block">VIN block</string>
 </resources>

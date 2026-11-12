@@ -5,10 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 
-/** Draws behind transparent system bars, with icons readable on the app's theme rather than the phone's. */
-fun ComponentActivity.applySystemBars(dark: Boolean) {
+/**
+ * Draws behind transparent system bars, with icons readable on the app's theme rather than the phone's; on what is
+ * under the status bar when [darkStatusBar] says it is dark whatever the theme (the ship screen's globe).
+ */
+fun ComponentActivity.applySystemBars(dark: Boolean, darkStatusBar: Boolean = dark) {
     enableEdgeToEdge(
-        statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
+        statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkStatusBar },
         // The scrims `enableEdgeToEdge` uses by default, shown behind three-button navigation.
         navigationBarStyle = SystemBarStyle.auto(LightScrim, DarkScrim) { dark },
     )

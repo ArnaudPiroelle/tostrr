@@ -51,7 +51,9 @@ import app.tostrr.ui.checklist.ChecklistViewModel
 import app.tostrr.ui.detail.DetailViewModel
 import app.tostrr.ui.login.LoginViewModel
 import app.tostrr.ui.orders.OrdersViewModel
+import app.tostrr.ui.navigation.Screen
 import app.tostrr.ui.settings.SettingsViewModel
+import app.tostrr.ui.ship.ShipViewModel
 import app.tostrr.ui.update.UpdateViewModel
 import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
@@ -127,6 +129,8 @@ class TestGraph(
         ResetDetailLayoutUseCase(layout),
         ToggleDetailBlockExpandedUseCase(layout),
     )
+
+    fun shipViewModel(key: Screen.Ship) = ShipViewModel(key, ObserveOrdersUseCase(orders), ObserveShipSnapshotUseCase(ships))
 
     fun checklistViewModel(reference: String, context: Context, handle: SavedStateHandle = SavedStateHandle()) =
         ChecklistViewModel(
