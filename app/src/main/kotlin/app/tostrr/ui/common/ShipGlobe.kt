@@ -185,10 +185,12 @@ private class LandDots {
 private class Lane(val sailed: List<DoubleArray>, val ahead: List<DoubleArray>) {
     companion object {
         fun of(ship: GlobeShip): Lane {
-            val path = greatCirclePath(ship.lane)
+            val path = laneThroughPorts(ship.lane, ship.ports.map { it.position })
             val position = ship.position?.toVector() ?: return Lane(path, emptyList())
             val nearest = path.indices.maxByOrNull { dot(path[it], position) } ?: return Lane(emptyList(), emptyList())
-            return Lane(path.take(nearest) + listOf(position), listOf(position) + path.drop(nearest + 1))
+            // The ship is rarely right on the hand-made lane: bent through it, the line has no kink there.
+            val bent = bendThrough(path, nearest, position)
+            return Lane(bent.take(nearest + 1), bent.drop(nearest))
         }
 
         private fun dot(a: DoubleArray, b: DoubleArray) = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
