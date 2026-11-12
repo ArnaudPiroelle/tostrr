@@ -25,17 +25,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
 import app.tostrr.domain.shipping.ShipVoyage
+import app.tostrr.ui.common.ShipGlobe
+import app.tostrr.ui.common.ShippingSourceRow
+import app.tostrr.ui.common.toGlobe
 import app.tostrr.ui.common.formatDateTime
 import app.tostrr.ui.theme.TostrrColors
 
 @Composable
-internal fun ShippingContent(voyage: ShipVoyage) {
+internal fun ShippingContent(voyage: ShipVoyage, onOpenShip: (String) -> Unit) {
     val accent = TostrrColors.Accent
     val globe = remember(voyage, accent) { voyage.toGlobe(accent) }
     Column {
-        ShipGlobe(globe, Modifier.fillMaxWidth().height(340.dp).clip(RoundedCornerShape(12.dp)))
-        Spacer(Modifier.height(4.dp))
-        Text(stringResource(R.string.detail_shipping_hint), style = MaterialTheme.typography.bodySmall, color = TostrrColors.Muted)
+        ShipGlobe(globe, Modifier.fillMaxWidth().height(340.dp).clip(RoundedCornerShape(12.dp)), interactive = false)
         Spacer(Modifier.height(12.dp))
         if (voyage.uncertain) {
             Surface(shape = RoundedCornerShape(12.dp), color = TostrrColors.SurfaceHigh, modifier = Modifier.fillMaxWidth()) {
@@ -52,7 +53,7 @@ internal fun ShippingContent(voyage: ShipVoyage) {
         }
         voyage.candidates.forEachIndexed { index, candidate ->
             if (index > 0) HorizontalDivider(Modifier.padding(vertical = 12.dp), color = TostrrColors.Border)
-            ShipCandidate(candidate, globe.ships[index].color.takeIf { voyage.uncertain })
+            ShipCandidate(candidate, globe.ships[index].color.takeIf { voyage.uncertain }, onOpen = { onOpenShip(candidate.ship.name) })
         }
         Spacer(Modifier.height(8.dp))
         Text(

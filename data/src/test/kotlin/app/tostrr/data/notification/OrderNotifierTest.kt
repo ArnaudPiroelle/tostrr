@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import app.tostrr.domain.notification.NotificationKind
 import app.tostrr.domain.notification.NotificationSettings
 import app.tostrr.domain.order.Change
+import app.tostrr.domain.order.LocalSignals
 import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.OptionRepository
 import app.tostrr.domain.order.Order
@@ -85,7 +86,7 @@ class OrderNotifierTest {
 
     @Test fun `a delivery without appointment says delivered, not appointment confirmed`() {
         val before = order(StepKind.ORDERED)
-        val after = order(StepKind.ORDERED, StepKind.DELIVERY).copy(inAccountSince = LocalDate.of(2026, 12, 20))
+        val after = order(StepKind.ORDERED, StepKind.DELIVERY).copy(local = LocalSignals(inAccountSince = LocalDate.of(2026, 12, 20)))
         assertTrue(notifier.notifyStepChanges(before, after))
         assertEquals(listOf("Your Tesla is delivered"), titles)
     }

@@ -1,4 +1,4 @@
-package app.tostrr.ui.detail.components
+package app.tostrr.ui.common
 
 import kotlin.math.acos
 import kotlin.math.asin
@@ -67,7 +67,7 @@ internal fun greatCirclePath(points: List<GeoPoint>, stepDeg: Double = 1.0): Lis
     return path
 }
 
-private fun slerp(a: DoubleArray, b: DoubleArray, angle: Double, t: Double): DoubleArray {
+internal fun slerp(a: DoubleArray, b: DoubleArray, angle: Double, t: Double): DoubleArray {
     if (angle < 1e-9) return b
     val wa = sin((1 - t) * angle) / sin(angle)
     val wb = sin(t * angle) / sin(angle)

@@ -11,6 +11,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** Reads the ship tracking site's JSON, defensively: a ship without a name is dropped, any other missing field is null. */
 internal object ShipSnapshotParser {
@@ -40,6 +41,13 @@ internal object ShipSnapshotParser {
             headingDeg = o.double("heading"),
             vinBlocks = (o["vins"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.contentOrNull },
             done = (o["done"] as? JsonPrimitive)?.booleanOrNull == true,
+            operator = o.string("line")?.takeIf { it.isNotBlank() },
+            // "park" in port, "sail" at sea.
+            atBerth = o.string("mode") == "park",
+            progress = o.double("prog")?.coerceIn(0.0, 1.0),
+            // "2026-11-12 16:00" when the site knows the hour.
+            etaTime = o.string("eta")?.drop(10)?.trim()?.takeIf { it.isNotEmpty() }?.let { runCatching { LocalTime.parse(it) }.getOrNull() },
+            draughtMeters = o.double("draught"),
         )
     }
 

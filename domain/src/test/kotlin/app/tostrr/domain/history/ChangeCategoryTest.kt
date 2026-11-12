@@ -15,14 +15,6 @@ class ChangeCategoryTest {
         assertEquals(ChangeCategory.INSURANCE, category("details.tasks.insurance.isSameVIN"))
     }
 
-    @Test fun `the local signals are the build and the delivery`() {
-        assertEquals(ChangeCategory.BUILT, category("local.partsCatalogSince"))
-        assertEquals(ChangeCategory.BUILT, category("local.partsCatalogReference"))
-        assertEquals(ChangeCategory.BUILT, category("local", """{"partsCatalogSince":"2026-11-11"}"""))
-        assertEquals(ChangeCategory.DELIVERY, category("local.inAccountSince"))
-        assertEquals(ChangeCategory.DELIVERY, category("local", """{"inAccountSince":"2026-12-20"}"""))
-    }
-
     @Test fun `window and appointment win over the task they sit in`() {
         assertEquals(ChangeCategory.DELIVERY_WINDOW, category("details.tasks.scheduling.deliveryWindowDisplay"))
         assertEquals(ChangeCategory.DELIVERY_WINDOW, category("details.tasks.finalPayment.data.selfSchedulingDetails.Display.startDate"))

@@ -1,4 +1,4 @@
-package app.tostrr.ui.detail.components
+package app.tostrr.ui.common
 
 import androidx.compose.ui.graphics.Color
 

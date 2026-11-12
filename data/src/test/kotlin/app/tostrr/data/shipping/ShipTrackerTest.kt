@@ -14,6 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalTime
 
 @RunWith(RobolectricTestRunner::class)
 class ShipTrackerTest {
@@ -30,9 +31,10 @@ class ShipTrackerTest {
     private val snapshot = """
         {"id":"2026-11-11-2111","snapshotAt":"2026-11-11T20:11:55.807Z","ships":[
           {"name":"GLOVIS LIGHTHOUSE","line":"Hyundai Glovis","route":["NANGANG","SINGAPORE","MAURITIUS","ZEEBRUGGE"],
-           "nextPort":"ZEEBRUGGE","eta":"2026-11-28","lat":-30.75,"lon":37.62,"heading":240,"vins":["051","052"],"done":false},
+           "nextPort":"ZEEBRUGGE","eta":"2026-11-28","lat":-30.75,"lon":37.62,"heading":240,"vins":["051","052"],"done":false,
+           "mode":"sail","prog":0.1942,"draught":10},
           {"name":"GLOVIS LEADER","route":["NANGANG","BARCELONA"],"nextPort":null,"eta":"2026-09-17 19:50",
-           "lat":16.97,"lon":-379.86,"heading":null,"vins":[]},
+           "lat":16.97,"lon":-379.86,"heading":null,"vins":[],"mode":"park","prog":1.2},
           {"line":"no name"}
         ]}
     """
@@ -54,8 +56,17 @@ class ShipTrackerTest {
         assertEquals(240.0, lighthouse.headingDeg!!, 0.0)
         assertEquals(listOf("051", "052"), lighthouse.vinBlocks)
         assertFalse(lighthouse.done)
+        assertEquals("Hyundai Glovis", lighthouse.operator)
+        assertFalse(lighthouse.atBerth)
+        assertEquals(0.1942, lighthouse.progress!!, 0.0)
+        assertEquals(10.0, lighthouse.draughtMeters!!, 0.0)
+        assertNull(lighthouse.etaTime)
         val leader = ships[1]
         assertEquals(LocalDate.of(2026, 9, 17), leader.eta)
+        assertEquals(LocalTime.of(19, 50), leader.etaTime)
+        assertTrue(leader.atBerth)
+        assertEquals(1.0, leader.progress!!, 0.0)
+        assertNull(leader.operator)
         assertEquals(GeoPosition.of(16.97, -19.86), leader.position)
         assertNull(leader.headingDeg)
         assertNull(leader.nextPort)

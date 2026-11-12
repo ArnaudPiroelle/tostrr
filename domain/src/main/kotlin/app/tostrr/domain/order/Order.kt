@@ -47,11 +47,17 @@ data class Order(
     val deliveryMethod: DeliveryMethod? = null,
     val vehicleInfo: VehicleInfo = VehicleInfo(),
     val paymentInfo: PaymentInfo = PaymentInfo(),
-    /** See [LocalSignals.partsCatalogReference]. */
-    val partsCatalogReference: String? = null,
-    /** See [LocalSignals.inAccountSince]. */
-    val inAccountSince: LocalDate? = null,
+    /** What the app found out about the order itself, kept apart from Tesla's payloads in [raw]. */
+    val local: LocalSignals = LocalSignals(),
 ) {
+    /** See [LocalSignals.partsCatalogReference]. */
+    val partsCatalogReference: String?
+        get() = local.partsCatalogReference
+
+    /** See [LocalSignals.inAccountSince]. */
+    val inAccountSince: LocalDate?
+        get() = local.inAccountSince
+
     /** Index of the first step not completed yet (the "current" one), or the last step when all are done. */
     val currentStepIndex: Int
         get() = steps.indexOfFirst { !it.done }.let { if (it == -1) steps.lastIndex else it }

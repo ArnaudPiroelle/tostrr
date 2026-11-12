@@ -1,4 +1,4 @@
-package app.tostrr.ui.detail.components
+package app.tostrr.ui.common
 
 import androidx.compose.ui.graphics.Color
 import app.tostrr.domain.shipping.ShipVoyage
@@ -40,7 +40,8 @@ internal data class GlobeVoyage(val ships: List<GlobeShip>) {
 /** The globe for [this] voyage, each candidate in its [candidateColor]. */
 internal fun ShipVoyage.toGlobe(accent: Color) = GlobeVoyage(candidates.mapIndexed { index, it -> it.toGlobe(candidateColor(index, accent)) })
 
-private fun Voyage.toGlobe(color: Color) = GlobeShip(
+/** The ship of one voyage on the globe, drawn in [color]. */
+internal fun Voyage.toGlobe(color: Color) = GlobeShip(
     name = shipDisplayName(ship.name),
     position = ship.position?.let { GeoPoint(it.lat, it.lon) },
     headingDeg = ship.headingDeg,

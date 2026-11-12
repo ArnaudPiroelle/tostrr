@@ -13,6 +13,10 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.order.Change
+import app.tostrr.domain.order.LocalSignals
+import app.tostrr.domain.shipping.GeoPosition
+import app.tostrr.domain.shipping.Ship
+import app.tostrr.domain.shipping.ShipSnapshot
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
 import app.tostrr.ui.theme.TostrrTheme
@@ -32,8 +36,10 @@ class DetailScreenTest {
         deliveryCenters += DeliveryCenter("Tesla Paris-Ouest", "FR", "Paris", "1 rue de Paris")
     }
 
+    private var openedShip: String? = null
+
     private fun show(reference: String = "RN1") = compose.setContent {
-        TostrrTheme { DetailScreen(reference, onOpenChecklist = {}, onBack = {}, viewModel = graph.detailViewModel(reference)) }
+        TostrrTheme { DetailScreen(reference, onOpenChecklist = {}, onOpenShip = { openedShip = it }, onBack = {}, viewModel = graph.detailViewModel(reference)) }
     }
 
     @Test fun `shows the order and its delivery centre`() {
@@ -61,6 +67,19 @@ class DetailScreenTest {
         compose.onNodeWithText("Réinitialiser").assertIsDisplayed()
     }
 
+    @Test fun `a ship that may carry the car can be opened`() {
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EU8VC052692"))
+        graph.ships.snapshot.value = ShipSnapshot(
+            1L,
+            listOf(Ship("GLOVIS LIGHTHOUSE", listOf("NANGANG", "ZEEBRUGGE"), "ZEEBRUGGE", null, GeoPosition(-30.0, 37.0), 240.0, listOf("052"), done = false)),
+        )
+        show()
+
+        compose.onNodeWithText("Suivre ce bateau").performScrollTo().performClick()
+
+        assertEquals("GLOVIS LIGHTHOUSE", openedShip)
+    }
+
     @Test fun `the VIN can be copied`() {
         graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EK0PC000001"))
         show()
@@ -73,7 +92,7 @@ class DetailScreenTest {
     }
 
     @Test fun `a car the parts catalogue lists links to its parts`() {
-        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EK0PC000001", partsCatalogReference = "ref-1"))
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EK0PC000001", local = LocalSignals(partsCatalogReference = "ref-1")))
         show()
 
         compose.onNodeWithText("Voir les pièces de la voiture").performScrollTo().assertIsDisplayed()

@@ -18,6 +18,7 @@ import app.tostrr.domain.order.OrderMapper
 import app.tostrr.domain.order.StepKind
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -170,6 +171,30 @@ class OrderRepositoryImplTest {
         assertFalse("isMoreThanTwoWeeks" in File(context.filesDir, "history.json").readText())
     }
 
+    @Test fun `local signals kept inside the raw payloads by 0_4_0 move out of them, and out of the history`() = runTest {
+        File(context.filesDir, "orders.json").writeText(
+            """[{"fetchedAt":1,"raw":{"order":{"referenceNumber":"RN1","modelCode":"my","orderStatus":"BOOKED","vin":"LRWYGCEK1TC000001"},
+                "details":{"tasks":{}},"local":{"inAccountSince":"2026-11-10"}}}]""",
+        )
+        File(context.filesDir, "history.json").writeText(
+            """{"RN1":[{"t":1,"k":"local","o":null,"n":"{\"inAccountSince\":\"2026-11-10\"}","s":true},
+                       {"t":2,"k":"local.partsCatalogReference","o":null,"n":"ref-1"},
+                       {"t":3,"k":"details.tasks.scheduling.deliveryWindowDisplay","o":"a","n":"b"}]}""",
+        )
+        orders("""{"referenceNumber":"RN1","modelCode":"my","orderStatus":"BOOKED","vin":"LRWYGCEK1TC000001"}""")
+        tasks("{}")
+        val repository = repository()
+        assertEquals(listOf("details.tasks.scheduling.deliveryWindowDisplay"), repository.history.value.getValue("RN1").map { it.key })
+        assertEquals(LocalDate.of(2026, 11, 10), repository.orders.value.single().inAccountSince)
+        assertEquals(setOf("order", "details"), repository.orders.value.single().raw.keys)
+
+        repository.refresh()
+        val saved = Json.parseToJsonElement(File(context.filesDir, "orders.json").readText()).jsonArray.single().jsonObject
+        assertEquals(setOf("order", "details"), saved.getValue("raw").jsonObject.keys)
+        assertEquals("2026-11-10", saved.getValue("local").jsonObject.getValue("inAccountSince").jsonPrimitive.content)
+        assertEquals(LocalDate.of(2026, 11, 10), repository().orders.value.single().inAccountSince)
+    }
+
     @Test fun `every sync is archived as a gzipped snapshot`() = runTest {
         repository().refresh()
         val folder = File(context.getExternalFilesDir("snapshots"), "RN1")
@@ -216,7 +241,8 @@ class OrderRepositoryImplTest {
         val built = repository.orders.value.single().steps.first { it.kind == StepKind.BUILT }
         assertTrue(built.done)
         assertEquals(today, built.date)
-        assertTrue(repository.history.value.getValue("RN1").any { it.key == "local" && it.newValue!!.contains("partsCatalogSince") })
+        assertTrue(repository.history.value.values.flatten().none { it.key.startsWith("local") })
+        assertEquals(setOf("order", "details"), repository.orders.value.single().raw.keys)
         assertEquals("ref-1", repository.orders.value.single().partsCatalogReference)
         assertEquals(built, repository().orders.value.single().steps.first { it.kind == StepKind.BUILT })
         assertEquals("ref-1", repository().orders.value.single().partsCatalogReference)
@@ -234,7 +260,7 @@ class OrderRepositoryImplTest {
         val order = repository.orders.value.single()
         assertTrue(order.delivered)
         assertEquals(LocalDate.now(), order.inAccountSince)
-        assertTrue(repository.history.value.getValue("RN1").any { it.key == "local" && it.newValue!!.contains("inAccountSince") })
+        assertTrue(repository.history.value.values.flatten().none { it.key.startsWith("local") })
 
         // Delivered: the account is no longer asked, and the day stays, also after a restart.
         http.on("/api/1/products", "", code = 500)

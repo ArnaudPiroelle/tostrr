@@ -5,6 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.work.WorkerParameters
 import app.tostrr.ui.checklist.ChecklistViewModel
 import app.tostrr.ui.detail.DetailViewModel
+import app.tostrr.ui.navigation.Screen
+import app.tostrr.ui.ship.ShipViewModel
 import org.junit.Test
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.ksp.generated.module
@@ -28,6 +30,7 @@ class KoinGraphTest {
             injections = injectedParameters(
                 definition<ChecklistViewModel>(String::class),
                 definition<DetailViewModel>(String::class),
+                definition<ShipViewModel>(Screen.Ship::class),
             ),
         )
     }

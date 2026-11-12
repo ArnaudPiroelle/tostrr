@@ -10,7 +10,6 @@ internal val ChangeCategory.labelRes: Int
     get() = when (this) {
         ChangeCategory.ORDER -> R.string.detail_history_category_order
         ChangeCategory.VIN -> R.string.detail_history_category_vin
-        ChangeCategory.BUILT -> R.string.detail_history_category_built
         ChangeCategory.DELIVERY_WINDOW -> R.string.detail_history_category_window
         ChangeCategory.APPOINTMENT -> R.string.detail_history_category_appointment
         ChangeCategory.DELIVERY -> R.string.detail_history_category_delivery

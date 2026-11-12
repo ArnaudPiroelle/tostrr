@@ -1,4 +1,4 @@
-package app.tostrr.ui.detail.components
+package app.tostrr.ui.common
 
 /** `GLOVIS LIGHTHOUSE` → `Glovis Lighthouse`; short words are kept as initials (`CMA CGM MONACO` → `CMA CGM Monaco`). */
 internal fun shipDisplayName(name: String): String =

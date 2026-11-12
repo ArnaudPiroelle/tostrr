@@ -99,7 +99,6 @@
     <string name="detail_block_history_blurb">Ce qui a changé d\'une synchronisation à l\'autre.</string>
     <string name="detail_block_shipping">Transport maritime</string>
     <string name="detail_block_shipping_blurb">Affiché tant que le bateau qui transporte la voiture est connu.</string>
-    <string name="detail_shipping_hint">Glissez pour tourner le globe, pincez pour zoomer, touchez deux fois pour recentrer.</string>
     <string name="detail_shipping_route">Trajet</string>
     <string name="detail_shipping_route_value">%1$s → %2$s</string>
     <string name="detail_shipping_next_port">Prochaine escale</string>
@@ -172,7 +171,6 @@
     <string name="detail_history_category_count">%1$s · %2$d</string>
     <string name="detail_history_category_order">Commande</string>
     <string name="detail_history_category_vin">VIN</string>
-    <string name="detail_history_category_built">Construction</string>
     <string name="detail_history_category_window">Fenêtre de livraison</string>
     <string name="detail_history_category_appointment">Rendez-vous</string>
     <string name="detail_history_category_delivery">Livraison</string>
@@ -324,4 +322,35 @@
         <item quantity="many">jours</item>
         <item quantity="other">jours</item>
     </plurals>
+    <string name="detail_shipping_open_ship">Suivre ce bateau</string>
+    <string name="ship_sailing">En mer</string>
+    <string name="ship_berthed">À quai</string>
+    <string name="ship_candidate">Un des %1$d bateaux candidats</string>
+    <string name="ship_route">%1$s → %2$s</string>
+    <string name="ship_route_via">%1$s → %2$s via %3$s</string>
+    <string name="ship_subtitle">%1$s · %2$s</string>
+    <string name="ship_arrival_expected">Arrivée prévue à %1$s</string>
+    <string name="ship_arrival_berthed">À quai à %1$s</string>
+    <string name="ship_eta_date_time">%1$s à %2$s</string>
+    <string name="ship_eta_unknown">Date non communiquée</string>
+    <string name="ship_eta_today">Aujourd\'hui</string>
+    <string name="ship_eta_tomorrow">Demain</string>
+    <plurals name="ship_eta_in_days">
+        <item quantity="one">Dans %d jour</item>
+        <item quantity="many">Dans %d jours</item>
+        <item quantity="other">Dans %d jours</item>
+    </plurals>
+    <string name="ship_eta_passed">Date prévue dépassée</string>
+    <string name="ship_then">Puis %1$s</string>
+    <string name="ship_source">Estimation du site communautaire TFF ship tracking, d\'après le lot de VIN. Position du %1$s.</string>
+    <string name="ship_departed">départ</string>
+    <string name="ship_called">escale passée</string>
+    <string name="ship_at_sea">En mer actuellement</string>
+    <string name="ship_route_share">%1$s du trajet</string>
+    <string name="ship_in_port_now">à quai</string>
+    <string name="ship_expected">prévue le %1$s</string>
+    <string name="ship_progress">Progression</string>
+    <string name="ship_draught">Tirant d\'eau</string>
+    <string name="ship_draught_value">%1$s m</string>
+    <string name="ship_vin_block">Lot de VIN</string>
 </resources>

@@ -82,7 +82,7 @@ object OrderMapper {
             etaToDeliveryCenter = formatDate(eta),
             expectedRegistration = formatDate(expectedReg),
             fetchedAtEpochMs = fetchedAtEpochMs,
-            raw = JsonObject(mapOf("order" to order, "details" to details) + listOfNotNull(local.toJson()?.let { LocalSignals.KEY to it })),
+            raw = JsonObject(mapOf("order" to order, "details" to details)),
             licensePlate = licensePlate,
             appointmentAtEpochMs = APPOINTMENT_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }?.let(::appointmentInstant),
             finalInvoiceReady = tasks.flag("finalPayment.data.hasFinalInvoice") || tasks.flag("finalPayment.data.hasActiveInvoice"),
@@ -92,8 +92,7 @@ object OrderMapper {
             deliveryMethod = deliveryMethodFrom(tasks),
             vehicleInfo = OrderInfoMapper.vehicle(tasks, booked, licensePlate),
             paymentInfo = OrderInfoMapper.payment(tasks),
-            partsCatalogReference = local.partsCatalogReference,
-            inAccountSince = local.inAccountSince,
+            local = local,
         )
     }
 

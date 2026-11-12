@@ -1,4 +1,4 @@
-package app.tostrr.ui.detail.components
+package app.tostrr.ui.common
 
 import android.content.Context
 import java.io.DataInputStream

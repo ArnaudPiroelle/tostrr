@@ -1,4 +1,4 @@
-package app.tostrr.ui.detail.components
+package app.tostrr.ui.common
 
 import android.graphics.Paint
 import androidx.compose.animation.core.Animatable
@@ -52,10 +52,16 @@ import kotlin.random.Random
 
 /**
  * A 3D globe, night-styled, with the [voyage]'s ships, each in its colour with its sea lane (sailed solid, ahead dashed)
- * and its ports. One finger turns it, two zoom, a double tap brings the ships back to the centre.
+ * and its ports. When [interactive], one finger turns it, two zoom, a double tap brings the ships back to the centre;
+ * otherwise it stays on the ships, as [state] has it.
  */
 @Composable
-internal fun ShipGlobe(voyage: GlobeVoyage, modifier: Modifier = Modifier, state: GlobeState = remember(voyage) { GlobeState(voyage.focus) }) {
+internal fun ShipGlobe(
+    voyage: GlobeVoyage,
+    modifier: Modifier = Modifier,
+    interactive: Boolean = true,
+    state: GlobeState = remember(voyage) { GlobeState(voyage.focus) },
+) {
     val context = LocalContext.current
     val land by produceState<FloatArray?>(null) { value = withContext(Dispatchers.IO) { GlobeLand.load(context) } }
     val focus = voyage.focus ?: GeoPoint(0.0, 0.0)
@@ -75,33 +81,31 @@ internal fun ShipGlobe(voyage: GlobeVoyage, modifier: Modifier = Modifier, state
     val dots = remember { LandDots() }
     val stars = remember { List(STARS) { Offset(Random(it).nextFloat(), Random(it + STARS).nextFloat()) } }
 
-    Canvas(
-        modifier
-            .clipToBounds()
-            .background(Space)
-            .pointerInput(voyage, state) {
-                detectTapGestures(onDoubleTap = {
-                    scope.launch {
-                        val fromLat = state.centerLat
-                        val fromLon = state.centerLon
-                        val toLat = focus.lat.coerceIn(-GlobeState.MAX_LAT, GlobeState.MAX_LAT)
-                        val deltaLon = ((focus.lon - fromLon) % 360 + 540) % 360 - 180
-                        val fromZoom = state.zoom
-                        Animatable(0f).animateTo(1f, tween(700)) {
-                            state.centerLat = fromLat + (toLat - fromLat) * value
-                            state.centerLon = fromLon + deltaLon * value
-                            state.zoom = fromZoom + (1f - fromZoom) * value
-                        }
+    val gestures = if (!interactive) Modifier else Modifier
+        .pointerInput(voyage, state) {
+            detectTapGestures(onDoubleTap = {
+                scope.launch {
+                    val fromLat = state.centerLat
+                    val fromLon = state.centerLon
+                    val toLat = focus.lat.coerceIn(-GlobeState.MAX_LAT, GlobeState.MAX_LAT)
+                    val deltaLon = ((focus.lon - fromLon) % 360 + 540) % 360 - 180
+                    val fromZoom = state.zoom
+                    Animatable(0f).animateTo(1f, tween(700)) {
+                        state.centerLat = fromLat + (toLat - fromLat) * value
+                        state.centerLon = fromLon + deltaLon * value
+                        state.zoom = fromZoom + (1f - fromZoom) * value
                     }
-                })
-            }
-            .pointerInput(state) {
-                detectTransformGestures { _, pan, gestureZoom, _ ->
-                    state.zoomBy(gestureZoom)
-                    state.turn(pan.x, pan.y, globeRadius(size.width.toFloat(), size.height.toFloat(), state.zoom))
                 }
-            },
-    ) {
+            })
+        }
+        .pointerInput(state) {
+            detectTransformGestures { _, pan, gestureZoom, _ ->
+                state.zoomBy(gestureZoom)
+                state.turn(pan.x, pan.y, globeRadius(size.width.toFloat(), size.height.toFloat(), state.zoom))
+            }
+        }
+
+    Canvas(modifier.clipToBounds().background(Space).then(gestures)) {
         stars.forEach { drawCircle(Color.White.copy(alpha = 0.35f), 2.dp.toPx() / 2, Offset(it.x * size.width, it.y * size.height)) }
         val radius = globeRadius(size.width, size.height, state.zoom)
         val camera = GlobeCamera(state.centerLat, state.centerLon)
@@ -181,10 +185,12 @@ private class LandDots {
 private class Lane(val sailed: List<DoubleArray>, val ahead: List<DoubleArray>) {
     companion object {
         fun of(ship: GlobeShip): Lane {
-            val path = greatCirclePath(ship.lane)
+            val path = laneThroughPorts(ship.lane, ship.ports.map { it.position })
             val position = ship.position?.toVector() ?: return Lane(path, emptyList())
             val nearest = path.indices.maxByOrNull { dot(path[it], position) } ?: return Lane(emptyList(), emptyList())
-            return Lane(path.take(nearest) + listOf(position), listOf(position) + path.drop(nearest + 1))
+            // The ship is rarely right on the hand-made lane: bent through it, the line has no kink there.
+            val bent = bendThrough(path, nearest, position)
+            return Lane(bent.take(nearest + 1), bent.drop(nearest))
         }
 
         private fun dot(a: DoubleArray, b: DoubleArray) = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]

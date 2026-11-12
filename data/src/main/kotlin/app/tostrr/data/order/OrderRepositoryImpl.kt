@@ -176,9 +176,12 @@ class OrderRepositoryImpl(
 
     private fun List<Order>.withVinDates() = map { it.withVinAssignmentDate(_history.value[it.reference].orEmpty()) }
 
-    /** Entries recorded before a path became ignored are purged, and the file is rewritten if any went. */
+    /**
+     * Entries recorded before a path became ignored are purged, and the file is rewritten if any went. So are those of
+     * the [LOCAL] node that 0.4.0 kept inside the raw payloads.
+     */
     private fun dropIgnored(history: Map<String, List<Change>>): Map<String, List<Change>> {
-        val kept = history.mapValues { (_, changes) -> changes.filterNot(HistoryIgnore::ignores) }
+        val kept = history.mapValues { (_, changes) -> changes.filterNot { HistoryIgnore.ignores(it) || it.key == LOCAL || it.key.startsWith("$LOCAL.") } }
             .filterValues { it.isNotEmpty() }
         if (kept != history) runCatching { historyFile.writeText(encodeHistory(kept)) }
         return kept
@@ -238,10 +241,7 @@ class OrderRepositoryImpl(
         val folder = File(archiveDir, order.reference).apply { mkdirs() }
         val file = File(folder, "${snapshotStamp.format(Instant.ofEpochMilli(order.fetchedAtEpochMs))}.json.gz")
         if (file.exists()) return
-        val json = buildJsonObject {
-            put("fetchedAt", order.fetchedAtEpochMs)
-            put("raw", order.raw)
-        }.toString()
+        val json = order.toCacheJson().toString()
         // Written under a temporary name so an interrupted write never leaves a truncated snapshot.
         val tmp = File(folder, file.name + ".tmp")
         GZIPOutputStream(tmp.outputStream()).bufferedWriter().use { it.write(json) }
@@ -251,10 +251,17 @@ class OrderRepositoryImpl(
     private suspend fun persist(orders: List<Order>) = withContext(Dispatchers.IO) {
         runCatching {
             val arr = buildJsonArray {
-                orders.forEach { add(buildJsonObject { put("fetchedAt", it.fetchedAtEpochMs); put("raw", it.raw) }) }
+                orders.forEach { add(it.toCacheJson()) }
             }
             ordersFile.writeText(arr.toString())
         }
+    }
+
+    /** Tesla's payloads under `raw`, what the app found out itself next to them under [LOCAL]. */
+    private fun Order.toCacheJson() = buildJsonObject {
+        put("fetchedAt", fetchedAtEpochMs)
+        put("raw", raw)
+        local.toJson()?.let { put(LOCAL, it) }
     }
 
     private fun loadCache(): List<Order> = runCatching {
@@ -265,7 +272,8 @@ class OrderRepositoryImpl(
                 raw["order"]!!.jsonObject,
                 raw["details"]!!.jsonObject,
                 o["fetchedAt"]!!.jsonPrimitive.longOrNull ?: 0L,
-                local = LocalSignals.fromJson(raw[LocalSignals.KEY] as? JsonObject),
+                // 0.4.0 kept them inside the raw payloads.
+                local = LocalSignals.fromJson((o[LOCAL] ?: raw[LOCAL]) as? JsonObject),
             )
         }
     }.getOrDefault(emptyList())
@@ -305,5 +313,6 @@ class OrderRepositoryImpl(
         val snapshotStamp: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss").withZone(ZoneId.systemDefault())
         const val MAX_CHANGES_PER_ORDER = 500
         const val MAX_VALUE_CHARS = 120_000
+        const val LOCAL = "local"
     }
 }
