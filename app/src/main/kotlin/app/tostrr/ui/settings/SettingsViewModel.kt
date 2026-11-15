@@ -18,13 +18,17 @@ import app.tostrr.domain.sync.usecase.ObserveSyncSettingsUseCase
 import app.tostrr.domain.sync.usecase.SetAutoSyncUseCase
 import app.tostrr.domain.sync.usecase.SetSyncIntervalUseCase
 import app.tostrr.domain.update.AppUpdate
+import app.tostrr.domain.update.UpdateCheck
+import app.tostrr.domain.update.usecase.CheckForUpdateNowUseCase
 import app.tostrr.domain.update.usecase.ObserveAvailableUpdateUseCase
 import app.tostrr.ui.architecture.BaseAction
+import app.tostrr.ui.architecture.BaseSideEffect
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel
-import app.tostrr.ui.architecture.NoSideEffect
 import app.tostrr.ui.settings.SettingsViewModel.Action
+import app.tostrr.ui.settings.SettingsViewModel.SideEffect
 import app.tostrr.ui.settings.SettingsViewModel.State
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -47,16 +51,23 @@ class SettingsViewModel(
     private val setSyncIntervalUseCase: SetSyncIntervalUseCase,
     private val setNotificationEnabledUseCase: SetNotificationEnabledUseCase,
     private val logoutUseCase: LogoutUseCase,
-) : BaseViewModel<Action, State, NoSideEffect>() {
+    private val checkForUpdateNowUseCase: CheckForUpdateNowUseCase,
+) : BaseViewModel<Action, State, SideEffect>() {
+
+    /** The check asked for from this screen: whether one is running, and what the last one found. */
+    private val manualCheck = MutableStateFlow(ManualCheck())
 
     override val state: StateFlow<State> = combine(
-        observeThemeModeUseCase(),
-        observeSyncSettingsUseCase(),
-        observeNotificationSettingsUseCase(),
-        observeTeslaAccountUseCase(),
-        observeAvailableUpdateUseCase(),
-        ::State,
-    )
+        combine(
+            observeThemeModeUseCase(),
+            observeSyncSettingsUseCase(),
+            observeNotificationSettingsUseCase(),
+            observeTeslaAccountUseCase(),
+            observeAvailableUpdateUseCase(),
+            ::State,
+        ),
+        manualCheck,
+    ) { state, check -> state.copy(checkingUpdate = check.running, updateCheck = check.result) }
         // The profile is fetched once the screen watches it; it lands through the account flow.
         .onStart { viewModelScope.launch { loadTeslaAccountUseCase() } }
         .stateIn(
@@ -78,8 +89,19 @@ class SettingsViewModel(
             is Action.OnIntervalSelected -> setSyncIntervalUseCase(action.interval)
             is Action.OnNotificationChanged -> setNotificationEnabledUseCase(action.kind, action.enabled)
             Action.OnLogout -> logoutUseCase()
+            Action.OnCheckForUpdate -> checkForUpdate()
         }
     }
+
+    private suspend fun checkForUpdate() {
+        if (manualCheck.value.running) return
+        manualCheck.value = ManualCheck(running = true)
+        val result = checkForUpdateNowUseCase()
+        manualCheck.value = ManualCheck(result = result)
+        if (result == UpdateCheck.AVAILABLE) dispatchSideEffect(SideEffect.OpenUpdate)
+    }
+
+    private data class ManualCheck(val running: Boolean = false, val result: UpdateCheck? = null)
 
     data class State(
         val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -89,6 +111,10 @@ class SettingsViewModel(
         val account: TeslaAccount? = null,
         /** The newer release, even one left for later. */
         val update: AppUpdate? = null,
+        /** A check asked for from this screen is running. */
+        val checkingUpdate: Boolean = false,
+        /** What the last check asked for from this screen found; null until there was one. */
+        val updateCheck: UpdateCheck? = null,
     ) : BaseState
 
     sealed class Action : BaseAction {
@@ -97,5 +123,11 @@ class SettingsViewModel(
         data class OnIntervalSelected(val interval: SyncInterval) : Action()
         data class OnNotificationChanged(val kind: NotificationKind, val enabled: Boolean) : Action()
         data object OnLogout : Action()
+        data object OnCheckForUpdate : Action()
+    }
+
+    sealed class SideEffect : BaseSideEffect {
+        /** A check found a newer release. */
+        data object OpenUpdate : SideEffect()
     }
 }

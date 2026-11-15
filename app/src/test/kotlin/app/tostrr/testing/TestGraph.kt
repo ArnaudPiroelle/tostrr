@@ -41,6 +41,7 @@ import app.tostrr.domain.sync.usecase.ObserveSyncSettingsUseCase
 import app.tostrr.domain.sync.usecase.SetAutoSyncUseCase
 import app.tostrr.domain.sync.usecase.SetSyncIntervalUseCase
 import app.tostrr.domain.sync.usecase.StartBackgroundSyncUseCase
+import app.tostrr.domain.update.usecase.CheckForUpdateNowUseCase
 import app.tostrr.domain.update.usecase.CheckForUpdateUseCase
 import app.tostrr.domain.update.usecase.DownloadUpdateUseCase
 import app.tostrr.domain.update.usecase.ObserveAvailableUpdateUseCase
@@ -163,5 +164,6 @@ class TestGraph(
         SetSyncIntervalUseCase(syncSettings, startBackgroundSync),
         SetNotificationEnabledUseCase(notificationSettings),
         logout,
+        CheckForUpdateNowUseCase(updates),
     )
 }

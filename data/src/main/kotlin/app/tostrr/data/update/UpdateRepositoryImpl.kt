@@ -3,6 +3,7 @@ package app.tostrr.data.update
 import android.content.Context
 import app.tostrr.domain.update.AppUpdate
 import app.tostrr.domain.update.AppVersions
+import app.tostrr.domain.update.UpdateCheck
 import app.tostrr.domain.update.UpdateDownload
 import app.tostrr.domain.update.UpdateRepository
 import kotlinx.coroutines.CancellationException
@@ -48,17 +49,36 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
 
     override suspend fun check() {
         withContext(Dispatchers.IO) {
-            try {
-                if (System.currentTimeMillis() - prefs.getLong(KEY_CHECKED_AT, 0) >= CHECK_INTERVAL_MS) fetchLatest()?.let(::save)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // Only an offer: the next start asks again.
-            }
-            // The newer release's APK stays, whether downloaded or on its way (.part); nothing older is of any use.
-            val apkToKeep = _update.value?.let(::apkFile)?.name
-            updatesDir.listFiles()?.filter { apkToKeep == null || !it.name.startsWith(apkToKeep) }?.forEach { it.delete() }
+            // Only an offer: a failure waits for the next start.
+            if (System.currentTimeMillis() - prefs.getLong(KEY_CHECKED_AT, 0) >= CHECK_INTERVAL_MS) fetch()
+            deleteOldApks()
         }
+    }
+
+    override suspend fun checkNow(): UpdateCheck = withContext(Dispatchers.IO) {
+        val fetched = fetch()
+        deleteOldApks()
+        when {
+            !fetched -> UpdateCheck.FAILED
+            _update.value != null -> UpdateCheck.AVAILABLE
+            else -> UpdateCheck.UP_TO_DATE
+        }
+    }
+
+    /** Saves the latest release; false when GitHub couldn't be reached or gave nothing readable. */
+    private fun fetch(): Boolean = try {
+        fetchLatest()?.let(::save)
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        false
+    }
+
+    /** The newer release's APK stays, whether downloaded or on its way (.part); nothing older is of any use. */
+    private fun deleteOldApks() {
+        val apkToKeep = _update.value?.let(::apkFile)?.name
+        updatesDir.listFiles()?.filter { apkToKeep == null || !it.name.startsWith(apkToKeep) }?.forEach { it.delete() }
     }
 
     override fun skip(version: String) {
@@ -72,11 +92,11 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
         emit(UpdateDownload.Ready(apk.absolutePath))
     }.flowOn(Dispatchers.IO)
 
-    /** Null when GitHub has nothing usable: an error, or a release without APK. */
+    /** Null when the latest release has no APK; throws when GitHub can't be reached or answers with an error. */
     private fun fetchLatest(): AppUpdate? {
         val request = Request.Builder().url(LATEST_RELEASE_URL).header("Accept", "application/vnd.github+json").build()
         return client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return null
+            if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
             parseRelease(Json.parseToJsonElement(response.body?.string().orEmpty()).jsonObject)
         }
     }

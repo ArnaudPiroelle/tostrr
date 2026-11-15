@@ -29,10 +29,12 @@ import app.tostrr.domain.sync.SyncScheduler
 import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.domain.sync.SyncSettingsRepository
 import app.tostrr.domain.update.AppUpdate
+import app.tostrr.domain.update.UpdateCheck
 import app.tostrr.domain.update.UpdateDownload
 import app.tostrr.domain.update.UpdateRepository
 import java.io.File
 import java.io.InputStream
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -75,6 +77,22 @@ class FakeUpdateRepository : UpdateRepository {
 
     override suspend fun check() {
         checks++
+    }
+
+    /** What [checkNow] finds: AVAILABLE also publishes [found]. Stays suspended while [checking] isn't complete. */
+    var checkResult = UpdateCheck.UP_TO_DATE
+    var found = AppUpdate("0.9.0", "# New", "https://example.com/tostrr.apk", 9)
+    var checking: CompletableDeferred<Unit>? = null
+    var checksNow = 0
+
+    override suspend fun checkNow(): UpdateCheck {
+        checksNow++
+        checking?.await()
+        if (checkResult == UpdateCheck.AVAILABLE) {
+            update.value = found
+            updateToOffer.value = found
+        }
+        return checkResult
     }
 
     override fun skip(version: String) {

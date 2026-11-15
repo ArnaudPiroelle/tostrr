@@ -22,9 +22,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
+import app.tostrr.ui.architecture.OnSideEffect
 import app.tostrr.ui.architecture.watchAsState
 import app.tostrr.ui.settings.SettingsViewModel.Action
+import app.tostrr.ui.settings.SettingsViewModel.SideEffect
 import app.tostrr.ui.settings.components.AccountSection
+import app.tostrr.ui.settings.components.AppSection
 import app.tostrr.ui.settings.components.AppearanceSection
 import app.tostrr.ui.settings.components.NotificationsSection
 import app.tostrr.ui.settings.components.SyncSection
@@ -36,6 +39,12 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SettingsScreen(onBack: () -> Unit, onOpenUpdate: () -> Unit = {}, viewModel: SettingsViewModel = koinViewModel()) {
     val state by viewModel.watchAsState()
+
+    OnSideEffect(viewModel) { effect ->
+        when (effect) {
+            SideEffect.OpenUpdate -> onOpenUpdate()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -70,6 +79,14 @@ fun SettingsScreen(onBack: () -> Unit, onOpenUpdate: () -> Unit = {}, viewModel:
                 NotificationsSection(
                     state.notifications,
                     onChange = { kind, enabled -> viewModel.handle(Action.OnNotificationChanged(kind, enabled)) },
+                )
+            }
+            item {
+                AppSection(
+                    checking = state.checkingUpdate,
+                    result = state.updateCheck,
+                    update = state.update,
+                    onCheck = { viewModel.handle(Action.OnCheckForUpdate) },
                 )
             }
         }

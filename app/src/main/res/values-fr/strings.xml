@@ -294,6 +294,13 @@
     <string name="settings_update_available">Version %1$s disponible</string>
     <string name="settings_update_summary">Voir les nouveautés et l’installer.</string>
 
+    <string name="settings_app_section">Application</string>
+    <string name="settings_check_update">Rechercher une mise à jour</string>
+    <string name="settings_check_update_installed">Version %1$s installée.</string>
+    <string name="settings_check_update_checking">Recherche en cours…</string>
+    <string name="settings_check_update_up_to_date">Tostrr est à jour (version %1$s).</string>
+    <string name="settings_check_update_failed">Impossible de joindre GitHub. Réessayez plus tard.</string>
+
     <!-- Update -->
     <string name="update_title">Nouvelle version disponible</string>
     <string name="update_version">Version %1$s · %2$s</string>

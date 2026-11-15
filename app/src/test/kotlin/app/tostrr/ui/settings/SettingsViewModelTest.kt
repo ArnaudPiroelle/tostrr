@@ -8,13 +8,18 @@ import app.tostrr.domain.sync.SyncInterval
 import app.tostrr.domain.sync.SyncSettings
 import app.tostrr.testing.MainDispatcherRule
 import app.tostrr.testing.TestGraph
+import app.tostrr.domain.update.UpdateCheck
 import app.tostrr.testing.order
+import app.tostrr.testing.sideEffects
 import app.tostrr.testing.watch
 import app.tostrr.ui.settings.SettingsViewModel.Action
+import app.tostrr.ui.settings.SettingsViewModel.SideEffect
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -98,5 +103,52 @@ class SettingsViewModelTest {
         assertEquals(emptyList<Any>(), graph.orders.orders.value)
         assertNull(viewModel.state.value.account)
         assertEquals(listOf<SyncInterval?>(null), graph.scheduler.calls)
+    }
+
+    @Test fun `checking for an update shows it is running, then that the app is up to date`() = runTest {
+        graph.updates.checking = CompletableDeferred()
+        val viewModel = graph.settingsViewModel()
+        watch(viewModel)
+        val effects = sideEffects(viewModel)
+
+        viewModel.handle(Action.OnCheckForUpdate)
+        assertTrue(viewModel.state.value.checkingUpdate)
+        viewModel.handle(Action.OnCheckForUpdate)
+        graph.updates.checking?.complete(Unit)
+
+        assertFalse(viewModel.state.value.checkingUpdate)
+        assertEquals(UpdateCheck.UP_TO_DATE, viewModel.state.value.updateCheck)
+        assertEquals(1, graph.updates.checksNow)
+        assertTrue(effects.isEmpty())
+    }
+
+    @Test fun `a check that finds an update shows it and opens it`() = runTest {
+        graph.updates.checkResult = UpdateCheck.AVAILABLE
+        val viewModel = graph.settingsViewModel()
+        watch(viewModel)
+        val effects = sideEffects(viewModel)
+
+        viewModel.handle(Action.OnCheckForUpdate)
+
+        assertEquals(UpdateCheck.AVAILABLE, viewModel.state.value.updateCheck)
+        assertEquals(graph.updates.found, viewModel.state.value.update)
+        assertEquals(listOf(SideEffect.OpenUpdate), effects)
+    }
+
+    @Test fun `a check that fails says so and can be tried again`() = runTest {
+        graph.updates.checkResult = UpdateCheck.FAILED
+        val viewModel = graph.settingsViewModel()
+        watch(viewModel)
+        val effects = sideEffects(viewModel)
+
+        viewModel.handle(Action.OnCheckForUpdate)
+        assertEquals(UpdateCheck.FAILED, viewModel.state.value.updateCheck)
+        assertNull(viewModel.state.value.update)
+
+        graph.updates.checkResult = UpdateCheck.UP_TO_DATE
+        viewModel.handle(Action.OnCheckForUpdate)
+        assertEquals(UpdateCheck.UP_TO_DATE, viewModel.state.value.updateCheck)
+        assertEquals(2, graph.updates.checksNow)
+        assertTrue(effects.isEmpty())
     }
 }

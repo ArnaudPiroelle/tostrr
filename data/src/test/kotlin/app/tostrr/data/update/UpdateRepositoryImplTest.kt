@@ -3,6 +3,7 @@ package app.tostrr.data.update
 import android.content.Context
 import app.tostrr.data.testing.FakeHttp
 import app.tostrr.domain.update.AppUpdate
+import app.tostrr.domain.update.UpdateCheck
 import app.tostrr.domain.update.UpdateDownload
 import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.toList
@@ -93,6 +94,31 @@ class UpdateRepositoryImplTest {
         repository.check()
         assertEquals(offered, repository.update.value)
         assertEquals(4, http.callsTo(LATEST).size)
+    }
+
+    @Test fun `a check asked for now ignores the six hours and says what it found`() = runTest {
+        latest(tag = "v0.1.0")
+        val repository = repository()
+        assertEquals(UpdateCheck.UP_TO_DATE, repository.checkNow())
+
+        latest()
+        assertEquals(UpdateCheck.AVAILABLE, repository.checkNow())
+        assertEquals(offered, repository.update.value)
+        assertEquals(2, http.callsTo(LATEST).size)
+    }
+
+    @Test fun `a check asked for now that fails says so and keeps what was known`() = runTest {
+        latest()
+        val repository = repository()
+        repository.check()
+
+        http.failOn(LATEST)
+        assertEquals(UpdateCheck.FAILED, repository.checkNow())
+        http.on(LATEST, "", code = 403)
+        assertEquals(UpdateCheck.FAILED, repository.checkNow())
+        http.on(LATEST, "not json")
+        assertEquals(UpdateCheck.FAILED, repository.checkNow())
+        assertEquals(offered, repository.update.value)
     }
 
     @Test fun `a release without APK is not offered`() = runTest {
