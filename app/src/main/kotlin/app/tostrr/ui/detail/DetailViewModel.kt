@@ -23,6 +23,8 @@ import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
 import app.tostrr.domain.shipping.ShipVoyage
 import app.tostrr.domain.shipping.ShipVoyages
 import app.tostrr.domain.shipping.usecase.ObserveShipSnapshotUseCase
+import app.tostrr.domain.vin.VinDecoding
+import app.tostrr.domain.vin.usecase.DecodeVinUseCase
 import app.tostrr.ui.architecture.BaseAction
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel
@@ -54,6 +56,7 @@ class DetailViewModel(
     observeDetailLayoutUseCase: ObserveDetailLayoutUseCase,
     observeShipSnapshotUseCase: ObserveShipSnapshotUseCase,
     private val findDeliveryCenterUseCase: FindDeliveryCenterUseCase,
+    private val decodeVinUseCase: DecodeVinUseCase,
     private val moveDetailBlockUseCase: MoveDetailBlockUseCase,
     private val toggleDetailBlockUseCase: ToggleDetailBlockUseCase,
     private val resetDetailLayoutUseCase: ResetDetailLayoutUseCase,
@@ -66,6 +69,8 @@ class DetailViewModel(
         .map { it.deliveryCenter to it.countryCode }
         .distinctUntilChanged()
         .map { (center, country) -> findDeliveryCenterUseCase(center, country) }
+
+    private val vinDecoding = order.map { it?.vin }.distinctUntilChanged().map { decodeVinUseCase(it) }
 
     private val content = combine(
         order,
@@ -84,9 +89,11 @@ class DetailViewModel(
         deliveryCenter.onStart { emit(null) },
         historyFilter,
         observeShipSnapshotUseCase(),
-    ) { content, center, filter, ships ->
+        vinDecoding.onStart { emit(null) },
+    ) { content, center, filter, ships, vin ->
         content.copy(
             deliveryCenter = center,
+            vinDecoding = vin,
             historyFilter = filter,
             voyage = content.order?.let { ShipVoyages.of(it, ships) },
         )
@@ -126,6 +133,8 @@ class DetailViewModel(
         val historyFilter: HistoryFilter = HistoryFilter(),
         /** The ship believed to carry the car, while it sails. */
         val voyage: ShipVoyage? = null,
+        /** The order's VIN cut into its parts, once it has one. */
+        val vinDecoding: VinDecoding? = null,
     ) : BaseState {
         /** The history as the filter leaves it, newest first like [history]. */
         val shownHistory: List<Change> get() = historyFilter.apply(history)

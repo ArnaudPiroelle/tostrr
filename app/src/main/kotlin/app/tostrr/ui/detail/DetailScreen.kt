@@ -37,6 +37,7 @@ import app.tostrr.ui.detail.components.Section
 import app.tostrr.ui.detail.components.ShippingContent
 import app.tostrr.ui.detail.components.StickyTopBar
 import app.tostrr.ui.detail.components.VehicleContent
+import app.tostrr.ui.detail.components.VinDecoderSheet
 import app.tostrr.ui.detail.components.titleRes
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -55,6 +56,7 @@ fun DetailScreen(
     val layout = state.layout
     val scrollState = rememberScrollState()
     var arranging by rememberSaveable { mutableStateOf(false) }
+    var decodingVin by rememberSaveable { mutableStateOf(false) }
     // Once there is an appointment to prepare for; a checklist already started stays reachable even if the
     // appointment later disappears from Tesla's data.
     val showChecklist = order.hasAppointment || checklist != null
@@ -90,7 +92,9 @@ fun DetailScreen(
                             DetailBlock.SHIPPING -> state.voyage?.let { voyage -> section { ShippingContent(voyage, onOpenShip) } }
                             DetailBlock.PROGRESS_TRACKER -> section { StepTracker(order) }
                             DetailBlock.PROGRESS -> section { ProgressContent(order) }
-                            DetailBlock.VEHICLE -> section { VehicleContent(order) }
+                            DetailBlock.VEHICLE -> section {
+                                VehicleContent(order, onDecodeVin = state.vinDecoding?.let { { decodingVin = true } })
+                            }
                             DetailBlock.PAYMENT -> section { PaymentContent(order) }
                             DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, state.options) }
                             DetailBlock.HISTORY -> section {
@@ -125,4 +129,6 @@ fun DetailScreen(
             onDismiss = { arranging = false },
         )
     }
+
+    state.vinDecoding?.takeIf { decodingVin }?.let { VinDecoderSheet(it, onDismiss = { decodingVin = false }) }
 }

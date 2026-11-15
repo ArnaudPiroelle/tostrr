@@ -13,6 +13,9 @@ import app.tostrr.domain.checklist.DeliveryChecklist
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.deliverycenter.DeliveryCenterRepository
 import app.tostrr.domain.deliverycenter.DeliveryCenters
+import app.tostrr.domain.vin.VinCode
+import app.tostrr.domain.vin.VinCodeRepository
+import app.tostrr.domain.vin.VinCodeTable
 import app.tostrr.domain.layout.BlockLayout
 import app.tostrr.domain.layout.DetailLayoutRepository
 import app.tostrr.domain.notification.NotificationSettings
@@ -194,6 +197,14 @@ class FakeOptionRepository(codes: Map<String, OptionInfo> = emptyMap()) : Option
 
 class FakeShipTrackingRepository(snapshot: ShipSnapshot? = null) : ShipTrackingRepository {
     override val snapshot = MutableStateFlow(snapshot)
+}
+
+class FakeVinCodeRepository(var table: VinCodeTable = VinCodeTable("2026-11-15", emptyList())) : VinCodeRepository {
+    override suspend fun table() = table
+
+    fun know(vararg codes: VinCode) {
+        table = table.copy(codes = table.codes + codes)
+    }
 }
 
 class FakeDeliveryCenterRepository(private val centers: List<DeliveryCenter> = emptyList()) : DeliveryCenterRepository {

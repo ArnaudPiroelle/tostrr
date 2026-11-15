@@ -17,6 +17,8 @@ import app.tostrr.domain.order.LocalSignals
 import app.tostrr.domain.shipping.GeoPosition
 import app.tostrr.domain.shipping.Ship
 import app.tostrr.domain.shipping.ShipSnapshot
+import app.tostrr.domain.vin.VinCode
+import app.tostrr.domain.vin.VinSection
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
 import app.tostrr.ui.theme.TostrrTheme
@@ -127,8 +129,28 @@ class DetailScreenTest {
         compose.onNodeWithText("Assurance", useUnmergedTree = true).assertExists()
     }
 
-    @Test fun `an unknown VIN has nothing to copy`() {
+    @Test fun `the VIN decoder explains each part of the VIN`() {
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EU8VC052692"))
+        graph.vinCodes.know(
+            VinCode(VinSection.MANUFACTURER, "LRW", mapOf("en" to "Tesla, China", "fr" to "Tesla, Chine")),
+            VinCode(VinSection.FACTORY, "C", mapOf("en" to "Shanghai (China)", "fr" to "Shanghai (Chine)")),
+        )
         show()
+
+        compose.onNodeWithText("Décoder le VIN").performScrollTo().performClick()
+
+        compose.onNodeWithText("Décodeur VIN").assertIsDisplayed()
+        compose.onNodeWithText("Tesla, Chine").assertIsDisplayed()
+        compose.onNodeWithText("Shanghai (Chine)").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Pas encore connu").assertCountEquals(6)
+        compose.onNodeWithText("Valide").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("052692").assertCountEquals(2)
+    }
+
+    @Test fun `an unknown VIN has nothing to copy, nor to decode`() {
+        show()
+
+        compose.onNodeWithText("Décoder le VIN").assertDoesNotExist()
 
         compose.onNodeWithText("VIN: inconnu").assertIsDisplayed()
         compose.onNodeWithContentDescription("Copier le VIN").assertDoesNotExist()

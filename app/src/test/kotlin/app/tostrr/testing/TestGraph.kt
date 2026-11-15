@@ -24,6 +24,7 @@ import app.tostrr.domain.checklist.usecase.StartChecklistUseCase
 import app.tostrr.domain.checklist.usecase.UpdateChecklistAnswerUseCase
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.deliverycenter.usecase.FindDeliveryCenterUseCase
+import app.tostrr.domain.vin.usecase.DecodeVinUseCase
 import app.tostrr.domain.layout.usecase.MoveDetailBlockUseCase
 import app.tostrr.domain.layout.usecase.ObserveDetailLayoutUseCase
 import app.tostrr.domain.layout.usecase.ResetDetailLayoutUseCase
@@ -81,6 +82,7 @@ class TestGraph(
     val deliveryCenters = mutableListOf<DeliveryCenter>()
     val layout = FakeDetailLayoutRepository()
     val ships = FakeShipTrackingRepository()
+    val vinCodes = FakeVinCodeRepository()
     val checklists = FakeChecklistRepository(Files.createTempDirectory("photos").toFile())
     val reports = FakeChecklistReportWriter(Files.createTempDirectory("reports").toFile())
 
@@ -125,6 +127,7 @@ class TestGraph(
         ObserveDetailLayoutUseCase(layout),
         ObserveShipSnapshotUseCase(ships),
         FindDeliveryCenterUseCase(FakeDeliveryCenterRepository(deliveryCenters)),
+        DecodeVinUseCase(vinCodes),
         MoveDetailBlockUseCase(layout),
         ToggleDetailBlockUseCase(layout),
         ResetDetailLayoutUseCase(layout),
