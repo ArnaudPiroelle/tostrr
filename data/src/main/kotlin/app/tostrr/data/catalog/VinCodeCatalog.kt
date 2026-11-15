@@ -23,7 +23,7 @@ private data class VinCodeEntry(
 
 /**
  * The VIN codes bundled in `assets/vin_codes.json`: the table of tesla-order-status-tracker.de, with French texts
- * added, refreshed with the project skill `refresh-vin-codes` (`.claude/skills/`); the app never downloads it. Read
+ * added, refreshed with the project skill `refresh-code-tables` (`.claude/skills/`); the app never downloads it. Read
  * once, on first use; an entry of an unknown section is skipped.
  */
 @Single

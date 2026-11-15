@@ -51,8 +51,7 @@ class OrderRepositoryImplTest {
 
     /** A new repository over the same files, as after a restart of the app. */
     private fun repository(): OrderRepositoryImpl {
-        val catalog = OptionCatalog(http.client, context)
-        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), catalog, PartsCatalog(http.client, context), ShipTracker(http.client, context), OrderNotifier(context, catalog, NotificationSettingsRepositoryImpl(context)))
+        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), PartsCatalog(http.client, context), ShipTracker(http.client, context), OrderNotifier(context, OptionCatalog(context), NotificationSettingsRepositoryImpl(context)))
     }
 
     private fun orders(vararg orders: String) = http.on("/api/1/users/orders", """{"response":[${orders.joinToString(",")}]}""")
@@ -315,13 +314,6 @@ class OrderRepositoryImplTest {
         val e = runCatching { repository.refresh() }.exceptionOrNull()
         assertEquals(503, (e as ApiException).code)
         assertEquals(before, repository.orders.value)
-    }
-
-    @Test fun `the option labels are fetched after a sync, and their failure doesn't fail it`() = runTest {
-        val repository = repository()
-        repository.refresh()
-        assertEquals(1, http.callsTo("/get/option_codes.php").size)
-        assertEquals(1, repository.orders.value.size)
     }
 
     @Test fun `clearing forgets the orders and their history, on disk too`() = runTest {

@@ -1,6 +1,6 @@
 """Checks data/src/main/assets/vin_codes.json and prints what changed since the committed version.
 
-Usage (from the repository root): python3 -I .claude/skills/refresh-vin-codes/check_asset.py [asset]
+Usage (from the repository root): python3 -I .claude/skills/refresh-code-tables/check_vin_codes.py [asset]
 Exits non-zero, saying why, when the asset doesn't follow the format the app reads (VinCodeCatalog).
 """
 import json
