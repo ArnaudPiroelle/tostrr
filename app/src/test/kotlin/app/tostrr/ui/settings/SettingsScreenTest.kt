@@ -18,9 +18,12 @@ import app.tostrr.domain.auth.TeslaAccount
 import app.tostrr.domain.notification.NotificationKind
 import app.tostrr.domain.notification.NotificationSettings
 import app.tostrr.domain.sync.SyncInterval
+import app.tostrr.BuildConfig
 import app.tostrr.domain.update.AppUpdate
+import app.tostrr.domain.update.UpdateCheck
 import app.tostrr.testing.TestGraph
 import app.tostrr.ui.theme.TostrrTheme
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -136,5 +139,49 @@ class SettingsScreenTest {
         compose.onNodeWithText("Se déconnecter").performClick()
         compose.onNode(hasText("Se déconnecter") and hasAnyAncestor(isDialog())).performClick()
         assertFalse(graph.auth.loggedIn.value)
+    }
+
+    private val checkRow = hasText("Rechercher une mise à jour")
+
+    private fun scrollToCheck() = compose.onNode(hasScrollAction()).performScrollToNode(checkRow)
+
+    @Test fun `checking for an update shows it is running, then that the app is up to date`() {
+        graph.updates.checking = CompletableDeferred()
+        show()
+        scrollToCheck()
+        compose.onNodeWithText("Version ${BuildConfig.VERSION_NAME} installée.").assertIsDisplayed()
+
+        compose.onNode(checkRow).performClick()
+        compose.onNodeWithText("Recherche en cours…").assertIsDisplayed()
+        compose.onNode(checkRow).performClick()
+
+        graph.updates.checking?.complete(Unit)
+        compose.onNodeWithText("Tostrr est à jour (version ${BuildConfig.VERSION_NAME}).").assertIsDisplayed()
+        assertEquals(1, graph.updates.checksNow)
+    }
+
+    @Test fun `a check that finds an update opens it and brings up its section`() {
+        graph.updates.checkResult = UpdateCheck.AVAILABLE
+        var opened = false
+        compose.setContent {
+            TostrrTheme { SettingsScreen(onBack = {}, onOpenUpdate = { opened = true }, viewModel = graph.settingsViewModel()) }
+        }
+        scrollToCheck()
+
+        compose.onNode(checkRow).performClick()
+
+        assertTrue(opened)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Mise à jour"))
+        compose.onNodeWithText("Mise à jour").assertIsDisplayed()
+    }
+
+    @Test fun `a check that fails says so`() {
+        graph.updates.checkResult = UpdateCheck.FAILED
+        show()
+        scrollToCheck()
+
+        compose.onNode(checkRow).performClick()
+
+        compose.onNodeWithText("Impossible de joindre GitHub. Réessayez plus tard.").assertIsDisplayed()
     }
 }

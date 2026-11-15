@@ -7,6 +7,8 @@ import app.tostrr.domain.order.Change
 import app.tostrr.domain.shipping.GeoPosition
 import app.tostrr.domain.shipping.Ship
 import app.tostrr.domain.shipping.ShipSnapshot
+import app.tostrr.domain.vin.VinCode
+import app.tostrr.domain.vin.VinSection
 import app.tostrr.testing.MainDispatcherRule
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
@@ -41,6 +43,19 @@ class DetailViewModelTest {
         watch(viewModel)
 
         assertEquals(center, viewModel.state.value.deliveryCenter)
+    }
+
+    @Test fun `decodes the order's VIN once it has one`() = runTest {
+        graph.vinCodes.know(VinCode(VinSection.FACTORY, "C", mapOf("en" to "Shanghai")))
+        val viewModel = graph.detailViewModel("RN1")
+        watch(viewModel)
+        assertNull(viewModel.state.value.vinDecoding)
+
+        graph.orders.orders.value = listOf(order("RN1").copy(vin = "LRW3E7EB5PC000003"))
+
+        val decoding = viewModel.state.value.vinDecoding!!
+        assertEquals("LRW3E7EB5PC000003", decoding.vin)
+        assertEquals("Shanghai", decoding.segments.single { it.section == VinSection.FACTORY }.meaning?.values?.get("en"))
     }
 
     @Test fun `an order gone from the list leaves nothing to show`() = runTest {

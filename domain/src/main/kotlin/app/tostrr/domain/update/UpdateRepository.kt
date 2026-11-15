@@ -14,6 +14,9 @@ interface UpdateRepository {
     /** Asks for the latest release, if not done recently. Best effort: a failure keeps what was known and never throws. */
     suspend fun check()
 
+    /** Asks for the latest release now, however recent the last check. A failure keeps what was known and never throws. */
+    suspend fun checkNow(): UpdateCheck
+
     /** Stops offering [version], which stays in [update]; a later one is offered again. */
     fun skip(version: String)
 

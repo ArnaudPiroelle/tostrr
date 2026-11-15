@@ -1,0 +1,541 @@
+{
+ "updated": "2026-11-15",
+ "codes": [
+  {
+   "section": "manufacturer",
+   "code": "5YJ",
+   "value": {
+    "en": "Tesla, USA",
+    "fr": "Tesla, États-Unis"
+   }
+  },
+  {
+   "section": "manufacturer",
+   "code": "7SA",
+   "value": {
+    "en": "Tesla, USA",
+    "fr": "Tesla, États-Unis"
+   }
+  },
+  {
+   "section": "manufacturer",
+   "code": "LRW",
+   "value": {
+    "en": "Tesla, China",
+    "fr": "Tesla, Chine"
+   }
+  },
+  {
+   "section": "manufacturer",
+   "code": "SFZ",
+   "value": {
+    "en": "Tesla, United Kingdom",
+    "fr": "Tesla, Royaume-Uni"
+   }
+  },
+  {
+   "section": "manufacturer",
+   "code": "XP7",
+   "value": {
+    "en": "Tesla, Germany",
+    "fr": "Tesla, Allemagne"
+   }
+  },
+  {
+   "section": "model",
+   "code": "3",
+   "value": {
+    "en": "Model 3",
+    "fr": "Model 3"
+   }
+  },
+  {
+   "section": "model",
+   "code": "C",
+   "value": {
+    "en": "Cybertruck",
+    "fr": "Cybertruck"
+   }
+  },
+  {
+   "section": "model",
+   "code": "R",
+   "value": {
+    "en": "Roadster",
+    "fr": "Roadster"
+   }
+  },
+  {
+   "section": "model",
+   "code": "S",
+   "value": {
+    "en": "Model S",
+    "fr": "Model S"
+   }
+  },
+  {
+   "section": "model",
+   "code": "X",
+   "value": {
+    "en": "Model X",
+    "fr": "Model X"
+   }
+  },
+  {
+   "section": "model",
+   "code": "Y",
+   "value": {
+    "en": "Model Y",
+    "fr": "Model Y"
+   }
+  },
+  {
+   "section": "body",
+   "code": "A",
+   "value": {
+    "en": "Hatchback 5-door / LHD (Model S)",
+    "fr": "Berline 5 portes / conduite à gauche (Model S)"
+   }
+  },
+  {
+   "section": "body",
+   "code": "B",
+   "value": {
+    "en": "Hatchback 5-door / RHD (Model S)",
+    "fr": "Berline 5 portes / conduite à droite (Model S)"
+   }
+  },
+  {
+   "section": "body",
+   "code": "C",
+   "value": {
+    "en": "Class E MPV / 5-door / LHD (Model X)",
+    "fr": "Monospace classe E / 5 portes / conduite à gauche (Model X)"
+   }
+  },
+  {
+   "section": "body",
+   "code": "D",
+   "value": {
+    "en": "Class E MPV / 5-door / RHD (Model X)",
+    "fr": "Monospace classe E / 5 portes / conduite à droite (Model X)"
+   }
+  },
+  {
+   "section": "body",
+   "code": "E",
+   "value": {
+    "en": "Sedan 4-door / LHD (Model 3); Class 2H pickup / LHD (Cybertruck)",
+    "fr": "Berline 4 portes / conduite à gauche (Model 3) ; pick-up classe 2H / conduite à gauche (Cybertruck)"
+   }
+  },
+  {
+   "section": "body",
+   "code": "F",
+   "value": {
+    "en": "Sedan 4-door / RHD (Model 3)",
+    "fr": "Berline 4 portes / conduite à droite (Model 3)"
+   }
+  },
+  {
+   "section": "body",
+   "code": "G",
+   "value": {
+    "en": "MPV 5-door / LHD (Model Y)",
+    "fr": "Monospace 5 portes / conduite à gauche (Model Y)"
+   }
+  },
+  {
+   "section": "body",
+   "code": "H",
+   "value": {
+    "en": "MPV 5-door / RHD (Model Y)",
+    "fr": "Monospace 5 portes / conduite à droite (Model Y)"
+   }
+  },
+  {
+   "section": "restraints",
+   "code": "1",
+   "value": {
+    "en": "Type 2 manual seatbelts (front row, second row x3) with front airbags, side inflatable restraints and front knee airbags (Model 3)",
+    "fr": "Ceintures manuelles de type 2 (avant, 3 au deuxième rang), airbags frontaux, airbags latéraux et airbags genoux avant (Model 3)"
+   }
+  },
+  {
+   "section": "restraints",
+   "code": "7",
+   "value": {
+    "en": "Type 2 manual seatbelts (front row, second row x3) with front airbags and side inflatable restraints (Model 3)",
+    "fr": "Ceintures manuelles de type 2 (avant, 3 au deuxième rang), airbags frontaux et airbags latéraux (Model 3)"
+   }
+  },
+  {
+   "section": "restraints",
+   "code": "A",
+   "value": {
+    "en": "Type 2 manual seatbelts (front row, second row x3, third row x2) with front airbags, PODS, side inflatable restraints and knee airbags",
+    "fr": "Ceintures manuelles de type 2 (avant, 3 au deuxième rang, 2 au troisième), airbags frontaux, détection d'occupant (PODS), airbags latéraux et airbags genoux"
+   }
+  },
+  {
+   "section": "restraints",
+   "code": "B",
+   "value": {
+    "en": "Type 2 manual seatbelts (front row, second row x2, third row x2) with front airbags, PODS, side inflatable restraints and knee airbags",
+    "fr": "Ceintures manuelles de type 2 (avant, 2 au deuxième rang, 2 au troisième), airbags frontaux, détection d'occupant (PODS), airbags latéraux et airbags genoux"
+   }
+  },
+  {
+   "section": "restraints",
+   "code": "C",
+   "value": {
+    "en": "Type 2 manual seatbelts with front airbags, PODS and side inflatable restraints",
+    "fr": "Ceintures manuelles de type 2, airbags frontaux, détection d'occupant (PODS) et airbags latéraux"
+   }
+  },
+  {
+   "section": "restraints",
+   "code": "D",
+   "value": {
+    "en": "Type 2 manual seatbelts (front row, second row x3) with front airbags, PODS, side inflatable restraints and knee airbags",
+    "fr": "Ceintures manuelles de type 2 (avant, 3 au deuxième rang), airbags frontaux, détection d'occupant (PODS), airbags latéraux et airbags genoux"
+   }
+  },
+  {
+   "section": "battery",
+   "code": "E",
+   "value": {
+    "en": "Lithium-ion battery / electric propulsion",
+    "fr": "Batterie lithium-ion / propulsion électrique"
+   }
+  },
+  {
+   "section": "battery",
+   "code": "F",
+   "value": {
+    "en": "Lithium Iron Phosphate (LFP) battery",
+    "fr": "Batterie lithium-fer-phosphate (LFP)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "2",
+   "value": {
+    "en": "Dual Motor (Model X)",
+    "fr": "Deux moteurs (Model X)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "4",
+   "value": {
+    "en": "Dual Motor Performance (Model X)",
+    "fr": "Deux moteurs Performance (Model X)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "5",
+   "value": {
+    "en": "Dual Motor (Model S/X)",
+    "fr": "Deux moteurs (Model S/X)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "6",
+   "value": {
+    "en": "Triple Motor (Model S/X)",
+    "fr": "Trois moteurs (Model S/X)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "A",
+   "value": {
+    "en": "Single Motor Standard (Model 3)",
+    "fr": "Un moteur Standard (Model 3)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "B",
+   "value": {
+    "en": "Dual Motor Standard (Model 3)",
+    "fr": "Deux moteurs Standard (Model 3)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "D",
+   "value": {
+    "en": "Single Motor Standard (Model Y)",
+    "fr": "Un moteur Standard (Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "E",
+   "value": {
+    "en": "Dual Motor Standard (Model Y)",
+    "fr": "Deux moteurs Standard (Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "F",
+   "value": {
+    "en": "Dual Motor Performance (Model Y)",
+    "fr": "Deux moteurs Performance (Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "J",
+   "value": {
+    "en": "Single Motor Standard (Model 3/Model Y)",
+    "fr": "Un moteur Standard (Model 3/Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "K",
+   "value": {
+    "en": "Dual Motor Standard (Model 3/Model Y)",
+    "fr": "Deux moteurs Standard (Model 3/Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "L",
+   "value": {
+    "en": "Dual Motor Performance (Model Y)",
+    "fr": "Deux moteurs Performance (Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "R",
+   "value": {
+    "en": "Single Motor Standard (Model 3/Model Y)",
+    "fr": "Un moteur Standard (Model 3/Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "S",
+   "value": {
+    "en": "Single Motor Standard (Model 3/Model Y)",
+    "fr": "Un moteur Standard (Model 3/Model Y)"
+   }
+  },
+  {
+   "section": "motor",
+   "code": "T",
+   "value": {
+    "en": "Dual Motor Performance (Model 3)",
+    "fr": "Deux moteurs Performance (Model 3)"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "A",
+   "value": {
+    "en": "2010",
+    "fr": "2010"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "B",
+   "value": {
+    "en": "2011",
+    "fr": "2011"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "C",
+   "value": {
+    "en": "2012",
+    "fr": "2012"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "D",
+   "value": {
+    "en": "2013",
+    "fr": "2013"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "E",
+   "value": {
+    "en": "2014",
+    "fr": "2014"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "F",
+   "value": {
+    "en": "2015",
+    "fr": "2015"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "G",
+   "value": {
+    "en": "2016",
+    "fr": "2016"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "H",
+   "value": {
+    "en": "2017",
+    "fr": "2017"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "J",
+   "value": {
+    "en": "2018",
+    "fr": "2018"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "K",
+   "value": {
+    "en": "2019",
+    "fr": "2019"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "L",
+   "value": {
+    "en": "2020",
+    "fr": "2020"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "M",
+   "value": {
+    "en": "2021",
+    "fr": "2021"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "N",
+   "value": {
+    "en": "2022",
+    "fr": "2022"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "P",
+   "value": {
+    "en": "2023",
+    "fr": "2023"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "R",
+   "value": {
+    "en": "2024",
+    "fr": "2024"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "S",
+   "value": {
+    "en": "2025",
+    "fr": "2025"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "T",
+   "value": {
+    "en": "2026",
+    "fr": "2026"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "V",
+   "value": {
+    "en": "2027",
+    "fr": "2027"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "W",
+   "value": {
+    "en": "2028",
+    "fr": "2028"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "X",
+   "value": {
+    "en": "2029",
+    "fr": "2029"
+   }
+  },
+  {
+   "section": "model_year",
+   "code": "Y",
+   "value": {
+    "en": "2030",
+    "fr": "2030"
+   }
+  },
+  {
+   "section": "factory",
+   "code": "A",
+   "value": {
+    "en": "Austin, Texas (USA)",
+    "fr": "Austin, Texas (États-Unis)"
+   }
+  },
+  {
+   "section": "factory",
+   "code": "B",
+   "value": {
+    "en": "Berlin, Germany",
+    "fr": "Berlin, Allemagne"
+   }
+  },
+  {
+   "section": "factory",
+   "code": "C",
+   "value": {
+    "en": "Shanghai (China)",
+    "fr": "Shanghai (Chine)"
+   }
+  },
+  {
+   "section": "factory",
+   "code": "F",
+   "value": {
+    "en": "Fremont, California (USA)",
+    "fr": "Fremont, Californie (États-Unis)"
+   }
+  }
+ ]
+}

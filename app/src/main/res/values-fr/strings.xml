@@ -134,6 +134,23 @@
     <string name="detail_vehicle_registration_status">Statut d\'immatriculation</string>
     <string name="detail_vehicle_parts_catalog">Catalogue de pièces</string>
     <string name="detail_vehicle_parts_catalog_open">Voir les pièces de la voiture</string>
+    <string name="detail_vin_decode">Décoder le VIN</string>
+    <string name="detail_vin_decoder_title">Décodeur VIN</string>
+    <string name="detail_vin_decoder_source">Décodé avec la table fournie avec l\'application, mise à jour le %1$s.</string>
+    <string name="detail_vin_section_manufacturer">Constructeur / pays</string>
+    <string name="detail_vin_section_model">Modèle</string>
+    <string name="detail_vin_section_body">Carrosserie</string>
+    <string name="detail_vin_section_restraints">Système de retenue</string>
+    <string name="detail_vin_section_battery">Batterie / propulsion</string>
+    <string name="detail_vin_section_motor">Moteur</string>
+    <string name="detail_vin_section_check_digit">Clé de contrôle</string>
+    <string name="detail_vin_section_model_year">Année-modèle</string>
+    <string name="detail_vin_section_factory">Usine</string>
+    <string name="detail_vin_section_serial">Numéro de série</string>
+    <string name="detail_vin_unknown">Pas encore connu</string>
+    <string name="detail_vin_check_valid">Valide</string>
+    <string name="detail_vin_check_invalid">Ne correspond pas (%1$s attendu)</string>
+    <string name="detail_vin_check_not_required">Non vérifiée : seuls les VIN nord-américains l\'exigent</string>
     <string name="detail_payment_empty">Aucune information de paiement pour le moment.</string>
     <string name="detail_payment_status">Statut du paiement</string>
     <string name="detail_payment_amount_due">Reste à payer</string>
@@ -293,6 +310,13 @@
     <string name="settings_update_section">Mise à jour</string>
     <string name="settings_update_available">Version %1$s disponible</string>
     <string name="settings_update_summary">Voir les nouveautés et l’installer.</string>
+
+    <string name="settings_app_section">Application</string>
+    <string name="settings_check_update">Rechercher une mise à jour</string>
+    <string name="settings_check_update_installed">Version %1$s installée.</string>
+    <string name="settings_check_update_checking">Recherche en cours…</string>
+    <string name="settings_check_update_up_to_date">Tostrr est à jour (version %1$s).</string>
+    <string name="settings_check_update_failed">Impossible de joindre GitHub. Réessayez plus tard.</string>
 
     <!-- Update -->
     <string name="update_title">Nouvelle version disponible</string>

@@ -3,7 +3,6 @@ package app.tostrr.data.order
 import android.content.Context
 import app.tostrr.data.api.TeslaApi
 import app.tostrr.data.auth.TeslaAuth
-import app.tostrr.data.catalog.OptionCatalog
 import app.tostrr.data.catalog.PartsCatalog
 import app.tostrr.data.notification.OrderNotifier
 import app.tostrr.data.shipping.ShipTracker
@@ -57,7 +56,6 @@ class OrderRepositoryImpl(
     context: Context,
     private val api: TeslaApi,
     private val auth: TeslaAuth,
-    private val catalog: OptionCatalog,
     private val partsCatalog: PartsCatalog,
     private val shipTracker: ShipTracker,
     private val notifier: OrderNotifier,
@@ -138,8 +136,7 @@ class OrderRepositoryImpl(
             fresh.forEach { notifier.notifyReminder(it, now) }
             notifier.notifyDigest(_history.value, now)
         }
-        // Best effort and outside the lock: a slow or unreachable catalogue must not delay or fail a sync.
-        catalog.refreshIfStale()
+        // Best effort and outside the lock: a slow or unreachable site must not delay or fail a sync.
         if (_orders.value.any { it.awaitingDelivery && ShipVoyages.tracks(it.vin) }) shipTracker.refreshIfStale()
     }
 
