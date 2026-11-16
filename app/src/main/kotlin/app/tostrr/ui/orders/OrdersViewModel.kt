@@ -56,7 +56,7 @@ class OrdersViewModel(
         if (sync.value.refreshing || now - sync.value.lastRefreshAtMs < REFRESH_COOLDOWN_MS) return
         sync.update { it.copy(refreshing = true, lastRefreshAtMs = now, error = null) }
         try {
-            refreshOrdersUseCase()
+            refreshOrdersUseCase(manual = true)
         } catch (e: CancellationException) {
             throw e
         } catch (e: SessionExpiredException) {

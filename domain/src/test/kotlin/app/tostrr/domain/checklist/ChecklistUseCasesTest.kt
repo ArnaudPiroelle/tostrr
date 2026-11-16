@@ -102,7 +102,7 @@ class ChecklistUseCasesTest {
             override val history = MutableStateFlow(emptyMap<String, List<Change>>())
             override val syncing = MutableStateFlow(false)
             override fun lastSyncAgeMs(now: Long): Long? = null
-            override suspend fun refresh() = Unit
+            override suspend fun refresh(manual: Boolean) = Unit
             override fun clear() = Unit
         }
         val report = CreateChecklistReportUseCase(repository, orders, writer)

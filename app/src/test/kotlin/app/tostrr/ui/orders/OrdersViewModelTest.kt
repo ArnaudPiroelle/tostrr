@@ -46,7 +46,7 @@ class OrdersViewModelTest {
         assertFalse(viewModel.state.value.refreshing)
     }
 
-    @Test fun `refreshing shows the new orders`() = runTest {
+    @Test fun `refreshing is a manual pull and shows the new orders`() = runTest {
         val pull = CompletableDeferred<Unit>()
         graph.orders.onRefresh = {
             pull.await()
@@ -61,6 +61,7 @@ class OrdersViewModelTest {
 
         assertFalse(viewModel.state.value.refreshing)
         assertEquals(listOf("RN1"), viewModel.state.value.orders.map { it.reference })
+        assertEquals(true, graph.orders.lastRefreshManual)
     }
 
     @Test fun `a second refresh within the cooldown is ignored`() = runTest {

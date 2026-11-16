@@ -172,11 +172,13 @@ class FakeOrderRepository(orders: List<Order> = emptyList()) : OrderRepository {
     /** Run by [refresh]: throw to fail it, or set [orders]. */
     var onRefresh: suspend () -> Unit = {}
     var refreshes = 0
+    var lastRefreshManual: Boolean? = null
 
     override fun lastSyncAgeMs(now: Long): Long? = null
 
-    override suspend fun refresh() {
+    override suspend fun refresh(manual: Boolean) {
         refreshes++
+        lastRefreshManual = manual
         syncing.value = true
         try {
             onRefresh()

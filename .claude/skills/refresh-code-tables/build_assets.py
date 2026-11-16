@@ -9,9 +9,11 @@ Usage (from the repository root):
 - data/src/main/assets/vin_codes.json, from `vin_decoder`: codes the site lists as `unknown` (no value yet) are left
   out; positions 1-3 come as two entries per code, `manufacturer` and `country`, merged into one `manufacturer` entry
   ("Tesla, China"). A French text already in the file is kept while the English one is unchanged; new or reworded
-  entries get an empty `fr`, listed at the end, to translate before running check_vin_codes.py.
+  entries get an empty `fr`, listed at the end, to translate before running check_vin_codes.py. When the codes come
+  out the same as the file's, the file is left as it is, its `updated` day included.
 - data/src/main/assets/option_codes.json, from `option_codes`: code (upper case), English label and category, sorted
-  by code; the changes since the last commit are printed.
+  by code; the changes since the last commit are printed. Left as it is, `updated` included, when the codes are the
+  file's.
 
 A section missing from the response, or empty, stops the script before anything is written.
 """
@@ -65,9 +67,10 @@ def vin_table(section):
 
     try:
         with open(VIN_ASSET, encoding="utf-8") as f:
-            previous = {(c["section"], c["code"]): c["value"] for c in json.load(f)["codes"]}
+            current = json.load(f)["codes"]
+        previous = {(c["section"], c["code"]): c["value"] for c in current}
     except (OSError, ValueError, KeyError):
-        previous = {}
+        current, previous = None, {}
 
     codes, to_translate = [], []
     for key in sorted(english, key=lambda k: (VIN_ORDER.index(k[0]), k[1])):
@@ -77,7 +80,8 @@ def vin_table(section):
             to_translate.append(key)
         codes.append({"section": key[0], "code": key[1], "value": {"en": english[key], "fr": fr}})
     unknown = [f"{e['section']} {e['code']}" for e in section.get("vin_codes", []) if e.get("status") != "known"]
-    return {"updated": day(section), "codes": codes}, to_translate, english, unknown
+    unchanged = codes == current
+    return {"updated": day(section), "codes": codes}, to_translate, english, unknown, unchanged
 
 
 def option_table(section):
@@ -100,15 +104,25 @@ def option_table(section):
 def main():
     with open(sys.argv[1], encoding="utf-8") as f:
         response = json.load(f)
-    vin, to_translate, english, unknown = vin_table(response.get("vin_decoder") or {})
+    vin, to_translate, english, unknown, vin_unchanged = vin_table(response.get("vin_decoder") or {})
     options = option_table(response.get("option_codes") or {})
-    write(VIN_ASSET, vin)
-    with open(OPTION_ASSET, "w", encoding="utf-8") as f:
-        # One code per line: compact, and a change shows as one line in a diff.
-        rows = ",\n".join("  " + json.dumps(c, ensure_ascii=False) for c in options["codes"])
-        f.write(f'{{\n "updated": "{options["updated"]}",\n "codes": [\n{rows}\n ]\n}}\n')
+    if not vin_unchanged:
+        write(VIN_ASSET, vin)
+    try:
+        with open(OPTION_ASSET, encoding="utf-8") as f:
+            options_unchanged = json.load(f)["codes"] == options["codes"]
+    except (OSError, ValueError, KeyError):
+        options_unchanged = False
+    if not options_unchanged:
+        with open(OPTION_ASSET, "w", encoding="utf-8") as f:
+            # One code per line: compact, and a change shows as one line in a diff.
+            rows = ",\n".join("  " + json.dumps(c, ensure_ascii=False) for c in options["codes"])
+            f.write(f'{{\n "updated": "{options["updated"]}",\n "codes": [\n{rows}\n ]\n}}\n')
 
-    print(f"VIN: {len(vin['codes'])} codes written to {VIN_ASSET}, table updated {vin['updated']}")
+    if vin_unchanged:
+        print(f"VIN: {len(vin['codes'])} codes, all as in {VIN_ASSET}: file left as it is")
+    else:
+        print(f"VIN: {len(vin['codes'])} codes written to {VIN_ASSET}, table updated {vin['updated']}")
     if unknown:
         print("VIN: still unknown on the site: " + ", ".join(unknown))
     if to_translate:
@@ -116,7 +130,10 @@ def main():
         for key in to_translate:
             print(f"  {key[0]} {key[1]}: {english[key]}")
 
-    print(f"Options: {len(options['codes'])} codes written to {OPTION_ASSET}, table updated {options['updated']}")
+    if options_unchanged:
+        print(f"Options: {len(options['codes'])} codes, all as in {OPTION_ASSET}: file left as it is")
+    else:
+        print(f"Options: {len(options['codes'])} codes written to {OPTION_ASSET}, table updated {options['updated']}")
     before = {c["code"]: c for c in committed(OPTION_ASSET)}
     after = {c["code"]: c for c in options["codes"]}
     for code in sorted(after.keys() - before.keys()):

@@ -131,6 +131,21 @@ class OrderRepositoryImplTest {
         assertEquals(today, repository().orders.value.single().steps.first { it.kind == StepKind.VIN_ASSIGNED }.date)
     }
 
+    @Test fun `a manual sync reads the ship tracking again, a background one waits for its delay`() = runTest {
+        orders("""{"referenceNumber":"RN1","modelCode":"my","orderStatus":"BOOKED","vin":"LRWYGCEK1TC000001"}""")
+        http.on("/snapshots/index.json", """{"snapshots":[{"id":"s1","snapshotAt":"2026-11-11T20:11:55.807Z"}]}""")
+        http.on("/snapshots/s1.json", """{"id":"s1","snapshotAt":"2026-11-11T20:11:55.807Z","ships":[]}""")
+        val repository = repository()
+        repository.refresh()
+        assertEquals(1, http.callsTo("/snapshots/index.json").size)
+
+        repository.refresh()
+        assertEquals(1, http.callsTo("/snapshots/index.json").size)
+
+        repository.refresh(manual = true)
+        assertEquals(2, http.callsTo("/snapshots/index.json").size)
+    }
+
     @Test fun `a vin already there on the first sync is dated by that sync, once`() = runTest {
         orders("""{"referenceNumber":"RN1","modelCode":"my","vin":"LRWYGCEK1TC000001"}""")
         val repository = repository()

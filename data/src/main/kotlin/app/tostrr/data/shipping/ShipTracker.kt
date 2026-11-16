@@ -25,7 +25,7 @@ import java.io.File
 /**
  * The ships carrying Teslas to Europe, from the community site tff-ship-tracking.pages.dev: it publishes a snapshot
  * about once a day, with each ship's position, route, ETA and the VIN blocks it is believed to carry. Its index is read
- * at most every [RECHECK_MS], the snapshot only when a newer one is out; the last one is kept in `filesDir`. Only
+ * at most every [RECHECK_MS] (any time on a manual sync), the snapshot only when a newer one is out; the last one is kept in `filesDir`. Only
  * public files are read: nothing about the user is sent.
  */
 @Single
@@ -44,9 +44,12 @@ class ShipTracker(
         loadCache()
     }
 
-    /** Fetches the newest snapshot if it is time to look and one came out. Never throws: this is best effort. */
-    suspend fun refreshIfStale(now: Long = System.currentTimeMillis()) {
-        if (now - checkedAtMs < RECHECK_MS) return
+    /**
+     * Fetches the newest snapshot if one came out, looking only when it is time to or when [force]d (a manual sync).
+     * Never throws: this is best effort.
+     */
+    suspend fun refresh(force: Boolean = false, now: Long = System.currentTimeMillis()) {
+        if (!force && now - checkedAtMs < RECHECK_MS) return
         try {
             withContext(Dispatchers.IO) {
                 val id = get("$BASE_URL/snapshots/index.json")?.let(ShipSnapshotParser::latestId) ?: return@withContext
@@ -105,6 +108,6 @@ class ShipTracker(
 
     private companion object {
         const val BASE_URL = "https://tff-ship-tracking.pages.dev"
-        const val RECHECK_MS = 3 * 60 * 60 * 1000L
+        const val RECHECK_MS = 60 * 60 * 1000L
     }
 }
