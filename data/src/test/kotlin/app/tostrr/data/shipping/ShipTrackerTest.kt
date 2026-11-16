@@ -12,6 +12,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import okhttp3.Cache
+import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
@@ -41,13 +45,14 @@ class ShipTrackerTest {
 
     @Before fun clean() {
         File(context.filesDir, "ship_tracking.json").delete()
+        File(context.cacheDir, "http").deleteRecursively()
         http.on("/snapshots/index.json", index)
         http.on("/snapshots/2026-11-11-2111.json", snapshot)
     }
 
     @Test fun `reads the newest snapshot`() = runTest {
         val tracker = ShipTracker(http.client, context)
-        tracker.refreshIfStale(now = 10_000_000_000L)
+        tracker.refresh(now = 10_000_000_000L)
 
         val ships = tracker.snapshot.value!!.ships
         assertEquals(listOf("GLOVIS LIGHTHOUSE", "GLOVIS LEADER"), ships.map { it.name })
@@ -72,23 +77,61 @@ class ShipTrackerTest {
         assertNull(leader.nextPort)
     }
 
-    @Test fun `looks again only after three hours, and fetches a snapshot only when a new one is out`() = runTest {
+    @Test fun `looks again only after an hour, and fetches a snapshot only when a new one is out`() = runTest {
         val tracker = ShipTracker(http.client, context)
-        tracker.refreshIfStale(now = 10_000_000_000L)
-        tracker.refreshIfStale(now = 10_000_000_000L + 60 * 60 * 1000L)
+        tracker.refresh(now = 10_000_000_000L)
+        tracker.refresh(now = 10_000_000_000L + 50 * 60 * 1000L)
         assertEquals(1, http.callsTo("/snapshots/index.json").size)
 
-        tracker.refreshIfStale(now = 10_000_000_000L + 4 * 60 * 60 * 1000L)
+        tracker.refresh(now = 10_000_000_000L + 60 * 60 * 1000L)
+        assertEquals(2, http.callsTo("/snapshots/index.json").size)
+        assertEquals(1, http.callsTo("/snapshots/2026-11-11-2111.json").size)
+    }
+
+    @Test fun `through an HTTP cache, asks for the index again with its ETag and keeps the snapshot while it hasn't changed`() = runTest {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setBody(index).setHeader("Cache-Control", "public, max-age=0, must-revalidate").setHeader("ETag", "\"v1\""))
+        server.enqueue(MockResponse().setBody(snapshot))
+        server.enqueue(MockResponse().setResponseCode(304).setHeader("ETag", "\"v1\""))
+        server.start()
+        try {
+            val toServer = OkHttpClient.Builder()
+                .cache(Cache(File(context.cacheDir, "http"), 1024 * 1024))
+                .addInterceptor { chain ->
+                    val request = chain.request()
+                    chain.proceed(request.newBuilder().url(server.url(request.url.encodedPath)).build())
+                }
+                .build()
+            val tracker = ShipTracker(toServer, context)
+            tracker.refresh(now = 10_000_000_000L)
+            tracker.refresh(now = 10_000_000_000L + 60 * 60 * 1000L)
+
+            assertNull(server.takeRequest().getHeader("If-None-Match"))
+            assertEquals("/snapshots/2026-11-11-2111.json", server.takeRequest().path)
+            val again = server.takeRequest()
+            assertEquals("/snapshots/index.json", again.path)
+            assertEquals("\"v1\"", again.getHeader("If-None-Match"))
+            assertEquals(3, server.requestCount)
+            assertEquals(2, tracker.snapshot.value!!.ships.size)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test fun `a forced refresh looks right away`() = runTest {
+        val tracker = ShipTracker(http.client, context)
+        tracker.refresh(now = 10_000_000_000L)
+        tracker.refresh(force = true, now = 10_000_000_000L + 60 * 1000L)
         assertEquals(2, http.callsTo("/snapshots/index.json").size)
         assertEquals(1, http.callsTo("/snapshots/2026-11-11-2111.json").size)
     }
 
     @Test fun `the last snapshot survives a restart and an outage, not a logout`() = runTest {
-        ShipTracker(http.client, context).refreshIfStale(now = 10_000_000_000L)
+        ShipTracker(http.client, context).refresh(now = 10_000_000_000L)
         http.failOn("/snapshots/index.json")
 
         val restarted = ShipTracker(http.client, context)
-        restarted.refreshIfStale(now = 20_000_000_000L)
+        restarted.refresh(now = 20_000_000_000L)
         assertEquals(2, restarted.snapshot.value!!.ships.size)
 
         restarted.clear()

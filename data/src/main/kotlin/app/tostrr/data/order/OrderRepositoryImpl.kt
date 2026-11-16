@@ -87,16 +87,16 @@ class OrderRepositoryImpl(
     private val _syncing = MutableStateFlow(false)
     override val syncing: StateFlow<Boolean> = _syncing.asStateFlow()
 
-    override suspend fun refresh() {
+    override suspend fun refresh(manual: Boolean) {
         _syncing.value = pulls.incrementAndGet() > 0
         try {
-            pull()
+            pull(manual)
         } finally {
             _syncing.value = pulls.decrementAndGet() > 0
         }
     }
 
-    private suspend fun pull() {
+    private suspend fun pull(manual: Boolean) {
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException(AuthError.NOT_LOGGED_IN)
             val now = System.currentTimeMillis()
@@ -137,7 +137,7 @@ class OrderRepositoryImpl(
             notifier.notifyDigest(_history.value, now)
         }
         // Best effort and outside the lock: a slow or unreachable site must not delay or fail a sync.
-        if (_orders.value.any { it.awaitingDelivery && ShipVoyages.tracks(it.vin) }) shipTracker.refreshIfStale()
+        if (_orders.value.any { it.awaitingDelivery && ShipVoyages.tracks(it.vin) }) shipTracker.refresh(force = manual)
     }
 
     /**
