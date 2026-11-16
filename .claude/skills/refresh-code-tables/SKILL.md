@@ -63,7 +63,9 @@ left out.
 `option_codes.json`: one code per line, sorted, upper case, the site's English label (the labels stay in English:
 Tesla's product names) and its category.
 
-In both, `updated` is the section's `last_updated` day.
+In both, `updated` is the section's `last_updated` day. Each file is only rewritten when its codes change: when they
+come out identical (French texts included, for the VIN table), the file stays as it is, `updated` too, even if the
+site's `last_updated` moved.
 
 ## Steps
 
@@ -74,7 +76,9 @@ In both, `updated` is the section's `last_updated` day.
    python3 -I .claude/skills/refresh-code-tables/build_assets.py <scratchpad>/tables_response.json
    ```
    For the VIN table it keeps the French texts whose English is unchanged, gives new or reworded entries an empty
-   `fr`, and lists them, with the codes the site still marks unknown. For the options it prints the codes added (`+`),
+   `fr`, and lists them, with the codes the site still marks unknown; when nothing changed it says so and leaves the
+   file untouched (then steps 3 and 4 have nothing to do). Likewise for the options, left as they are when no code was
+   added, removed or relabelled. For the options it prints the codes added (`+`),
    removed (`-`) or relabelled (`~`) since the last commit.
 3. Write the missing French texts in `vin_codes.json`: short, faithful translations in the tone of the app's French
    strings (`conduite à gauche` for LHD, `Monospace` for MPV, `Berline` for sedan/hatchback, `détection d'occupant
