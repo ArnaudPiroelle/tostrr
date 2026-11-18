@@ -1,5 +1,8 @@
 package app.tostrr.data.order
 
+import org.robolectric.Shadows.shadowOf
+import android.app.NotificationManager
+import android.app.Notification
 import app.tostrr.data.api.TeslaApi
 import app.tostrr.data.auth.TeslaAuth
 import app.tostrr.data.auth.TokenStore
@@ -33,7 +36,6 @@ import org.robolectric.RuntimeEnvironment
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.zip.GZIPInputStream
 
 @RunWith(RobolectricTestRunner::class)
 class OrderRepositoryImplTest {
@@ -209,13 +211,12 @@ class OrderRepositoryImplTest {
         assertEquals(LocalDate.of(2026, 11, 10), repository().orders.value.single().inAccountSince)
     }
 
-    @Test fun `every sync is archived as a gzipped snapshot`() = runTest {
+    @Test fun `a sync removes the archive older versions wrote to external storage`() = runTest {
+        val archive = File(context.getExternalFilesDir(null), "snapshots")
+        File(archive, "RN1").mkdirs()
+        File(archive, "RN1/2026-11-01T10-00-00.json.gz").writeText("old")
         repository().refresh()
-        val folder = File(context.getExternalFilesDir("snapshots"), "RN1")
-        val snapshot = folder.listFiles()!!.single()
-        assertTrue(snapshot.name.endsWith(".json.gz"))
-        val json = Json.parseToJsonElement(GZIPInputStream(snapshot.inputStream()).bufferedReader().readText()).jsonObject
-        assertEquals("RN1", json["raw"]!!.jsonObject["order"]!!.jsonObject["referenceNumber"]!!.jsonPrimitive.content)
+        assertFalse(archive.exists())
     }
 
     @Test fun `without a session the sync fails and keeps the orders`() = runTest {
@@ -342,5 +343,31 @@ class OrderRepositoryImplTest {
         val restarted = repository()
         assertTrue(restarted.orders.value.isEmpty())
         assertTrue(restarted.history.value.isEmpty())
+    }
+
+    @Test fun `a sync still running when the user logs out brings nothing back`() = runTest {
+        lateinit var repository: OrderRepositoryImpl
+        // The logout lands while the sync waits for Tesla's answer.
+        val client = http.client.newBuilder().apply {
+            // Ahead of FakeHttp's, which answers without going further.
+            interceptors().add(0) { chain ->
+                if (chain.request().url.encodedPath == "/tasks") repository.clear()
+                chain.proceed(chain.request())
+            }
+        }.build()
+        repository = OrderRepositoryImpl(context, TeslaApi(client), TeslaAuth(client, store), PartsCatalog(client, context), ShipTracker(client, context), OrderNotifier(context, OptionCatalog(context), NotificationSettingsRepositoryImpl(context)))
+
+        repository.refresh()
+
+        assertTrue(repository.orders.value.isEmpty())
+        assertTrue(repository.history.value.isEmpty())
+        assertFalse(File(context.filesDir, "orders.json").exists())
+    }
+
+    @Test fun `clearing takes the account's notifications out of the shade`() {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify(42, Notification())
+        repository().clear()
+        assertTrue(shadowOf(manager).allNotifications.isEmpty())
     }
 }

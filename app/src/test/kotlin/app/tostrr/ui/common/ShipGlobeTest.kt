@@ -31,7 +31,7 @@ class ShipGlobeTest {
     @get:Rule val compose = createComposeRule()
 
     private val voyage = GlobeVoyage(
-        listOf(GlobeShip("Glovis Lighthouse", GeoPoint(-30.75, 37.62), 240.0, emptyList(), emptyList(), Color.Red)),
+        listOf(GlobeShip("Glovis Lighthouse", GeoPoint(-30.75, 37.62), 240.0, emptyList(), null, Color.Red)),
     )
     private val state = GlobeState(voyage.focus)
 

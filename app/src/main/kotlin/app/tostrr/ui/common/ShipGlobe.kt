@@ -75,7 +75,6 @@ internal fun ShipGlobe(
     val textMeasurer = rememberTextMeasurer()
     val labelStyle = MaterialTheme.typography.bodySmall.copy(shadow = Shadow(Color.Black, blurRadius = 6f))
     val shipStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-    val lanes = remember(voyage) { voyage.ships.map(Lane::of) }
     // A port several ships call at is drawn once, as the first ship to list it has it.
     val ports = remember(voyage) { voyage.ships.flatMap { ship -> ship.ports.map { it to ship.color } }.distinctBy { it.first.name } }
     val dots = remember { LandDots() }
@@ -112,7 +111,7 @@ internal fun ShipGlobe(
         drawSphere(radius)
         land?.let { dots.draw(this, it, camera, radius, state.zoom) }
         val several = voyage.ships.size > 1
-        voyage.ships.zip(lanes).asReversed().forEach { (ship, lane) -> drawLane(lane, camera, radius, ship.color, several) }
+        voyage.ships.asReversed().forEach { ship -> ship.lane?.let { drawLane(it, camera, radius, ship.color, several) } }
         ports.forEach { (port, color) -> drawPort(port, camera, radius, color, textMeasurer, labelStyle) }
         val chips = mutableListOf<Rect>()
         voyage.ships.asReversed().forEach { drawShipMarker(it, camera, radius, pulse) }
@@ -181,24 +180,8 @@ private class LandDots {
     }
 }
 
-/** The lane split where the ship is: [sailed] ends on the ship, [ahead] starts from it. */
-private class Lane(val sailed: List<DoubleArray>, val ahead: List<DoubleArray>) {
-    companion object {
-        fun of(ship: GlobeShip): Lane {
-            val path = laneThroughPorts(ship.lane, ship.ports.map { it.position })
-            val position = ship.position?.toVector() ?: return Lane(path, emptyList())
-            val nearest = path.indices.maxByOrNull { dot(path[it], position) } ?: return Lane(emptyList(), emptyList())
-            // The ship is rarely right on the hand-made lane: bent through it, the line has no kink there.
-            val bent = bendThrough(path, nearest, position)
-            return Lane(bent.take(nearest + 1), bent.drop(nearest))
-        }
-
-        private fun dot(a: DoubleArray, b: DoubleArray) = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-    }
-}
-
 /** The lane ahead is white for a lone ship, in each ship's colour when several may carry the car. */
-private fun DrawScope.drawLane(lane: Lane, camera: GlobeCamera, radius: Float, color: Color, several: Boolean) {
+private fun DrawScope.drawLane(lane: GlobeLane, camera: GlobeCamera, radius: Float, color: Color, several: Boolean) {
     val sailed = visiblePath(lane.sailed, camera, radius)
     drawPath(sailed, color.copy(alpha = 0.25f), style = Stroke(6.dp.toPx(), cap = StrokeCap.Round))
     drawPath(sailed, color, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round))

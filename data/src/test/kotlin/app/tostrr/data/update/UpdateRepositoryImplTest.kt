@@ -41,7 +41,9 @@ class UpdateRepositoryImplTest {
         shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName).versionName = version
     }
 
-    private fun repository() = UpdateRepositoryImpl(context, http.client)
+    /** What the APK check answers: Robolectric can't read a real APK, so the download tests only see its verdict. */
+    private var thisApp = true
+    private fun repository() = UpdateRepositoryImpl(context, http.client) { _, _ -> thisApp }
 
     private fun latest(tag: String = "v0.2.0", assets: String = """[{"name":"tostrr-0.2.0.apk","size":9,"browser_download_url":"$apkUrl"}]""") =
         http.on(LATEST, """{"tag_name":"$tag","body":"# New","prerelease":false,"assets":$assets}""")
@@ -165,6 +167,28 @@ class UpdateRepositoryImplTest {
         val repository = repository()
         assertThrows(IOException::class.java) { runBlocking { repository.download(offered).last() } }
         assertTrue(updatesDir.listFiles().orEmpty().isEmpty())
+    }
+
+    @Test fun `a download larger than announced fails and leaves nothing`() = runTest {
+        http.on(apkPath, "apk bytes and more")
+        val repository = repository()
+        assertThrows(IOException::class.java) { runBlocking { repository.download(offered).last() } }
+        assertTrue(updatesDir.listFiles().orEmpty().isEmpty())
+    }
+
+    @Test fun `an APK that isn't a build of this app is refused and deleted`() = runTest {
+        http.on(apkPath, "apk bytes")
+        thisApp = false
+        val repository = repository()
+        assertThrows(IOException::class.java) { runBlocking { repository.download(offered).last() } }
+        assertTrue(updatesDir.listFiles().orEmpty().isEmpty())
+    }
+
+    @Test fun `a release whose APK is not one of this repository's assets is not offered`() = runTest {
+        latest(assets = """[{"name":"tostrr-0.2.0.apk","size":9,"browser_download_url":"https://example.com$apkPath"}]""")
+        val repository = repository()
+        repository.check()
+        assertNull(repository.update.value)
     }
 
     @Test fun `a refused download fails`() = runTest {

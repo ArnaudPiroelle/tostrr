@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Single
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 
 /** Delivery checklists, one per order, and the photos taken for their answers. */
@@ -80,10 +81,27 @@ class ChecklistRepositoryImpl(private val dao: ChecklistDao, context: Context) :
         return true
     }
 
-    /** Copies a picked image into the checklist's photo folder and returns its path. */
+    /** Copies a picked image into the checklist's photo folder and returns its path; one too big is refused, and left out. */
     override suspend fun importPhoto(ref: String, questionId: String, source: InputStream): String = withContext(Dispatchers.IO) {
         val file = newPhotoFile(ref, questionId)
-        source.use { input -> file.outputStream().use { input.copyTo(it) } }
+        try {
+            source.use { input ->
+                file.outputStream().use { output ->
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    var copied = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        copied += read
+                        if (copied > MAX_PHOTO_BYTES) throw IOException("Photo larger than $MAX_PHOTO_BYTES bytes")
+                        output.write(buffer, 0, read)
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            file.delete()
+            throw e
+        }
         file.absolutePath
     }
 
@@ -100,6 +118,11 @@ class ChecklistRepositoryImpl(private val dao: ChecklistDao, context: Context) :
         val last = DeliveryChecklist.steps.size
         val clamped = cursor.coerceIn(0, last)
         return copy(cursor = clamped, completedAtEpochMs = if (clamped == last) now else null)
+    }
+
+    private companion object {
+        /** Far above a phone's photo, far below what would fill the app's storage. */
+        const val MAX_PHOTO_BYTES = 50L * 1024 * 1024
     }
 }
 

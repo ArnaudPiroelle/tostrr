@@ -7,7 +7,12 @@ Prints how many centres there are and which names appeared or disappeared since 
 """
 import collections
 import json
+import math
+import re
 import sys
+
+# C0 and C1 controls, zero-width and bidi characters: they can hide or reorder text, in a terminal or in the app.
+UNSAFE = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
 
 
 def main(tsv_path, asset_path):
@@ -20,10 +25,19 @@ def main(tsv_path, asset_path):
             sys.exit(f"line {n}: expected 8 columns, got {len(cols)}")
         slug, name, country, city, address, status, lat, lng = (c.strip() for c in cols)
         if not name:
-            print(f"skipped, no name: {slug}")
+            print(f"skipped, no name: {ascii(slug)}")
             continue
+        if any(UNSAFE.search(c) for c in (name, country, city, address, status)):
+            print(f"skipped, a control, zero-width or bidi character: {ascii(slug)}")
+            continue
+        try:
+            latitude, longitude = float(lat), float(lng)
+        except ValueError:
+            sys.exit(f"line {n}: coordinates are not numbers: {ascii(lat)}, {ascii(lng)}")
+        if not (math.isfinite(latitude) and math.isfinite(longitude) and -90 <= latitude <= 90 and -180 <= longitude <= 180):
+            sys.exit(f"line {n}: coordinates out of range: {ascii(lat)}, {ascii(lng)}")
         rows.append({"name": name, "country": country, "city": city, "address": address,
-                     "lat": float(lat), "lng": float(lng), "status": status})
+                     "lat": latitude, "lng": longitude, "status": status})
 
     if not rows:
         sys.exit("no rows: the asset was left as it is")
@@ -42,7 +56,7 @@ def main(tsv_path, asset_path):
     # The app matches on name and country only; the status is reported here, not shipped.
     asset = [{k: r[k] for k in ("name", "country", "city", "address", "lat", "lng")} for r in rows]
     with open(asset_path, "w", encoding="utf-8") as f:
-        json.dump(asset, f, ensure_ascii=False, separators=(",", ":"))
+        json.dump(asset, f, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
 
     print(f"{len(asset)} centres in {len({r['country'] for r in rows})} countries")
     print("statuses:", dict(collections.Counter(r["status"] for r in rows).most_common()))

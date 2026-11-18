@@ -96,6 +96,15 @@ class TeslaAuthTest {
         assertEquals(AuthError.LOGIN_EXPIRED, e.reason)
     }
 
+    @Test fun `a login left pending too long has expired, and is forgotten`() = runTest {
+        val redirect = redirect()
+        store.savePending(store.pendingVerifier()!!, store.pendingState()!!, System.currentTimeMillis() - TeslaAuth.PENDING_LOGIN_MS - 1)
+        val e = error { auth.completeLogin(redirect) } as AuthException
+        assertEquals(AuthError.LOGIN_EXPIRED, e.reason)
+        assertNull(store.pendingVerifier())
+        assertTrue(http.calls.isEmpty())
+    }
+
     @Test fun `a redirect with another state is refused before any request`() = runTest {
         val e = error { auth.completeLogin(redirect(state = "someone-else")) } as AuthException
         assertEquals(AuthError.INVALID_STATE, e.reason)

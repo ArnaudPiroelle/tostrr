@@ -2,11 +2,13 @@ package app.tostrr.di
 
 import app.tostrr.data.di.DataModule
 import app.tostrr.domain.di.DomainModule
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Module
+import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 
 /**
@@ -21,4 +23,13 @@ class AppModule {
     /** Outlives any screen: used for work started by the sync, such as widget updates. */
     @Single
     fun appScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /** Where ViewModels do their heavy work, off the main thread; the tests swap it for an unconfined one. */
+    @Single
+    @Named(BACKGROUND)
+    fun backgroundDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    companion object {
+        const val BACKGROUND = "background"
+    }
 }

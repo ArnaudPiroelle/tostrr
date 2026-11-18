@@ -148,7 +148,8 @@ object OrderMapper {
 
     /** "29 Novembre - 29 Décembre" -> "29 Nov\n29 Déc" so it fits under a stepper dot. */
     private fun shortWindow(window: String): String =
-        window.split(WINDOW_SEPARATOR).joinToString("\n") { part ->
+        // Split on the dash, then trimmed: a regex with spaces around it backtracks on a long run of spaces.
+        window.split('-', '–').map(String::trim).joinToString("\n") { part ->
             part.split(' ').joinToString(" ") { if (it.length > 4 && it.all(Char::isLetter)) it.take(3) else it }
         }
 
@@ -213,7 +214,6 @@ object OrderMapper {
         "deliveryAcceptance.appointmentDateUtc",
     )
 
-    private val WINDOW_SEPARATOR = Regex("""\s*[-–]\s*""")
     private val WHITESPACE = Regex("""\s+""")
 
     /** What Tesla gives about the appointment, as shown, `scheduling` first: its display string is kept as is. */

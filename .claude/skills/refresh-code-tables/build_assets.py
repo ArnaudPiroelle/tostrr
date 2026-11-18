@@ -15,9 +15,12 @@ Usage (from the repository root):
   by code; the changes since the last commit are printed. Left as it is, `updated` included, when the codes are the
   file's.
 
-A section missing from the response, or empty, stops the script before anything is written.
+A section missing from the response, or empty, stops the script before anything is written. The site's texts are
+data: a code outside its charset, or a text with control or bidi characters or longer than 200 characters, is left
+out and named (escaped) rather than shipped or printed as is.
 """
 import json
+import re
 import subprocess
 import sys
 
@@ -25,10 +28,22 @@ VIN_ASSET = "data/src/main/assets/vin_codes.json"
 OPTION_ASSET = "data/src/main/assets/option_codes.json"
 # The app's VIN sections (VinSection in :domain), in VIN order.
 VIN_ORDER = ["manufacturer", "model", "body", "restraints", "battery", "motor", "model_year", "factory"]
+VIN_CODE = re.compile(r"[A-HJ-NPR-Z0-9]{1,3}")
+OPTION_CODE = re.compile(r"[A-Z0-9]{1,8}")
+# C0 and C1 controls, zero-width and bidi characters: they can hide or reorder text, in a terminal or in the app.
+UNSAFE = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+TEXT_MAX = 200
+
+
+def text(value):
+    """The site's text, stripped; None when it is empty, too long, or holds a control, zero-width or bidi character."""
+    value = str(value or "").strip()
+    return value if value and len(value) <= TEXT_MAX and not UNSAFE.search(value) else None
 
 
 def day(section):
-    return str(section.get("last_updated") or section.get("fetched_at") or "")[:10]
+    value = str(section.get("last_updated") or section.get("fetched_at") or "")[:10]
+    return value if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) else ""
 
 
 def write(path, table):
@@ -46,19 +61,26 @@ def committed(path):
 
 
 def vin_table(section):
-    entries = [e for e in section.get("vin_codes", []) if e.get("status") == "known" and e.get("value")]
+    entries = []
+    for e in section.get("vin_codes", []):
+        if e.get("status") != "known" or not e.get("value"):
+            continue
+        if not VIN_CODE.fullmatch(str(e.get("code"))) or text(e["value"]) is None:
+            print(f"VIN: skipped, code or text not safe to ship: {ascii(e.get('section'))} {ascii(e.get('code'))}")
+            continue
+        entries.append(e)
     if not entries:
         sys.exit("The response has no known VIN codes: is the vin_decoder section there?")
 
     english = {}
-    countries = {e["code"]: e["value"].strip() for e in entries if e["section"] == "country"}
+    countries = {e["code"]: text(e["value"]) for e in entries if e["section"] == "country"}
     for e in entries:
         if e["section"] == "country":
             continue
         if e["section"] not in VIN_ORDER:
-            print(f"VIN: skipped, unknown section: {e['section']} {e['code']}")
+            print(f"VIN: skipped, unknown section: {ascii(e['section'])} {e['code']}")
             continue
-        value = e["value"].strip()
+        value = text(e["value"])
         if e["section"] == "manufacturer" and e["code"] in countries:
             value = f"{value}, {countries[e['code']]}"
         english[(e["section"], e["code"])] = value
@@ -88,11 +110,15 @@ def option_table(section):
     codes = {}
     for e in section.get("option_codes", []):
         code = str(e.get("code") or "").strip().upper()
-        label = str(e.get("label_en") or "").strip()
-        if not code or not label:
+        label = text(e.get("label_en"))
+        category = text(e.get("category"))
+        if not code and not label:
+            continue
+        if not OPTION_CODE.fullmatch(code) or label is None or (e.get("category") and category is None):
+            print(f"Options: skipped, code or text not safe to ship: {ascii(code)}")
             continue
         entry = {"code": code, "label": label}
-        category = str(e.get("category") or "").strip().lower()
+        category = (category or "").lower()
         if category:
             entry["category"] = category
         codes[code] = entry
@@ -117,7 +143,7 @@ def main():
         with open(OPTION_ASSET, "w", encoding="utf-8") as f:
             # One code per line: compact, and a change shows as one line in a diff.
             rows = ",\n".join("  " + json.dumps(c, ensure_ascii=False) for c in options["codes"])
-            f.write(f'{{\n "updated": "{options["updated"]}",\n "codes": [\n{rows}\n ]\n}}\n')
+            f.write(f'{{\n "updated": {json.dumps(options["updated"])},\n "codes": [\n{rows}\n ]\n}}\n')
 
     if vin_unchanged:
         print(f"VIN: {len(vin['codes'])} codes, all as in {VIN_ASSET}: file left as it is")

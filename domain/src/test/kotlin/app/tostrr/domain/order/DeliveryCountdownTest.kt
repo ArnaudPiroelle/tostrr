@@ -59,4 +59,8 @@ class DeliveryCountdownTest {
         assertEquals(LocalDate.of(2026, 6, 2) to LocalDate.of(2026, 7, 3), DeliveryWindow.parse("2 juin - 3 juil", LocalDate.of(2026, 6, 1)))
         assertNull(DeliveryWindow.parse("29 Novembre", today))
     }
+
+    @Test(timeout = 2_000) fun `a window with a long run of spaces is read in linear time`() {
+        assertNull(DeliveryWindow.parse("29 Nov" + " ".repeat(200_000) + "x", LocalDate.of(2026, 11, 1)))
+    }
 }

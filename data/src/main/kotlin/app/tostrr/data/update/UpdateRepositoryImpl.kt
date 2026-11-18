@@ -23,6 +23,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.koin.core.annotation.Single
@@ -36,7 +37,11 @@ import java.util.concurrent.TimeUnit
  * restarted while the user allows installs.
  */
 @Single
-class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) : UpdateRepository {
+class UpdateRepositoryImpl(
+    context: Context,
+    private val client: OkHttpClient,
+    private val apkCheck: ApkCheck,
+) : UpdateRepository {
     private val prefs = context.getSharedPreferences("tostrr_settings", Context.MODE_PRIVATE)
     private val updatesDir = File(context.cacheDir, "updates")
     private val installedVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
@@ -89,6 +94,10 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
     override fun download(update: AppUpdate): Flow<UpdateDownload> = flow {
         val apk = apkFile(update)
         if (apk.length() != update.sizeBytes) fetchApk(update, apk)
+        if (!apkCheck.isUpdateOfThisApp(apk, update.version)) {
+            apk.delete()
+            throw IOException("Not a build of this app")
+        }
         emit(UpdateDownload.Ready(apk.absolutePath))
     }.flowOn(Dispatchers.IO)
 
@@ -109,8 +118,8 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
         return AppUpdate(
             version = version,
             notes = release.text("body").orEmpty(),
-            downloadUrl = apk.text("browser_download_url") ?: return null,
-            sizeBytes = (apk["size"] as? JsonPrimitive)?.longOrNull ?: return null,
+            downloadUrl = apk.text("browser_download_url")?.takeIf(::isReleaseAsset) ?: return null,
+            sizeBytes = (apk["size"] as? JsonPrimitive)?.longOrNull?.takeIf { it in 1..MAX_APK_BYTES } ?: return null,
         )
     }
 
@@ -139,9 +148,15 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
         return AppUpdate(
             version = version,
             notes = prefs.getString(KEY_NOTES, null).orEmpty(),
-            downloadUrl = prefs.getString(KEY_URL, null) ?: return null,
+            downloadUrl = prefs.getString(KEY_URL, null)?.takeIf(::isReleaseAsset) ?: return null,
             sizeBytes = prefs.getLong(KEY_SIZE, 0),
         )
+    }
+
+    /** Only an asset of this repository's releases, over https: whatever else the API might say is ignored. */
+    private fun isReleaseAsset(url: String): Boolean {
+        val parsed = url.toHttpUrlOrNull() ?: return false
+        return parsed.isHttps && parsed.host == RELEASES_HOST && parsed.encodedPath.startsWith(RELEASES_PATH)
     }
 
     private fun apkFile(update: AppUpdate) = File(updatesDir, "tostrr-${update.version}.apk")
@@ -161,8 +176,9 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
                     while (true) {
                         val read = input.read(buffer)
                         if (read < 0) break
-                        output.write(buffer, 0, read)
                         written += read
+                        if (written > update.sizeBytes) throw IOException("Larger than announced")
+                        output.write(buffer, 0, read)
                         val newPercent = (written * 100 / update.sizeBytes.coerceAtLeast(1)).toInt()
                         if (newPercent != percent) {
                             percent = newPercent
@@ -183,6 +199,10 @@ class UpdateRepositoryImpl(context: Context, private val client: OkHttpClient) :
 
     private companion object {
         const val LATEST_RELEASE_URL = "https://api.github.com/repos/ArnaudPiroelle/tostrr/releases/latest"
+        const val RELEASES_HOST = "github.com"
+        const val RELEASES_PATH = "/ArnaudPiroelle/tostrr/releases/download/"
+        /** Far above any build of the app, far below what would fill the cache. */
+        const val MAX_APK_BYTES = 200L * 1024 * 1024
         val CHECK_INTERVAL_MS = TimeUnit.HOURS.toMillis(6)
 
         const val KEY_CHECKED_AT = "update_checked_at"

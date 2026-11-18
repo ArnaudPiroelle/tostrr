@@ -1,5 +1,8 @@
 package app.tostrr.data.api
 
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertThrows
+import java.io.IOException
 import app.tostrr.data.testing.FakeHttp
 import app.tostrr.domain.error.ApiException
 import kotlinx.coroutines.test.runTest
@@ -30,6 +33,12 @@ class TeslaApiTest {
         http.on("/api/1/products", """{"response":[{"id":1,"vin":"lrwygcek1tc000001 "},{"energy_site_id":2},{"id":3,"vin":""}],"count":3}""")
         assertEquals(setOf("LRWYGCEK1TC000001"), api.productVins("token-1"))
         assertEquals("Bearer token-1", http.calls.single().request.header("Authorization"))
+    }
+
+    @Test fun `the account's data is never left in the HTTP cache`() = runTest {
+        http.on("/api/1/users/orders", """{"response":[]}""")
+        api.listOrders("t")
+        assertTrue(http.calls.single().request.cacheControl.noStore)
     }
 
     @Test fun `no response field means no orders`() = runTest {
@@ -66,5 +75,12 @@ class TeslaApiTest {
         http.on("/api/1/users/orders", "Too many requests", code = 429)
         val e = runCatching { api.listOrders("t") }.exceptionOrNull()
         assertEquals(429, (e as ApiException).code)
+    }
+
+    @Test fun `a payload nested deeper than Tesla's is refused`() = runTest {
+        http.on("/tasks", "[".repeat(65) + "]".repeat(65))
+        assertThrows(IOException::class.java) { runBlocking { api.orderTasks("t", "RN1") } }
+        http.on("/tasks", "{\"tasks\":" + "[".repeat(60) + "]".repeat(60) + "}")
+        api.orderTasks("t", "RN1")
     }
 }

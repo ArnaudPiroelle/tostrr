@@ -12,6 +12,7 @@ import app.tostrr.ui.navigation.Screen
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -35,6 +36,15 @@ class ShipViewModelTest {
         assertEquals(2, state.candidates)
         assertEquals("052", state.vinBlock)
         assertEquals(TimelineEntry.AtSea(0.4), state.timeline[2])
+        // The lane is left to the flow, off the main thread.
+        assertNull(state.lane)
+    }
+
+    @Test fun `builds the globe's lane once the screen watches`() = runTest {
+        val viewModel = graph.shipViewModel(Screen.Ship("RN1", "CMA CGM MONACO"))
+        watch(viewModel)
+
+        assertTrue(viewModel.state.value.lane!!.sailed.isNotEmpty())
     }
 
     @Test fun `lets the ship go once it no longer may carry the car`() = runTest {

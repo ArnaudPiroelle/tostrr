@@ -9,7 +9,7 @@ import java.time.LocalDate
 
 /**
  * What the app finds out about an order beyond Tesla's order payloads. It is kept in [Order.local], apart from
- * [Order.raw], which holds only what Tesla sent: saved and archived next to it, never diffed into the history.
+ * [Order.raw], which holds only what Tesla sent: saved next to it, never diffed into the history.
  */
 data class LocalSignals(
     /**

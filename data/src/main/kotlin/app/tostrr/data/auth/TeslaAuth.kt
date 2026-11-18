@@ -20,6 +20,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.koin.core.annotation.Single
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import java.security.SecureRandom
 
 /**
@@ -61,8 +62,16 @@ class TeslaAuth(
         val uri = Uri.parse(redirect.trim())
         val code = uri.getQueryParameter("code") ?: throw AuthException(AuthError.NO_CODE)
         val verifier = store.pendingVerifier() ?: throw AuthException(AuthError.LOGIN_EXPIRED)
+        // A login is finished in a minute or two, and Tesla's codes don't last longer: an old one is abandoned.
+        val startedAt = store.pendingStartedAt()
+        if (startedAt == null || System.currentTimeMillis() - startedAt !in 0..PENDING_LOGIN_MS) {
+            store.clearPending()
+            throw AuthException(AuthError.LOGIN_EXPIRED)
+        }
         // The state is saved with the verifier, so a redirect without it, or with another one, isn't ours.
-        if (uri.getQueryParameter("state") != store.pendingState()) {
+        val state = uri.getQueryParameter("state")
+        val expected = store.pendingState()
+        if (state == null || expected == null || !MessageDigest.isEqual(state.toByteArray(), expected.toByteArray())) {
             throw AuthException(AuthError.INVALID_STATE)
         }
         val body = FormBody.Builder()
@@ -124,6 +133,8 @@ class TeslaAuth(
 
     companion object {
         const val CLIENT_ID = "ownerapi"
+        /** How long a login started in the browser may take to come back. */
+        val PENDING_LOGIN_MS = TimeUnit.MINUTES.toMillis(15)
         const val REDIRECT_URI = "tesla://auth/callback"
         const val AUTH_URL = "https://auth.tesla.com/oauth2/v3/authorize"
         const val TOKEN_URL = "https://auth.tesla.com/oauth2/v3/token"

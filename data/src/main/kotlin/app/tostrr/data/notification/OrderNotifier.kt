@@ -120,6 +120,12 @@ class OrderNotifier(
 
     fun clearSyncProblem() = NotificationManagerCompat.from(context).cancel(SYNC_ID)
 
+    /** On logout: the account's notifications leave the shade, and what was reminded or summed up is forgotten. */
+    fun clear() {
+        runCatching { NotificationManagerCompat.from(context).cancelAll() }
+        prefs.edit().clear().apply()
+    }
+
     /** Only the new dates are shown. A window that disappears (replaced by an appointment) isn't a change to report. */
     private fun notifyDeliveryWindowChange(before: Order, after: Order): Boolean {
         val window = after.deliveryWindow?.takeIf { it.isNotBlank() } ?: return false

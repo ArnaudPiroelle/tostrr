@@ -29,20 +29,25 @@ import app.tostrr.ui.architecture.BaseAction
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel
 import app.tostrr.ui.architecture.NoSideEffect
+import app.tostrr.di.AppModule
+import app.tostrr.ui.common.GlobeLane
 import app.tostrr.ui.detail.DetailViewModel.Action
 import app.tostrr.ui.detail.DetailViewModel.State
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Named
 
 /** One order's detail, and how the user arranged its blocks (shared by every order). */
 @KoinViewModel
@@ -61,6 +66,7 @@ class DetailViewModel(
     private val toggleDetailBlockUseCase: ToggleDetailBlockUseCase,
     private val resetDetailLayoutUseCase: ResetDetailLayoutUseCase,
     private val toggleDetailBlockExpandedUseCase: ToggleDetailBlockExpandedUseCase,
+    @Named(AppModule.BACKGROUND) background: CoroutineDispatcher,
 ) : BaseViewModel<Action, State, NoSideEffect>() {
 
     private val order = observeOrdersUseCase().map { orders -> orders.find(reference) }
@@ -91,13 +97,15 @@ class DetailViewModel(
         observeShipSnapshotUseCase(),
         vinDecoding.onStart { emit(null) },
     ) { content, center, filter, ships, vin ->
+        val voyage = content.order?.let { ShipVoyages.of(it, ships) }
         content.copy(
             deliveryCenter = center,
             vinDecoding = vin,
             historyFilter = filter,
-            voyage = content.order?.let { ShipVoyages.of(it, ships) },
+            voyage = voyage,
+            voyageLanes = voyage?.let(::lanesOf).orEmpty(),
         )
-    }.stateIn(
+    }.flowOn(background).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         State(
@@ -108,6 +116,12 @@ class DetailViewModel(
             historyFilter = historyFilter.value,
         ),
     )
+
+    /** The lanes of the last voyage seen: any other change to the screen, a filter tap say, doesn't build them again. */
+    private var lanes: Pair<ShipVoyage, List<GlobeLane>>? = null
+
+    private fun lanesOf(voyage: ShipVoyage): List<GlobeLane> =
+        lanes?.takeIf { it.first == voyage }?.second ?: voyage.candidates.map(GlobeLane::of).also { lanes = voyage to it }
 
     private fun List<Order>.find(reference: String) = firstOrNull { it.reference == reference }
 
@@ -133,6 +147,8 @@ class DetailViewModel(
         val historyFilter: HistoryFilter = HistoryFilter(),
         /** The ship believed to carry the car, while it sails. */
         val voyage: ShipVoyage? = null,
+        /** The globe's lane of each of the [voyage]'s candidates, in its order. */
+        val voyageLanes: List<GlobeLane> = emptyList(),
         /** The order's VIN cut into its parts, once it has one. */
         val vinDecoding: VinDecoding? = null,
     ) : BaseState {
