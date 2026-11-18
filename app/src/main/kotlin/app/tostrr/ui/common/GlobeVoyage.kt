@@ -10,14 +10,14 @@ internal data class GlobePort(val name: String, val position: GeoPoint, val pass
 
 /**
  * A ship on the globe, drawn in [color]: at [position] heading [headingDeg] when they are known, with its [ports] in
- * order and the sea [lane] it follows from the first port to the last.
+ * order and the sea [lane] it follows from the first port to the last, once its ViewModel has built it.
  */
 internal data class GlobeShip(
     val name: String,
     val position: GeoPoint?,
     val headingDeg: Double?,
     val ports: List<GlobePort>,
-    val lane: List<GeoPoint>,
+    val lane: GlobeLane?,
     val color: Color,
 )
 
@@ -37,15 +37,16 @@ internal data class GlobeVoyage(val ships: List<GlobeShip>) {
         }
 }
 
-/** The globe for [this] voyage, each candidate in its [candidateColor]. */
-internal fun ShipVoyage.toGlobe(accent: Color) = GlobeVoyage(candidates.mapIndexed { index, it -> it.toGlobe(candidateColor(index, accent)) })
+/** The globe for [this] voyage, each candidate in its [candidateColor] along its lane in [lanes], when built. */
+internal fun ShipVoyage.toGlobe(accent: Color, lanes: List<GlobeLane>) =
+    GlobeVoyage(candidates.mapIndexed { index, it -> it.toGlobe(candidateColor(index, accent), lanes.getOrNull(index)) })
 
-/** The ship of one voyage on the globe, drawn in [color]. */
-internal fun Voyage.toGlobe(color: Color) = GlobeShip(
+/** The ship of one voyage on the globe, drawn in [color] along [lane]. */
+internal fun Voyage.toGlobe(color: Color, lane: GlobeLane?) = GlobeShip(
     name = shipDisplayName(ship.name),
     position = ship.position?.let { GeoPoint(it.lat, it.lon) },
     headingDeg = ship.headingDeg,
     ports = ports.map { GlobePort(portDisplayName(it.name), GeoPoint(it.position.lat, it.position.lon), it.passed) },
-    lane = lane.map { GeoPoint(it.lat, it.lon) },
+    lane = lane,
     color = color,
 )

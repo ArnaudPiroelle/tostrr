@@ -132,9 +132,10 @@ class TestGraph(
         ToggleDetailBlockUseCase(layout),
         ResetDetailLayoutUseCase(layout),
         ToggleDetailBlockExpandedUseCase(layout),
+        Dispatchers.Unconfined,
     )
 
-    fun shipViewModel(key: Screen.Ship) = ShipViewModel(key, ObserveOrdersUseCase(orders), ObserveShipSnapshotUseCase(ships))
+    fun shipViewModel(key: Screen.Ship) = ShipViewModel(key, ObserveOrdersUseCase(orders), ObserveShipSnapshotUseCase(ships), Dispatchers.Unconfined)
 
     fun checklistViewModel(reference: String, context: Context, handle: SavedStateHandle = SavedStateHandle()) =
         ChecklistViewModel(

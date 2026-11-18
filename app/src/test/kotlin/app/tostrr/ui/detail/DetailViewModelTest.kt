@@ -17,6 +17,7 @@ import app.tostrr.ui.detail.DetailViewModel.Action
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -99,6 +100,9 @@ class DetailViewModelTest {
         )
 
         assertEquals(listOf("GLOVIS LIGHTHOUSE"), viewModel.state.value.voyage?.candidates?.map { it.ship.name })
+        // Built by the ViewModel, not while the globe composes: one lane per candidate.
+        assertEquals(1, viewModel.state.value.voyageLanes.size)
+        assertTrue(viewModel.state.value.voyageLanes.single().ahead.isNotEmpty())
     }
 
     @Test fun `collapsing a section is saved for every order`() = runTest {

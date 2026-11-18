@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.tostrr.R
 import app.tostrr.domain.shipping.ShipVoyage
+import app.tostrr.ui.common.GlobeLane
 import app.tostrr.ui.common.ShipGlobe
 import app.tostrr.ui.common.ShippingSourceRow
 import app.tostrr.ui.common.toGlobe
@@ -32,9 +33,9 @@ import app.tostrr.ui.common.formatDateTime
 import app.tostrr.ui.theme.TostrrColors
 
 @Composable
-internal fun ShippingContent(voyage: ShipVoyage, onOpenShip: (String) -> Unit) {
+internal fun ShippingContent(voyage: ShipVoyage, lanes: List<GlobeLane>, onOpenShip: (String) -> Unit) {
     val accent = TostrrColors.Accent
-    val globe = remember(voyage, accent) { voyage.toGlobe(accent) }
+    val globe = remember(voyage, lanes, accent) { voyage.toGlobe(accent, lanes) }
     Column {
         ShipGlobe(globe, Modifier.fillMaxWidth().height(340.dp).clip(RoundedCornerShape(12.dp)), interactive = false)
         Spacer(Modifier.height(12.dp))

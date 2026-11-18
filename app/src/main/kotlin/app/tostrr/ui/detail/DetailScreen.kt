@@ -89,7 +89,7 @@ fun DetailScreen(
                             DetailBlock.CHECKLIST ->
                                 ChecklistCard(deliveryDay = order.isDeliveryDay(), checklist = checklist, onOpen = onOpenChecklist)
                             DetailBlock.DELIVERY -> section { DeliveryContent(order, state.deliveryCenter) }
-                            DetailBlock.SHIPPING -> state.voyage?.let { voyage -> section { ShippingContent(voyage, onOpenShip) } }
+                            DetailBlock.SHIPPING -> state.voyage?.let { voyage -> section { ShippingContent(voyage, state.voyageLanes, onOpenShip) } }
                             DetailBlock.PROGRESS_TRACKER -> section { StepTracker(order) }
                             DetailBlock.PROGRESS -> section { ProgressContent(order) }
                             DetailBlock.VEHICLE -> section {

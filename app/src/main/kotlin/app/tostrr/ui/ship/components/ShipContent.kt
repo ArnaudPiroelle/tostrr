@@ -32,7 +32,7 @@ import app.tostrr.ui.theme.TostrrColors
 @Composable
 internal fun ShipContent(state: State, voyage: Voyage, onClose: () -> Unit) {
     val color = candidateColor(state.candidateIndex, TostrrColors.Accent)
-    val globe = remember(voyage, color) { GlobeVoyage(listOf(voyage.toGlobe(color))) }
+    val globe = remember(voyage, state.lane, color) { GlobeVoyage(listOf(voyage.toGlobe(color, state.lane))) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val peek = maxHeight * PEEK_SHARE
