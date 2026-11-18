@@ -1,5 +1,8 @@
 package app.tostrr.data.api
 
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertThrows
+import java.io.IOException
 import app.tostrr.data.testing.FakeHttp
 import app.tostrr.domain.error.ApiException
 import kotlinx.coroutines.test.runTest
@@ -72,5 +75,12 @@ class TeslaApiTest {
         http.on("/api/1/users/orders", "Too many requests", code = 429)
         val e = runCatching { api.listOrders("t") }.exceptionOrNull()
         assertEquals(429, (e as ApiException).code)
+    }
+
+    @Test fun `a payload nested deeper than Tesla's is refused`() = runTest {
+        http.on("/tasks", "[".repeat(65) + "]".repeat(65))
+        assertThrows(IOException::class.java) { runBlocking { api.orderTasks("t", "RN1") } }
+        http.on("/tasks", "{\"tasks\":" + "[".repeat(60) + "]".repeat(60) + "}")
+        api.orderTasks("t", "RN1")
     }
 }

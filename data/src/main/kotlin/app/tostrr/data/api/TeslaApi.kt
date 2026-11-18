@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -15,6 +16,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.koin.core.annotation.Single
+import java.io.IOException
 import java.util.Locale
 import java.util.UUID
 
@@ -59,8 +61,28 @@ class TeslaApi(private val client: OkHttpClient) {
         client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) throw ApiException(response.code)
-            Json.parseToJsonElement(text)
+            Json.parseToJsonElement(text).also { if (depthOf(it) > MAX_DEPTH) throw IOException("Payload nested deeper than $MAX_DEPTH") }
         }
+    }
+
+    /**
+     * Tesla's payloads are a dozen levels deep at most. The history's diff and pruning, and the mapper's searches, walk
+     * them recursively: refused here, a deeper one never reaches them. Counted without recursion, for the same reason.
+     */
+    private fun depthOf(root: JsonElement): Int {
+        var deepest = 0
+        val pending = ArrayDeque<Pair<JsonElement, Int>>().apply { add(root to 1) }
+        while (pending.isNotEmpty()) {
+            val (element, depth) = pending.removeLast()
+            deepest = maxOf(deepest, depth)
+            if (deepest > MAX_DEPTH) break
+            when (element) {
+                is JsonObject -> element.values.forEach { pending.add(it to depth + 1) }
+                is JsonArray -> element.forEach { pending.add(it to depth + 1) }
+                else -> Unit
+            }
+        }
+        return deepest
     }
 
     private companion object {
@@ -68,6 +90,7 @@ class TeslaApi(private val client: OkHttpClient) {
         const val ME_URL = "https://owner-api.teslamotors.com/api/1/users/me"
         const val PRODUCTS_URL = "https://owner-api.teslamotors.com/api/1/products"
         const val TASKS_URL = "https://akamai-apigateway-vfx.tesla.com/tasks"
+        const val MAX_DEPTH = 64
         const val APP_VERSION = "9.99.9-9999"
         const val USER_AGENT = "Tesla/4.55.5 (com.teslamotors.tesla; build:4193; Android 14)"
         const val X_USER_AGENT = "TeslaApp/4.55.5-4193/4193/android/14"

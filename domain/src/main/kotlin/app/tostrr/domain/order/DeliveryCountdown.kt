@@ -37,7 +37,8 @@ internal object DeliveryWindow {
 
     /** First and last day of the window, placed in the years closest to [today]; null if it can't be read. */
     fun parse(text: String, today: LocalDate): Pair<LocalDate, LocalDate>? {
-        val parts = text.split(SEPARATOR).filter { it.isNotBlank() }
+        // Split on the dash, then trimmed: a regex with spaces around it backtracks on a long run of spaces.
+        val parts = text.split('-', '–').map(String::trim).filter { it.isNotBlank() }
         if (parts.size != 2) return null
         val (from, to) = parts.map { part(it) ?: return null }
         val start = closestYear(from.first ?: 1, from.second, today) ?: return null
@@ -69,7 +70,6 @@ internal object DeliveryWindow {
         else MonthDay.of(month, day).atYear(year)
     }.getOrNull()
 
-    private val SEPARATOR = Regex("""\s*[-–]\s*""")
     private val WHITESPACE = Regex("""\s+""")
 
     /** Prefixes of French and English month names and abbreviations, accents stripped. */

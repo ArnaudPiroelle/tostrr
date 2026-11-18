@@ -98,7 +98,13 @@ class OrderRepositoryImpl(
         }
     }
 
-    private suspend fun pull(manual: Boolean) {
+    /**
+     * Mapping, diffing and notifying are CPU work on payloads Tesla sizes, so they never run on the main thread a
+     * manual sync comes from.
+     */
+    private suspend fun pull(manual: Boolean) = withContext(Dispatchers.Default) { sync(manual) }
+
+    private suspend fun sync(manual: Boolean) {
         val started = synchronized(writeLock) { session }
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException(AuthError.NOT_LOGGED_IN)
