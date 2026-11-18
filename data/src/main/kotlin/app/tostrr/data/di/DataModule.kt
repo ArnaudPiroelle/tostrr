@@ -22,8 +22,8 @@ class DataModule {
 
     /**
      * With an HTTP cache, which follows each server's headers: the ship tracking site and GitHub send an ETag, so they
-     * are asked again with `If-None-Match` and answer 304 while nothing changed; the Tesla API answers `no-store`, so
-     * none of it is written there.
+     * are asked again with `If-None-Match` and answer 304 while nothing changed. The Tesla API's requests and the
+     * account picture ask for `no-store`, so nothing of the account is written there; logout empties it anyway.
      */
     @Single
     fun okHttpClient(context: Context): OkHttpClient = OkHttpClient.Builder()

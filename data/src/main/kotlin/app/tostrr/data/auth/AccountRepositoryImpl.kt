@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.koin.core.annotation.Single
@@ -60,6 +61,8 @@ class AccountRepositoryImpl(
     override fun clear() {
         _account.value = null
         avatarFile.delete()
+        // Nothing of the account should be there, but what an older version cached goes with it.
+        runCatching { client.cache?.evictAll() }
     }
 
     private fun account(name: String) = TeslaAccount(name, avatarFile.takeIf { it.exists() }?.absolutePath)
@@ -67,7 +70,8 @@ class AccountRepositoryImpl(
     /** Written aside then moved, so a failed download never leaves half a picture. */
     private suspend fun download(url: String) = withContext(Dispatchers.IO) {
         val part = File(avatarFile.path + ".part")
-        client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+        val request = Request.Builder().url(url).cacheControl(CacheControl.Builder().noStore().build()).build()
+        client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return@withContext
             part.outputStream().use { out -> response.body?.byteStream()?.copyTo(out) }
         }

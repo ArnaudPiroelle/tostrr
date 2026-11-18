@@ -103,5 +103,6 @@ class AccountRepositoryImplTest {
         repository.clear()
         assertNull(repository.account.value)
         assertFalse(avatar.exists())
+        assertTrue(http.callsTo("/jane.png").single().request.cacheControl.noStore)
     }
 }

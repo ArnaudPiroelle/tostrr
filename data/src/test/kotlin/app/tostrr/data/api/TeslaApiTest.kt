@@ -32,6 +32,12 @@ class TeslaApiTest {
         assertEquals("Bearer token-1", http.calls.single().request.header("Authorization"))
     }
 
+    @Test fun `the account's data is never left in the HTTP cache`() = runTest {
+        http.on("/api/1/users/orders", """{"response":[]}""")
+        api.listOrders("t")
+        assertTrue(http.calls.single().request.cacheControl.noStore)
+    }
+
     @Test fun `no response field means no orders`() = runTest {
         http.on("/api/1/users/orders", """{"count":0}""")
         assertTrue(api.listOrders("t").isEmpty())

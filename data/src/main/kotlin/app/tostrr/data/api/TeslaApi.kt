@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import okhttp3.CacheControl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -48,6 +49,8 @@ class TeslaApi(private val client: OkHttpClient) {
 
     private suspend fun get(url: okhttp3.HttpUrl, accessToken: String) = withContext(Dispatchers.IO) {
         val request = Request.Builder().url(url)
+            // The account's orders and profile never go to the shared HTTP cache, whatever Tesla's headers say.
+            .cacheControl(CacheControl.Builder().noStore().build())
             .header("Authorization", "Bearer $accessToken")
             .header("User-Agent", USER_AGENT)
             .header("X-Tesla-User-Agent", X_USER_AGENT)
