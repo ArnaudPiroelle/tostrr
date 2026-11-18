@@ -27,4 +27,9 @@ class AppVersionsTest {
         assertFalse(AppVersions.isNewer("latest", "0.1.0"))
         assertFalse(AppVersions.isNewer("0.2.0", ""))
     }
+
+    @Test fun `a version that couldn't name a file is never newer`() {
+        assertFalse(AppVersions.isNewer("99.0.0-x/../../files/evil", "1.0.0"))
+        assertFalse(AppVersions.isNewer("99.0.0-a b", "1.0.0"))
+    }
 }

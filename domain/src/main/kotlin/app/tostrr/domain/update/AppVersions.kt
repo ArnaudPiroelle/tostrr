@@ -2,7 +2,8 @@ package app.tostrr.domain.update
 
 /** Compares the `1.2.0` / `1.2.0-beta.1` version names the releases use. */
 object AppVersions {
-    private val FORMAT = Regex("""(\d+(?:\.\d+)*)(-.+)?""")
+    /** The suffix is kept to letters, digits and dots: the version also names the downloaded APK's file. */
+    private val FORMAT = Regex("""(\d+(?:\.\d+)*)(-[0-9A-Za-z.]+)?""")
 
     /** True if [candidate] comes after [installed]; a name that can't be read is never newer. */
     fun isNewer(candidate: String, installed: String): Boolean {
