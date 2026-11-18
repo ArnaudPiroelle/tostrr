@@ -4,6 +4,8 @@
 # repository secrets TOSTRR_KEYSTORE_BASE64, TOSTRR_KEYSTORE_PASSWORD, TOSTRR_KEY_ALIAS and TOSTRR_KEY_PASSWORD; the
 # Firebase config that turns Crashlytics on (and uploads the R8 mapping) from TOSTRR_GOOGLE_SERVICES_JSON, if set.
 # The release is created as a draft: the installed apps offer it, with its notes, as soon as it is published by hand.
+# A manual run signs and publishes main only, never another branch. The actions are pinned to a commit, the tag they
+# had then in the comment: this job holds the signing key and a token that can write the repository.
 name: Release
 
 on:
@@ -20,9 +22,10 @@ concurrency:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Version
         id: version
@@ -44,13 +47,13 @@ jobs:
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         if: steps.version.outputs.publish == 'true'
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
         if: steps.version.outputs.publish == 'true'
 
       - name: Unit tests
