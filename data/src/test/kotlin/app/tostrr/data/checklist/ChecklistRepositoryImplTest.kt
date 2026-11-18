@@ -1,5 +1,9 @@
 package app.tostrr.data.checklist
 
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertThrows
+import java.io.IOException
+import java.io.InputStream
 import androidx.room.Room
 import app.tostrr.domain.checklist.AnswerStatus
 import app.tostrr.domain.checklist.ChecklistAnswer
@@ -179,6 +183,16 @@ class ChecklistRepositoryImplTest {
         assertEquals(File(photoRoot, REF).canonicalPath, file.parentFile!!.canonicalPath)
         assertTrue(file.name.startsWith("exterior-01-"))
         assertEquals("jpeg bytes", file.readText())
+    }
+
+    @Test fun `a picked file over 50 MB is refused, and nothing of it kept`() = runTest {
+        // Zeros without end, as a provider could serve.
+        val endless = object : InputStream() {
+            override fun read() = 0
+            override fun read(b: ByteArray, off: Int, len: Int) = len.also { b.fill(0, off, off + len) }
+        }
+        assertThrows(IOException::class.java) { runBlocking { repository.importPhoto(REF, "exterior-01", endless) } }
+        assertTrue(File(photoRoot, REF).listFiles().orEmpty().isEmpty())
     }
 
     @Test fun `photos are deleted only inside the photo folder`() = runTest {

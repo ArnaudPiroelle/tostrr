@@ -29,7 +29,7 @@ interface ChecklistRepository {
     /** Deletes the checklist, its answers and its photos. */
     suspend fun delete(ref: String)
 
-    /** Copies [source] into a new photo file and returns its path. */
+    /** Copies [source] into a new photo file and returns its path; throws an IOException, and keeps nothing, past 50 MB. */
     suspend fun importPhoto(ref: String, questionId: String, source: InputStream): String
 
     /** A fresh file for a photo of [questionId]: a new name each time, so an image cache never shows a replaced shot. */

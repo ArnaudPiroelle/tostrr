@@ -1,5 +1,7 @@
 package app.tostrr.ui.checklist
 
+import java.io.IOException
+import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
@@ -90,8 +92,13 @@ class ChecklistViewModel(
                 dispatchSideEffect(SideEffect.TakePhoto(action.questionId, file.absolutePath))
             }
             is Action.OnImportPhoto -> {
+                if (!isImportableImage(action.uri)) return
                 val input = context.contentResolver.openInputStream(action.uri) ?: return
-                val path = importChecklistPhotoUseCase(orderReference, action.questionId, input)
+                val path = try {
+                    importChecklistPhotoUseCase(orderReference, action.questionId, input)
+                } catch (_: IOException) {
+                    return
+                }
                 dispatchSideEffect(SideEffect.PhotoImported(action.questionId, path))
             }
             is Action.OnDeletePhoto -> deleteChecklistPhotoUseCase(action.path)
@@ -100,6 +107,15 @@ class ChecklistViewModel(
             Action.OnShareReport -> createChecklistReportUseCase(orderReference)?.let { dispatchSideEffect(SideEffect.ShareReport(it.absolutePath)) }
         }
     }
+
+    /**
+     * Only an image another app serves: opened with this app's rights, a file:// URI or one of its own providers would
+     * copy its private files into the photos, and from there into a report the user shares.
+     */
+    private fun isImportableImage(uri: Uri): Boolean =
+        uri.scheme == ContentResolver.SCHEME_CONTENT &&
+            uri.authority?.startsWith(context.packageName) == false &&
+            context.contentResolver.getType(uri)?.startsWith("image/") == true
 
     sealed interface Phase {
         data object Loading : Phase
