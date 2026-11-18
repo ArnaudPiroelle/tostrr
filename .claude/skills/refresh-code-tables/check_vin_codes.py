@@ -15,6 +15,9 @@ SECTIONS = {
     "battery": 1, "motor": 1, "model_year": 1, "factory": 1,
 }
 VIN_CHARS = re.compile(r"^[A-HJ-NPR-Z0-9]+$")
+# C0 and C1 controls, zero-width and bidi characters: they can hide or reorder text, in a terminal or in the app.
+UNSAFE = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+TEXT_MAX = 200
 LANGUAGES = {"en", "fr"}
 
 
@@ -31,7 +34,7 @@ def check(table):
         return errors + ["`codes` must be a non-empty list"]
     seen = set()
     for i, entry in enumerate(codes):
-        where = f"codes[{i}] ({entry.get('section')} {entry.get('code')})"
+        where = f"codes[{i}] ({ascii(entry.get('section'))} {ascii(entry.get('code'))})"
         section, code = entry.get("section"), entry.get("code", "")
         if section not in SECTIONS:
             errors.append(f"{where}: unknown section, expected one of {sorted(SECTIONS)}")
@@ -41,6 +44,8 @@ def check(table):
         value = entry.get("value", {})
         if set(value) != LANGUAGES or any(not str(v).strip() for v in value.values()):
             errors.append(f"{where}: `value` needs a non-empty text in each of {sorted(LANGUAGES)}, and only those")
+        elif any(len(str(v)) > TEXT_MAX or UNSAFE.search(str(v)) for v in value.values()):
+            errors.append(f"{where}: a text is longer than {TEXT_MAX} characters, or holds a control, zero-width or bidi character")
         if key(entry) in seen:
             errors.append(f"{where}: duplicate of an earlier entry with the same section and code")
         seen.add(key(entry))
