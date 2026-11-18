@@ -61,6 +61,13 @@ class OrderRepositoryImpl(
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()
 
+    /**
+     * Bumped by [clear], which can't wait for [refreshLock]: a pull started before a logout drops what it fetched
+     * instead of bringing the logged-out account's orders back. Checked and written under [writeLock], with the files.
+     */
+    private var session = 0
+    private val writeLock = Any()
+
     private val dir = context.filesDir
     private val ordersFile = File(dir, "orders.json")
     private val historyFile = File(dir, "history.json")
@@ -92,6 +99,7 @@ class OrderRepositoryImpl(
     }
 
     private suspend fun pull(manual: Boolean) {
+        val started = synchronized(writeLock) { session }
         refreshLock.withLock {
             val token = auth.validAccessToken() ?: throw AuthException(AuthError.NOT_LOGGED_IN)
             val now = System.currentTimeMillis()
@@ -120,17 +128,21 @@ class OrderRepositoryImpl(
             }
             // Every order failing is an outage, not one bad order: report it rather than pass old details off as new.
             if (fresh.isNotEmpty() && failures.size == fresh.size) throw failures.first()
-            recordChanges(_orders.value, fresh, now)
-            _orders.value = fresh.withVinDates()
-            persist(fresh)
-            saveHistory(_history.value)
+            synchronized(writeLock) {
+                if (session != started) return
+                recordChanges(_orders.value, fresh, now)
+                _orders.value = fresh.withVinDates()
+            }
+            persist(fresh, started)
+            saveHistory(_history.value, started)
             dropLegacyArchive()
+            if (!current(started)) return
             notifier.clearSyncProblem()
             fresh.forEach { notifier.notifyReminder(it, now) }
             notifier.notifyDigest(_history.value, now)
         }
         // Best effort and outside the lock: a slow or unreachable site must not delay or fail a sync.
-        if (_orders.value.any { it.awaitingDelivery && ShipVoyages.tracks(it.vin) }) shipTracker.refresh(force = manual)
+        if (current(started) && _orders.value.any { it.awaitingDelivery && ShipVoyages.tracks(it.vin) }) shipTracker.refresh(force = manual)
     }
 
     /**
@@ -156,13 +168,19 @@ class OrderRepositoryImpl(
     }
 
     override fun clear() {
+        synchronized(writeLock) {
+            session++
+            ordersFile.delete()
+            historyFile.delete()
+            _orders.value = emptyList()
+            _history.value = emptyMap()
+        }
         partsCatalog.clear()
         shipTracker.clear()
-        ordersFile.delete()
-        historyFile.delete()
-        _orders.value = emptyList()
-        _history.value = emptyMap()
+        notifier.clear()
     }
+
+    private fun current(started: Int) = synchronized(writeLock) { session == started }
 
     private fun List<Order>.withVinDates() = map { it.withVinAssignmentDate(_history.value[it.reference].orEmpty()) }
 
@@ -200,8 +218,9 @@ class OrderRepositoryImpl(
     }
 
     /** Up to [MAX_CHANGES_PER_ORDER] entries of [MAX_VALUE_CHARS] each: too big to encode and write on the main thread. */
-    private suspend fun saveHistory(history: Map<String, List<Change>>) = withContext(Dispatchers.IO) {
-        runCatching { historyFile.writeText(encodeHistory(history)) }
+    private suspend fun saveHistory(history: Map<String, List<Change>>, started: Int) = withContext(Dispatchers.IO) {
+        val text = encodeHistory(history)
+        synchronized(writeLock) { if (session == started) runCatching { historyFile.writeText(text) } }
     }
 
     private fun JsonDiff.Delta.toChange(now: Long) = Change(
@@ -226,13 +245,9 @@ class OrderRepositoryImpl(
         runCatching { legacyArchiveDir?.takeIf { it.exists() }?.deleteRecursively() }
     }
 
-    private suspend fun persist(orders: List<Order>) = withContext(Dispatchers.IO) {
-        runCatching {
-            val arr = buildJsonArray {
-                orders.forEach { add(it.toCacheJson()) }
-            }
-            ordersFile.writeText(arr.toString())
-        }
+    private suspend fun persist(orders: List<Order>, started: Int) = withContext(Dispatchers.IO) {
+        val text = buildJsonArray { orders.forEach { add(it.toCacheJson()) } }.toString()
+        synchronized(writeLock) { if (session == started) runCatching { ordersFile.writeText(text) } }
     }
 
     /** Tesla's payloads under `raw`, what the app found out itself next to them under [LOCAL]. */
