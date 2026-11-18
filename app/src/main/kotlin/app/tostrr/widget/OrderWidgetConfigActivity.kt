@@ -47,16 +47,18 @@ class OrderWidgetConfigActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // A short-lived picker: the theme chosen when it opens is kept.
-        val dark = observeThemeModeUseCase().value.isDark(resources.configuration)
-        applySystemBars(dark)
         // If the user backs out, the launcher must not place the widget.
         setResult(RESULT_CANCELED)
         widgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+        // Exported, as the launcher needs: any app can start it, with any id. Only a widget of this app is configured.
+        val provider = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId)?.provider
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID || provider?.packageName != packageName) {
             finish()
             return
         }
+        // A short-lived picker: the theme chosen when it opens is kept.
+        val dark = observeThemeModeUseCase().value.isDark(resources.configuration)
+        applySystemBars(dark)
 
         val orders = observeOrdersUseCase().value
         if (orders.size == 1) {
@@ -96,7 +98,11 @@ class OrderWidgetConfigActivity : ComponentActivity() {
 
     private fun choose(order: Order) {
         lifecycleScope.launch {
-            val glanceId = GlanceAppWidgetManager(this@OrderWidgetConfigActivity).getGlanceIdBy(widgetId)
+            // Gone in the meantime, removed by the user: nothing to configure any more.
+            val glanceId = runCatching { GlanceAppWidgetManager(this@OrderWidgetConfigActivity).getGlanceIdBy(widgetId) }.getOrElse {
+                finish()
+                return@launch
+            }
             updateAppWidgetState(this@OrderWidgetConfigActivity, PreferencesGlanceStateDefinition, glanceId) { prefs: Preferences ->
                 prefs.toMutablePreferences().apply { this[OrderRefKey] = order.reference }
             }
