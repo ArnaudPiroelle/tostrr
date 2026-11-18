@@ -1,5 +1,10 @@
 package app.tostrr.data.auth
 
+import org.junit.Assert.assertTrue
+import javax.crypto.SecretKey
+import javax.crypto.Cipher
+import java.security.KeyStore
+import android.util.Base64
 import android.content.Context
 import app.tostrr.data.testing.FakeAndroidKeyStore
 import org.junit.Assert.assertEquals
@@ -71,5 +76,25 @@ class TokenStoreTest {
         context.getSharedPreferences("tostrr_secure", Context.MODE_PRIVATE).edit()
             .putString("access", "bm90IGVuY3J5cHRlZCBhdCBhbGw=").putString("refresh", "garbage").commit()
         assertNull(store.load())
+    }
+
+    @Test fun `a value moved under another key no longer decrypts`() {
+        store.save(Tokens("access", "refresh", 1L))
+        val prefs = context.getSharedPreferences("tostrr_secure", Context.MODE_PRIVATE)
+        prefs.edit().putString("access", prefs.getString("refresh", null)).commit()
+        assertNull(store.load())
+    }
+
+    @Test fun `a value saved by an older version is still read, and saved again bound to its key`() {
+        store.save(Tokens("access", "refresh", 1L))
+        val prefs = context.getSharedPreferences("tostrr_secure", Context.MODE_PRIVATE)
+        // As older versions wrote it: no associated data, no prefix.
+        val key = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.getKey("tostrr_token_key", null) as SecretKey
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key) }
+        prefs.edit().putString("access", Base64.encodeToString(cipher.iv + cipher.doFinal("old-access".toByteArray()), Base64.NO_WRAP)).commit()
+
+        assertEquals("old-access", store.load()?.accessToken)
+        assertTrue(prefs.getString("access", null)!!.startsWith("v2:"))
+        assertEquals("old-access", TokenStore(context).load()?.accessToken)
     }
 }

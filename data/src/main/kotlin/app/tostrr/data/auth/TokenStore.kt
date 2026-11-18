@@ -39,12 +39,16 @@ class TokenStore(context: Context) {
         KEY_EXP to tokens.expiresAtEpochSec.toString(),
     )
 
-    fun savePending(verifier: String, state: String) = write(KEY_VERIFIER to verifier, KEY_STATE to state)
+    fun savePending(verifier: String, state: String, startedAtEpochMs: Long = System.currentTimeMillis()) =
+        write(KEY_VERIFIER to verifier, KEY_STATE to state, KEY_STARTED to startedAtEpochMs.toString())
 
     fun pendingVerifier(): String? = read(KEY_VERIFIER)
     fun pendingState(): String? = read(KEY_STATE)
 
-    fun clearPending() = prefs.edit().remove(KEY_VERIFIER).remove(KEY_STATE).apply()
+    /** When the pending login began; null for one saved by an older version, which kept no date. */
+    fun pendingStartedAt(): Long? = read(KEY_STARTED)?.toLongOrNull()
+
+    fun clearPending() = prefs.edit().remove(KEY_VERIFIER).remove(KEY_STATE).remove(KEY_STARTED).apply()
 
     fun saveProfile(profile: StoredProfile) =
         write(KEY_NAME to profile.fullName, KEY_AVATAR_URL to profile.avatarUrl.orEmpty())
@@ -59,12 +63,21 @@ class TokenStore(context: Context) {
 
     private fun write(vararg entries: Pair<String, String>) {
         val editor = prefs.edit()
-        entries.forEach { (key, value) -> editor.putString(key, encrypt(value)) }
+        entries.forEach { (key, value) -> editor.putString(key, encrypt(key, value)) }
         editor.apply()
     }
 
-    private fun read(key: String): String? =
-        prefs.getString(key, null)?.let { runCatching { decrypt(it) }.getOrNull() }
+    /** A value saved by an older version, encrypted without its key as associated data, is read once and saved again bound to it. */
+    private fun read(key: String): String? {
+        val stored = prefs.getString(key, null) ?: return null
+        return runCatching {
+            if (stored.startsWith(BOUND)) {
+                decrypt(stored.removePrefix(BOUND), key)
+            } else {
+                decrypt(stored, aad = null).also { write(key to it) }
+            }
+        }.getOrNull()
+    }
 
     private fun secretKey(): SecretKey {
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -83,17 +96,20 @@ class TokenStore(context: Context) {
         return gen.generateKey()
     }
 
-    private fun encrypt(plain: String): String {
+    /** The preference's [key] is the associated data: a value moved under another key no longer decrypts. */
+    private fun encrypt(key: String, plain: String): String {
         val cipher = Cipher.getInstance(TRANSFORM).apply { init(Cipher.ENCRYPT_MODE, secretKey()) }
+        cipher.updateAAD(key.toByteArray())
         val out = cipher.iv + cipher.doFinal(plain.toByteArray())
-        return Base64.encodeToString(out, Base64.NO_WRAP)
+        return BOUND + Base64.encodeToString(out, Base64.NO_WRAP)
     }
 
-    private fun decrypt(encoded: String): String {
+    private fun decrypt(encoded: String, aad: String?): String {
         val bytes = Base64.decode(encoded, Base64.NO_WRAP)
         val iv = bytes.copyOfRange(0, IV_SIZE)
         val cipher = Cipher.getInstance(TRANSFORM)
             .apply { init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, iv)) }
+        aad?.let { cipher.updateAAD(it.toByteArray()) }
         return String(cipher.doFinal(bytes, IV_SIZE, bytes.size - IV_SIZE))
     }
 
@@ -101,11 +117,14 @@ class TokenStore(context: Context) {
         const val KEY_ALIAS = "tostrr_token_key"
         const val TRANSFORM = "AES/GCM/NoPadding"
         const val IV_SIZE = 12
+        /** Marks a value encrypted with its key as associated data. */
+        const val BOUND = "v2:"
         const val KEY_ACCESS = "access"
         const val KEY_REFRESH = "refresh"
         const val KEY_EXP = "exp"
         const val KEY_VERIFIER = "pkce_verifier"
         const val KEY_STATE = "pkce_state"
+        const val KEY_STARTED = "pkce_started_at"
         const val KEY_NAME = "profile_name"
         const val KEY_AVATAR_URL = "profile_avatar_url"
     }
