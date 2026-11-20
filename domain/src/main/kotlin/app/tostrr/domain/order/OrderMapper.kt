@@ -45,7 +45,8 @@ object OrderMapper {
         val window = deliveryWindowFrom(tasks)
         val eta = ETA_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) } ?: tasks.deepFind("etaToDeliveryCenter")
         val licensePlate = PayloadStepDetectors.PLATE_PATHS.firstNotNullOfOrNull { tasks.stringAt(it) }
-        val expectedReg = tasks.deepFind("expectedRegDate")
+        // Not looked up by name: Tesla's display strings have an `expectedRegistrationDate` label.
+        val expectedReg = tasks.deepFind("expectedRegDate") ?: tasks.stringAt("registration.regData.regDetails.expectedRegistrationDate")
 
         val steps = listOf(
             OrderStep(StepKind.ORDERED, formatDate(booked), booked != null),
@@ -90,8 +91,10 @@ object OrderMapper {
             countryCode = order.str("countryCode") ?: scheduling.str("countryCode"),
             bookedOn = booked?.let { runCatching { LocalDate.parse(it.take(10)) }.getOrNull() },
             deliveryMethod = deliveryMethodFrom(tasks),
-            vehicleInfo = OrderInfoMapper.vehicle(tasks, booked, licensePlate),
+            vehicleInfo = OrderInfoMapper.vehicle(tasks, booked),
             paymentInfo = OrderInfoMapper.payment(tasks),
+            tradeInInfo = OrderInfoMapper.tradeIn(tasks),
+            registrationInfo = OrderInfoMapper.registration(tasks, licensePlate),
             local = local,
         )
     }

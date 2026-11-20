@@ -35,7 +35,9 @@ import app.tostrr.ui.detail.components.PaymentContent
 import app.tostrr.ui.detail.components.ProgressContent
 import app.tostrr.ui.detail.components.Section
 import app.tostrr.ui.detail.components.ShippingContent
+import app.tostrr.ui.detail.components.RegistrationContent
 import app.tostrr.ui.detail.components.StickyTopBar
+import app.tostrr.ui.detail.components.TradeInContent
 import app.tostrr.ui.detail.components.VehicleContent
 import app.tostrr.ui.detail.components.VinDecoderSheet
 import app.tostrr.ui.detail.components.titleRes
@@ -65,6 +67,9 @@ fun DetailScreen(
             DetailBlock.CHECKLIST -> showChecklist
             // Only while the ship carrying the car is known.
             DetailBlock.SHIPPING -> state.voyage != null
+            DetailBlock.TRADE_IN -> order.tradeInInfo.hasTradeIn
+            // Only once Tesla has a registration task, a plate or an expected day.
+            DetailBlock.REGISTRATION -> !order.registrationInfo.isEmpty || order.licensePlate != null || order.expectedRegistration != null
             else -> true
         }
     }
@@ -95,7 +100,9 @@ fun DetailScreen(
                             DetailBlock.VEHICLE -> section {
                                 VehicleContent(order, onDecodeVin = state.vinDecoding?.let { { decodingVin = true } })
                             }
+                            DetailBlock.REGISTRATION -> section { RegistrationContent(order) }
                             DetailBlock.PAYMENT -> section { PaymentContent(order) }
+                            DetailBlock.TRADE_IN -> section { TradeInContent(order) }
                             DetailBlock.CONFIGURATION -> section { ConfigurationContent(order, state.options) }
                             DetailBlock.HISTORY -> section {
                                 HistoryContent(

@@ -18,7 +18,10 @@ enum class DetailBlock(override val id: String, override val hiddenByDefault: Bo
     /** The step-by-step view; the one-line tracker above is enough by default. */
     PROGRESS("progress", hiddenByDefault = true),
     VEHICLE("vehicle"),
+    REGISTRATION("registration"),
     PAYMENT("payment"),
+    /** Shown only while the order has a trade-in. */
+    TRADE_IN("tradeIn"),
     CONFIGURATION("configuration"),
     HISTORY("history"),
 }
