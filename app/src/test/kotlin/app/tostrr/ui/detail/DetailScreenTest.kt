@@ -228,6 +228,14 @@ class DetailScreenTest {
         compose.onNodeWithText("Immatriculation").assertDoesNotExist()
     }
 
+    @Test fun `the data section at the bottom offers the export`() {
+        show()
+
+        compose.onNodeWithText("Données").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Exporter en JSON").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exporter en JSON").assertDoesNotExist()
+    }
+
     @Test fun `an unknown order shows nothing rather than crashing`() {
         show("RN404")
 

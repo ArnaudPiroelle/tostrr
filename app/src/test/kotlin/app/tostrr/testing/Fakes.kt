@@ -24,6 +24,7 @@ import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.OptionRepository
 import app.tostrr.domain.order.Order
+import app.tostrr.domain.order.OrderExportWriter
 import app.tostrr.domain.order.OrderRepository
 import app.tostrr.domain.shipping.ShipSnapshot
 import app.tostrr.domain.shipping.ShipTrackingRepository
@@ -291,5 +292,20 @@ class FakeChecklistReportWriter(private val dir: File) : ChecklistReportWriter {
     override suspend fun write(checklist: Checklist, order: Order?): File {
         written += checklist to order
         return File(dir, "checklist-${checklist.orderReference}.pdf").apply { writeText("%PDF") }
+    }
+}
+
+/** Keeps each export in a file, as the real writer does, and remembers what it was asked for. */
+class FakeOrderExportWriter(private val dir: File) : OrderExportWriter {
+    val written = mutableListOf<Pair<String, String>>()
+    var cleared = false
+
+    override suspend fun write(reference: String, json: String): File {
+        written += reference to json
+        return File(dir, "order-$reference.json").apply { writeText(json) }
+    }
+
+    override fun clear() {
+        cleared = true
     }
 }

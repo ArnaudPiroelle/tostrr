@@ -18,4 +18,5 @@ internal val DetailBlock.titleRes: Int
         DetailBlock.TRADE_IN -> R.string.detail_block_trade_in
         DetailBlock.CONFIGURATION -> R.string.detail_block_configuration
         DetailBlock.HISTORY -> R.string.detail_block_history
+        DetailBlock.DATA -> R.string.detail_block_data
     }

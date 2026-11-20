@@ -17,6 +17,7 @@ import app.tostrr.domain.layout.usecase.ToggleDetailBlockUseCase
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.OptionInfo
 import app.tostrr.domain.order.Order
+import app.tostrr.domain.order.usecase.ExportOrderUseCase
 import app.tostrr.domain.order.usecase.ObserveOptionCodesUseCase
 import app.tostrr.domain.order.usecase.ObserveOrderHistoryUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersUseCase
@@ -26,12 +27,13 @@ import app.tostrr.domain.shipping.usecase.ObserveShipSnapshotUseCase
 import app.tostrr.domain.vin.VinDecoding
 import app.tostrr.domain.vin.usecase.DecodeVinUseCase
 import app.tostrr.ui.architecture.BaseAction
+import app.tostrr.ui.architecture.BaseSideEffect
 import app.tostrr.ui.architecture.BaseState
 import app.tostrr.ui.architecture.BaseViewModel
-import app.tostrr.ui.architecture.NoSideEffect
 import app.tostrr.di.AppModule
 import app.tostrr.ui.common.GlobeLane
 import app.tostrr.ui.detail.DetailViewModel.Action
+import app.tostrr.ui.detail.DetailViewModel.SideEffect
 import app.tostrr.ui.detail.DetailViewModel.State
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,8 +68,9 @@ class DetailViewModel(
     private val toggleDetailBlockUseCase: ToggleDetailBlockUseCase,
     private val resetDetailLayoutUseCase: ResetDetailLayoutUseCase,
     private val toggleDetailBlockExpandedUseCase: ToggleDetailBlockExpandedUseCase,
+    private val exportOrderUseCase: ExportOrderUseCase,
     @Named(AppModule.BACKGROUND) background: CoroutineDispatcher,
-) : BaseViewModel<Action, State, NoSideEffect>() {
+) : BaseViewModel<Action, State, SideEffect>() {
 
     private val order = observeOrdersUseCase().map { orders -> orders.find(reference) }
 
@@ -133,6 +136,7 @@ class DetailViewModel(
             Action.OnResetLayout -> resetDetailLayoutUseCase()
             Action.OnToggleImportantOnly -> historyFilter.update { it.copy(importantOnly = !it.importantOnly, category = null) }
             is Action.OnSelectHistoryCategory -> historyFilter.update { it.copy(category = action.category) }
+            Action.OnExport -> exportOrderUseCase(reference)?.let { dispatchSideEffect(SideEffect.ShareExport(it.absolutePath)) }
         }
     }
 
@@ -168,5 +172,13 @@ class DetailViewModel(
 
         /** Shows only [category]'s changes; null shows every category. */
         data class OnSelectHistoryCategory(val category: ChangeCategory?) : Action()
+
+        /** Writes the order, its raw data and its history as a JSON file, to share. */
+        data object OnExport : Action()
+    }
+
+    sealed class SideEffect : BaseSideEffect {
+        /** The export at [path] is ready to be sent through the share sheet. */
+        data class ShareExport(val path: String) : SideEffect()
     }
 }

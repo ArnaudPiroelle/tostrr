@@ -24,6 +24,8 @@ enum class DetailBlock(override val id: String, override val hiddenByDefault: Bo
     TRADE_IN("tradeIn"),
     CONFIGURATION("configuration"),
     HISTORY("history"),
+    /** Exporting the order's data. */
+    DATA("data"),
 }
 
 /**

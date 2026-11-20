@@ -1,5 +1,7 @@
 package app.tostrr.ui.detail
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,25 +19,30 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import app.tostrr.R
 import app.tostrr.domain.layout.BlockLayouts
 import app.tostrr.domain.layout.DetailBlock
+import app.tostrr.ui.architecture.OnSideEffect
 import app.tostrr.ui.architecture.watchAsState
 import app.tostrr.ui.common.StepTracker
 import app.tostrr.ui.detail.DetailViewModel.Action
+import app.tostrr.ui.detail.DetailViewModel.SideEffect
 import app.tostrr.ui.detail.components.ChecklistCard
 import app.tostrr.ui.detail.components.ConfigurationContent
+import app.tostrr.ui.detail.components.DataContent
 import app.tostrr.ui.detail.components.DeliveryContent
 import app.tostrr.ui.detail.components.DetailLayoutSheet
 import app.tostrr.ui.detail.components.Hero
 import app.tostrr.ui.detail.components.HistoryContent
 import app.tostrr.ui.detail.components.PaymentContent
 import app.tostrr.ui.detail.components.ProgressContent
+import app.tostrr.ui.detail.components.RegistrationContent
 import app.tostrr.ui.detail.components.Section
 import app.tostrr.ui.detail.components.ShippingContent
-import app.tostrr.ui.detail.components.RegistrationContent
 import app.tostrr.ui.detail.components.StickyTopBar
 import app.tostrr.ui.detail.components.TradeInContent
 import app.tostrr.ui.detail.components.VehicleContent
@@ -43,6 +50,7 @@ import app.tostrr.ui.detail.components.VinDecoderSheet
 import app.tostrr.ui.detail.components.titleRes
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import java.io.File
 
 @Composable
 fun DetailScreen(
@@ -53,6 +61,13 @@ fun DetailScreen(
     viewModel: DetailViewModel = koinViewModel { parametersOf(reference) },
 ) {
     val state by viewModel.watchAsState()
+    val context = LocalContext.current
+    val exportTitle = stringResource(R.string.detail_export_chooser, reference)
+    OnSideEffect(viewModel) { effect ->
+        when (effect) {
+            is SideEffect.ShareExport -> context.startActivity(exportIntent(context, effect.path, exportTitle))
+        }
+    }
     val order = state.order ?: return
     val checklist = state.checklist
     val layout = state.layout
@@ -113,6 +128,7 @@ fun DetailScreen(
                                     onSelectCategory = { viewModel.handle(Action.OnSelectHistoryCategory(it)) },
                                 )
                             }
+                            DetailBlock.DATA -> section { DataContent(onExport = { viewModel.handle(Action.OnExport) }) }
                         }
                     }
                 }
@@ -138,4 +154,16 @@ fun DetailScreen(
     }
 
     state.vinDecoding?.takeIf { decodingVin }?.let { VinDecoderSheet(it, onDismiss = { decodingVin = false }) }
+}
+
+/** Sends the JSON export through the share sheet, where it can also be saved to a file. */
+private fun exportIntent(context: Context, path: String, title: String): Intent {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(path))
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "application/json"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, title)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return Intent.createChooser(intent, title)
 }

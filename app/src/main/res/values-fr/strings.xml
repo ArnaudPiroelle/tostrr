@@ -166,6 +166,11 @@
     <string name="detail_registration_todo_licence">Ajouter votre permis de conduire dans l\'app Tesla</string>
     <string name="detail_registration_todo_co_owner">Le co-titulaire doit compléter sa partie</string>
     <string name="detail_registration_todo_identity">Vérifier votre identité dans l\'app Tesla</string>
+    <string name="detail_block_data">Données</string>
+    <string name="detail_block_data_blurb">Exporter les données de la commande pour les garder ou les envoyer.</string>
+    <string name="detail_data_export_text">Les données de Tesla et l\'historique de la commande.</string>
+    <string name="detail_export">Exporter en JSON</string>
+    <string name="detail_export_chooser">Export Tostrr de la commande %1$s</string>
     <string name="detail_block_trade_in">Reprise</string>
     <string name="detail_block_trade_in_blurb">Le véhicule que vous faites reprendre, l\'offre de Tesla et ce qui est transféré.</string>
     <string name="detail_trade_in_no_offer">Tesla n\'a pas encore estimé votre véhicule.</string>

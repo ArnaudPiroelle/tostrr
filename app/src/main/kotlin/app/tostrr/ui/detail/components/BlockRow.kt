@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.DirectionsBoat
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -62,6 +63,7 @@ private val DetailBlock.blurbRes: Int
         DetailBlock.TRADE_IN -> R.string.detail_block_trade_in_blurb
         DetailBlock.CONFIGURATION -> R.string.detail_block_configuration_blurb
         DetailBlock.HISTORY -> R.string.detail_block_history_blurb
+        DetailBlock.DATA -> R.string.detail_block_data_blurb
     }
 
 private val DetailBlock.icon: ImageVector
@@ -77,6 +79,7 @@ private val DetailBlock.icon: ImageVector
         DetailBlock.TRADE_IN -> Icons.Outlined.SwapHoriz
         DetailBlock.CONFIGURATION -> Icons.Outlined.Tune
         DetailBlock.HISTORY -> Icons.Outlined.History
+        DetailBlock.DATA -> Icons.Outlined.DataObject
     }
 
 @Composable

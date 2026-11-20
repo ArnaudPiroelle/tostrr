@@ -168,6 +168,11 @@
     <string name="detail_registration_todo_licence">Add your driving licence in the Tesla app</string>
     <string name="detail_registration_todo_co_owner">The co-owner has to complete their part</string>
     <string name="detail_registration_todo_identity">Verify your identity in the Tesla app</string>
+    <string name="detail_block_data">Data</string>
+    <string name="detail_block_data_blurb">Export the order\'s data to keep or send it.</string>
+    <string name="detail_data_export_text">Tesla\'s data and the order\'s history.</string>
+    <string name="detail_export">Export as JSON</string>
+    <string name="detail_export_chooser">Tostrr export of order %1$s</string>
     <string name="detail_block_trade_in">Trade-in</string>
     <string name="detail_block_trade_in_blurb">The car you trade in, Tesla\'s offer and what carries over.</string>
     <string name="detail_trade_in_no_offer">Tesla hasn\'t valued your car yet.</string>

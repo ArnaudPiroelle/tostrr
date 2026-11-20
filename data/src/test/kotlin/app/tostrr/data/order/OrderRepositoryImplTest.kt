@@ -53,7 +53,7 @@ class OrderRepositoryImplTest {
 
     /** A new repository over the same files, as after a restart of the app. */
     private fun repository(): OrderRepositoryImpl {
-        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), PartsCatalog(http.client, context), ShipTracker(http.client, context), OrderNotifier(context, OptionCatalog(context), NotificationSettingsRepositoryImpl(context)))
+        return OrderRepositoryImpl(context, TeslaApi(http.client), TeslaAuth(http.client, store), PartsCatalog(http.client, context), ShipTracker(http.client, context), OrderNotifier(context, OptionCatalog(context), NotificationSettingsRepositoryImpl(context)), OrderExportFiles(context))
     }
 
     private fun orders(vararg orders: String) = http.on("/api/1/users/orders", """{"response":[${orders.joinToString(",")}]}""")
@@ -355,13 +355,24 @@ class OrderRepositoryImplTest {
                 chain.proceed(chain.request())
             }
         }.build()
-        repository = OrderRepositoryImpl(context, TeslaApi(client), TeslaAuth(client, store), PartsCatalog(client, context), ShipTracker(client, context), OrderNotifier(context, OptionCatalog(context), NotificationSettingsRepositoryImpl(context)))
+        repository = OrderRepositoryImpl(context, TeslaApi(client), TeslaAuth(client, store), PartsCatalog(client, context), ShipTracker(client, context), OrderNotifier(context, OptionCatalog(context), NotificationSettingsRepositoryImpl(context)), OrderExportFiles(context))
 
         repository.refresh()
 
         assertTrue(repository.orders.value.isEmpty())
         assertTrue(repository.history.value.isEmpty())
         assertFalse(File(context.filesDir, "orders.json").exists())
+    }
+
+    @Test fun `an order export is written for sharing, and gone once logged out`() = runTest {
+        val exports = OrderExportFiles(context)
+        val file = exports.write("RN-1/../x", """{"reference":"RN1"}""")
+        assertEquals(File(context.cacheDir, "exports/order-RN1x.json"), file)
+        assertEquals("""{"reference":"RN1"}""", file.readText())
+
+        repository().clear()
+
+        assertFalse(file.exists())
     }
 
     @Test fun `clearing takes the account's notifications out of the shade`() {
