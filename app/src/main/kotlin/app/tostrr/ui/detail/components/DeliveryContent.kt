@@ -19,8 +19,7 @@ internal fun DeliveryContent(order: Order, center: DeliveryCenter?) {
     KeyValue(stringResource(R.string.detail_delivery_appointment), order.appointment)
     KeyValue(stringResource(R.string.detail_delivery_window), order.deliveryWindow)
     KeyValue(stringResource(R.string.detail_delivery_eta), order.etaToDeliveryCenter)
-    KeyValue(stringResource(R.string.detail_delivery_registration), order.expectedRegistration)
-    if (order.deliveryMethod == null && listOf(order.deliveryCenter, order.appointment, order.deliveryWindow, order.etaToDeliveryCenter, order.expectedRegistration).all { it.isNullOrBlank() }) {
+    if (order.deliveryMethod == null && listOf(order.deliveryCenter, order.appointment, order.deliveryWindow, order.etaToDeliveryCenter).all { it.isNullOrBlank() }) {
         Empty(stringResource(R.string.detail_delivery_empty))
     }
 }

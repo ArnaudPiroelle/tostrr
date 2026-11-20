@@ -13,7 +13,10 @@ internal val DetailBlock.titleRes: Int
         DetailBlock.SHIPPING -> R.string.detail_block_shipping
         DetailBlock.PROGRESS_TRACKER, DetailBlock.PROGRESS -> R.string.detail_block_progress
         DetailBlock.VEHICLE -> R.string.detail_block_vehicle
+        DetailBlock.REGISTRATION -> R.string.detail_block_registration
         DetailBlock.PAYMENT -> R.string.detail_block_payment
+        DetailBlock.TRADE_IN -> R.string.detail_block_trade_in
         DetailBlock.CONFIGURATION -> R.string.detail_block_configuration
         DetailBlock.HISTORY -> R.string.detail_block_history
+        DetailBlock.DATA -> R.string.detail_block_data
     }

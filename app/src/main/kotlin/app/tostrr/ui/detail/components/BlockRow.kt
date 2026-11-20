@@ -13,13 +13,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.DirectionsBoat
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.FactCheck
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.LinearScale
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -55,9 +58,12 @@ private val DetailBlock.blurbRes: Int
         DetailBlock.PROGRESS_TRACKER -> R.string.detail_block_progress_tracker_blurb
         DetailBlock.PROGRESS -> R.string.detail_block_progress_blurb
         DetailBlock.VEHICLE -> R.string.detail_block_vehicle_blurb
+        DetailBlock.REGISTRATION -> R.string.detail_block_registration_blurb
         DetailBlock.PAYMENT -> R.string.detail_block_payment_blurb
+        DetailBlock.TRADE_IN -> R.string.detail_block_trade_in_blurb
         DetailBlock.CONFIGURATION -> R.string.detail_block_configuration_blurb
         DetailBlock.HISTORY -> R.string.detail_block_history_blurb
+        DetailBlock.DATA -> R.string.detail_block_data_blurb
     }
 
 private val DetailBlock.icon: ImageVector
@@ -68,9 +74,12 @@ private val DetailBlock.icon: ImageVector
         DetailBlock.PROGRESS_TRACKER -> Icons.Outlined.LinearScale
         DetailBlock.PROGRESS -> Icons.Outlined.Timeline
         DetailBlock.VEHICLE -> Icons.Outlined.DirectionsCar
+        DetailBlock.REGISTRATION -> Icons.Outlined.Description
         DetailBlock.PAYMENT -> Icons.Outlined.Payments
+        DetailBlock.TRADE_IN -> Icons.Outlined.SwapHoriz
         DetailBlock.CONFIGURATION -> Icons.Outlined.Tune
         DetailBlock.HISTORY -> Icons.Outlined.History
+        DetailBlock.DATA -> Icons.Outlined.DataObject
     }
 
 @Composable

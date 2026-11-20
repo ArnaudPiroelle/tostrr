@@ -47,6 +47,8 @@ data class Order(
     val deliveryMethod: DeliveryMethod? = null,
     val vehicleInfo: VehicleInfo = VehicleInfo(),
     val paymentInfo: PaymentInfo = PaymentInfo(),
+    val tradeInInfo: TradeInInfo = TradeInInfo(),
+    val registrationInfo: RegistrationInfo = RegistrationInfo(),
     /** What the app found out about the order itself, kept apart from Tesla's payloads in [raw]. */
     val local: LocalSignals = LocalSignals(),
 ) {

@@ -14,6 +14,12 @@ import androidx.compose.ui.test.performSemanticsAction
 import app.tostrr.domain.deliverycenter.DeliveryCenter
 import app.tostrr.domain.order.Change
 import app.tostrr.domain.order.LocalSignals
+import app.tostrr.domain.order.RegistrationInfo
+import app.tostrr.domain.order.RegistrationStage
+import app.tostrr.domain.order.RegistrationTodo
+import app.tostrr.domain.order.TradeInAction
+import app.tostrr.domain.order.TradeInInfo
+import app.tostrr.domain.order.TradeInTransfer
 import app.tostrr.domain.shipping.GeoPosition
 import app.tostrr.domain.shipping.Ship
 import app.tostrr.domain.shipping.ShipSnapshot
@@ -154,6 +160,80 @@ class DetailScreenTest {
 
         compose.onNodeWithText("VIN: inconnu").assertIsDisplayed()
         compose.onNodeWithContentDescription("Copier le VIN").assertDoesNotExist()
+    }
+
+    @Test fun `a trade-in gets its section, worded`() {
+        graph.orders.orders.value = listOf(
+            order("RN1").copy(
+                tradeInInfo = TradeInInfo(
+                    intent = "Yes",
+                    vehicle = "2019 Tesla Model 3",
+                    mileage = "84 322 km",
+                    estimatedValue = "21 500 €",
+                    action = TradeInAction.ACCEPT_OFFER,
+                    transfers = listOf(TradeInTransfer.FSD, TradeInTransfer.FREE_SUPERCHARGING),
+                ),
+            ),
+        )
+        show()
+
+        compose.onNodeWithText("Reprise").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("2019 Tesla Model 3").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("84 322 km").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("21 500 €").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Accepter l'offre dans l'app Tesla").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Conduite entièrement autonome, Supercharge gratuite").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `a trade-in Tesla hasn't valued yet says so`() {
+        graph.orders.orders.value = listOf(order("RN1").copy(tradeInInfo = TradeInInfo(intent = "Yes")))
+        show()
+
+        compose.onNodeWithText("Tesla n'a pas encore estimé votre véhicule.").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `no trade-in section when the buyer has none`() {
+        graph.orders.orders.value = listOf(order("RN1").copy(tradeInInfo = TradeInInfo(intent = "No")))
+        show()
+
+        compose.onNodeWithText("Reprise").assertDoesNotExist()
+    }
+
+    @Test fun `the registration gets its section, worded`() {
+        graph.orders.orders.value = listOf(
+            order("RN1").copy(
+                licensePlate = "AB-123-CD",
+                expectedRegistration = "01/12/26",
+                registrationInfo = RegistrationInfo(
+                    stage = RegistrationStage.AWAITING_PLATE,
+                    holder = "Jeanne Martin",
+                    todo = listOf(RegistrationTodo.DRIVING_LICENCE, RegistrationTodo.IDENTITY),
+                ),
+            ),
+        )
+        show()
+
+        compose.onNodeWithText("Immatriculation").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("En attente de la plaque").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Jeanne Martin").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("01/12/26").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("AB-123-CD").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ajouter votre permis de conduire dans l'app Tesla").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Vérifier votre identité dans l'app Tesla").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `no registration section before Tesla has anything about it`() {
+        show()
+
+        compose.onNodeWithText("Immatriculation").assertDoesNotExist()
+    }
+
+    @Test fun `the data section at the bottom offers the export`() {
+        show()
+
+        compose.onNodeWithText("Données").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Exporter en JSON").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exporter en JSON").assertDoesNotExist()
     }
 
     @Test fun `an unknown order shows nothing rather than crashing`() {

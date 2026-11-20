@@ -12,14 +12,17 @@ import app.tostrr.domain.vin.VinSection
 import app.tostrr.testing.MainDispatcherRule
 import app.tostrr.testing.TestGraph
 import app.tostrr.testing.order
+import app.tostrr.testing.sideEffects
 import app.tostrr.testing.watch
 import app.tostrr.ui.detail.DetailViewModel.Action
+import app.tostrr.ui.detail.DetailViewModel.SideEffect
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 
 class DetailViewModelTest {
     @get:Rule val main = MainDispatcherRule()
@@ -30,6 +33,29 @@ class DetailViewModelTest {
         orders.orders.value = listOf(order("RN1"), order("RN2", deliveryCenter = null))
         orders.history.value = mapOf("RN1" to listOf(change), "RN2" to emptyList())
         deliveryCenters += center
+    }
+
+    @Test fun `exporting writes the order with its history, then shares the file`() = runTest {
+        val viewModel = graph.detailViewModel("RN1")
+        val effects = sideEffects(viewModel)
+
+        viewModel.handle(Action.OnExport)
+
+        val (reference, json) = graph.exports.written.single()
+        assertEquals("RN1", reference)
+        assertTrue(json.contains("\"path\": \"status\""))
+        val path = (effects.single() as SideEffect.ShareExport).path
+        assertEquals(json, File(path).readText())
+    }
+
+    @Test fun `an order no longer known has nothing to export`() = runTest {
+        val viewModel = graph.detailViewModel("RN404")
+        val effects = sideEffects(viewModel)
+
+        viewModel.handle(Action.OnExport)
+
+        assertTrue(graph.exports.written.isEmpty())
+        assertTrue(effects.isEmpty())
     }
 
     @Test fun `opens already showing the order`() {

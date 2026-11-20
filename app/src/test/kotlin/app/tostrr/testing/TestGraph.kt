@@ -32,6 +32,7 @@ import app.tostrr.domain.layout.usecase.ToggleDetailBlockExpandedUseCase
 import app.tostrr.domain.layout.usecase.ToggleDetailBlockUseCase
 import app.tostrr.domain.notification.usecase.ObserveNotificationSettingsUseCase
 import app.tostrr.domain.notification.usecase.SetNotificationEnabledUseCase
+import app.tostrr.domain.order.usecase.ExportOrderUseCase
 import app.tostrr.domain.order.usecase.ObserveOptionCodesUseCase
 import app.tostrr.domain.order.usecase.ObserveOrderHistoryUseCase
 import app.tostrr.domain.order.usecase.ObserveOrdersSyncingUseCase
@@ -85,6 +86,7 @@ class TestGraph(
     val vinCodes = FakeVinCodeRepository()
     val checklists = FakeChecklistRepository(Files.createTempDirectory("photos").toFile())
     val reports = FakeChecklistReportWriter(Files.createTempDirectory("reports").toFile())
+    val exports = FakeOrderExportWriter(Files.createTempDirectory("exports").toFile())
 
     private val startBackgroundSync get() = StartBackgroundSyncUseCase(auth, scheduler, syncSettings)
     private val logout get() = LogoutUseCase(auth, scheduler, orders, account)
@@ -132,6 +134,7 @@ class TestGraph(
         ToggleDetailBlockUseCase(layout),
         ResetDetailLayoutUseCase(layout),
         ToggleDetailBlockExpandedUseCase(layout),
+        ExportOrderUseCase(orders, exports),
         Dispatchers.Unconfined,
     )
 

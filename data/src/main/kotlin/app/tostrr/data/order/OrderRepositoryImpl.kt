@@ -57,6 +57,7 @@ class OrderRepositoryImpl(
     private val partsCatalog: PartsCatalog,
     private val shipTracker: ShipTracker,
     private val notifier: OrderNotifier,
+    private val exports: OrderExportFiles,
 ) : OrderRepository {
     /** Serialises manual and background refreshes so they never diff against a half-updated state. */
     private val refreshLock = Mutex()
@@ -184,6 +185,7 @@ class OrderRepositoryImpl(
         partsCatalog.clear()
         shipTracker.clear()
         notifier.clear()
+        exports.clear()
     }
 
     private fun current(started: Int) = synchronized(writeLock) { session == started }
